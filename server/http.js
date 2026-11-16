@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { logger } from './logger.js';
+import { db } from './db.js';
 
 export class HttpError extends Error {
   constructor(status, message) {
@@ -18,6 +19,23 @@ export function parse(schema, data) {
 }
 
 export const uuid = z.string().uuid('Invalid id.');
+
+export async function loadInCommunity(table, id, req, fields = '*') {
+  const { data, error } = await db
+    .from(table)
+    .select(fields)
+    .eq('id', id)
+    .eq('community_id', req.user?.community_id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    const entity = table.endsWith('s') ? table.slice(0, -1) : table;
+    const name = entity.charAt(0).toUpperCase() + entity.slice(1);
+    throw new HttpError(404, `${name} not found.`);
+  }
+  return data;
+}
 
 export function errorHandler(err, req, res, _next) {
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
