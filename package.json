@@ -28,6 +28,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "@upstash/ratelimit": "^2.2.1",
+    "@upstash/redis": "^1.41.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
