@@ -5,28 +5,23 @@
 ## Current status
 
 - Day: 2
-- Branch: main
-- Last green check: npm run lint, npm test, npm run build (Day 2 Phase B complete, 111 tests passing)
-- First task for next session / phase: Day 2 Phase C, task D2-07 (Normalization upgrade: strip zero-width/look-alike chars, collapse repeats, Scunthorpe-safe matching)
+- Branch: feat/d2-moderation
+- Last green check: npm run lint, npm test, npm run build (Day 2 Phase C complete, 138 tests passing)
+- First task for next session / phase: Day 2 Phase D, task D2-11 (Upstash rate limiter wrapper server/rateLimit.js)
 
 ## Blocked / needs owner
 
-- (none)
+- Upstash Redis credentials for Phase D (or note whether REST URL/token available for live smoke check)
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Environment validation via Zod with fail-fast on startup.
-- Supabase migrations structure established; baseline schema versioned.
-- Production guard requires `APPROVED_TEST_SUPABASE_URL` to match `SUPABASE_URL` before allowing test seeding.
-- Token revocation enabled via `users.token_version` check in `requireAuth` and bumped on `POST /api/auth/logout-all` or password reset.
-- Structured logging with Pino & Pino-HTTP enforcing request ID propagation (`X-Request-Id`) and strict secret/body redaction.
-- Health endpoint verifies database connectivity (`{ ok: true, db: true }`), returning 503 on database unavailability.
-- Foreign object lookups across all community resources (`/api/messages/with/:id`, `POST /api/reports`, etc.) return 404 rather than leaking entity existence across tenant boundaries.
-- Central scoped loader `loadInCommunity(table, id, req, fields)` added to `server/http.js` and re-exported from `server/db.js` for uniform community isolation.
-- Cursor pagination on posts (`GET /api/posts?before=<iso>&limit<=50&category=<cat>`) returning `{ posts, nextCursor }`.
-- Duplicate post text rejection within 10 minutes (409) and 3s minimum posting interval guard (429 with `Retry-After`).
-- Polls anonymity guarantee: voter identities never exposed in poll listings or summaries. Early close supported for author and admin. Option percentages protected against divide-by-zero.
-- Messages enforce self-DM rejection (400), target community/status verification (404), and strict two-party thread isolation.
+- Moderation layer split modularly into `server/lib/normalize.js`, `server/lib/detectors.js`, `server/lib/spam.js`, `server/lib/llm.js`, and `server/lib/rejections.js`.
+- Zero-width character stripping handles `\u200B..\u200F`, `\u202A..\u202E`, `\u2060`, `\uFEFF`, soft hyphens, and directional markers.
+- NFKD normalization and homoglyph mapping catches Cyrillic lookalikes (`і`, `с`, `а`, `е`, `ѕ`, `о`), symbol substitutions (`$`, `@`, `4`, `1`, `!`, `|`), and collapsed repeated characters.
+- Scunthorpe safety: whole-word matching and repeat-collapsed token checks ensure innocent words (e.g., `skill`, `skillet`, `shuttle`, `closer`) are never falsely blocked.
+- Spam heuristics reject excessive repetitions (6+ identical consecutive characters, 4+ repeated words), >= 70% ALL CAPS (min 10 characters), and reject all links/URLs in v1.
+- LLM moderation client strictly validates JSON output with Zod (`{ allowed: boolean, reason?: string }`), encapsulates user text in `<user_text>` tags without user metadata, enforces 4s timeout, and fails open safely on provider errors.
+- Repeat moderation rejections (5 within 1 hour) automatically update user status to `muted` in the database, block content mutation with 403, and insert an open system report into the admin reports queue.
 
 ## Parked ideas (not in scope now)
 
@@ -34,7 +29,12 @@
 
 ## Session log
 
-### Session 6 - Day 2 Phase B (Posts, Polls, Messages Rules)
+### Session 7 - Day 2 Phase C (Moderation & Spam: D2-07..D2-10)
+
+- Task D2-07: Split moderation into modular normalize and detectors. Added zero-width stripping, NFKD decomposition, Cyrillic look-alike homoglyph mapping, repeat collapsing, single-letter despace run handling, spelled-out emails, and social handle detectors. Updated `tests/unit/moderation.test.js` covering MOD-01, MOD-02, MOD-03 (16 unit tests).
+- Task D2-08: Added configurable spam heuristics in `server/config.js` (`spam` options) and `server/lib/spam.js` covering character/word repetition, ALL CAPS ratios, and link rejection in v1. Added unit tests for spam heuristics (11 tests).
+- Task D2-09: Isolated LLM client into `server/lib/llm.js` with strict Zod schema validation, injection-resistant `<user_text>` framing without usernames or IDs, 4s timeout, and fail-open resilience. Added unit tests with mocked fetch covering provider failures (MOD-04) and injection attacks (MOD-05).
+- Task D2-10: Implemented rejection counter in `server/lib/rejections.js` with 1-hour sliding window. Wired auto-mute into posts, polls, and messages routes to mute accounts at 5 rejections and insert a system report for the admin queue. Added integration test in `tests/api/posts.test.js` and unit tests covering MOD-06 (138 total tests passing).
 
 - Task D2-04: Implemented cursor pagination, duplicate-text rejection within 10 minutes, and 3s minimum posting interval guard in `server/routes/posts.js`. Added `tests/api/posts.test.js` covering POST-01..POST-09 (10 tests).
 - Task D2-05: Implemented early close endpoint `POST /api/polls/:id/close` for author and admin, divide-by-zero percentage guard in `server/routes/polls.js`. Added `tests/api/polls.test.js` covering validation, rate limits, concurrency double-vote guard, closed/foreign poll guards, and voter anonymity (POLL-01..POLL-09, 13 tests).
