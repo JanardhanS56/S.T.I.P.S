@@ -166,4 +166,95 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(resDup.body.error).toBe('You already posted that recently.');
     });
   });
+
+  describe('POST-06 & POST-07: Moderation and Deletion Rules', () => {
+    it('POST-06: rejects blocked words and contact information with 422', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Blocked word (from blocklist)
+      const resBlocked = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'You are an idiot person', category: 'Notice' });
+      expect(resBlocked.status).toBe(422);
+      expect(resBlocked.body.error).toBeDefined();
+
+      // Phone number
+      const resPhone = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Call me on 9876543210 tonight', category: 'Notice' });
+      expect(resPhone.status).toBe(422);
+      expect(resPhone.body.error).toContain('Phone numbers and email addresses');
+
+      // Email address
+      const resEmail = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Reach me at student@example.com for answers', category: 'Notice' });
+      expect(resEmail.status).toBe(422);
+      expect(resEmail.body.error).toContain('Phone numbers and email addresses');
+    });
+
+    it('POST-07: only author or admin can delete; deleted post disappears from feed', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+      const adminCookie = await loginAs('admin_a');
+
+      // Student creates a post
+      const createRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post to be deleted by author', category: 'Moment' });
+      expect(createRes.status).toBe(201);
+      const postId = createRes.body.id;
+
+      // Teacher tries to delete student post -> 403
+      const delTeacher = await request(app)
+        .delete(`/api/posts/${postId}`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(delTeacher.status).toBe(403);
+      expect(delTeacher.body.error).toBe('Not allowed.');
+
+      // Author deletes own post -> 200
+      const delAuthor = await request(app)
+        .delete(`/api/posts/${postId}`)
+        .set('Cookie', studentCookie)
+        .send({});
+      expect(delAuthor.status).toBe(200);
+      expect(delAuthor.body.ok).toBe(true);
+
+      // Verify post disappeared from feed
+      const feedRes1 = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      const foundInFeed = feedRes1.body.posts.find((p) => p.id === postId);
+      expect(foundInFeed).toBeUndefined();
+
+      // Student creates another post for admin deletion test
+      // Wait or advance timer/splice to avoid min 3s gap
+      for (let i = mockDb.posts.length - 1; i >= 0; i--) {
+        if (mockDb.posts[i].author_id === '00000000-0000-0000-0001-000000000004') {
+          mockDb.posts.splice(i, 1);
+        }
+      }
+      const createRes2 = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post to be deleted by admin', category: 'Notice' });
+      expect(createRes2.status).toBe(201);
+      const post2Id = createRes2.body.id;
+
+      // Admin deletes student post -> 200
+      const delAdmin = await request(app)
+        .delete(`/api/posts/${post2Id}`)
+        .set('Cookie', adminCookie)
+        .send({});
+      expect(delAdmin.status).toBe(200);
+      expect(delAdmin.body.ok).toBe(true);
+
+      // Verify post disappeared from feed
+      const feedRes2 = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      expect(feedRes2.body.posts.find((p) => p.id === post2Id)).toBeUndefined();
+    });
+  });
 });
