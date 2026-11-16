@@ -1,11 +1,11 @@
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
 import { httpLogger } from './logger.js';
 import { errorHandler } from './http.js';
 import { db } from './db.js';
 import { requireAuth } from './session.js';
+import { globalRateLimiter } from './rateLimit.js';
 import auth from './routes/auth.js';
 import posts from './routes/posts.js';
 import polls from './routes/polls.js';
@@ -21,18 +21,8 @@ app.use(helmet());
 app.use(express.json({ limit: '10kb' })); // tiny bodies only: stops oversized-payload abuse
 app.use(cookieParser());
 
-// Blanket throttle per IP. NOTE: in-memory, so counted per serverless instance. The strict
-// per-user caps (posts, polls, messages) live in the database and are exact. See docs/SECURITY.md.
-app.use(
-  '/api',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many requests. Please slow down.' }
-  })
-);
+// Global IP limiter backed by Upstash Redis with safe in-memory fallback.
+app.use('/api', globalRateLimiter);
 
 // Require JSON on writes so a cross-site HTML form cannot trigger them.
 app.use('/api', (req, res, next) => {

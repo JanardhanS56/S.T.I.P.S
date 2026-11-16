@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
@@ -8,20 +7,15 @@ import { h, parse, HttpError } from '../http.js';
 import { setSession, clearSession, requireAuth, publicUser, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
 import { validatePassword } from '../lib/passwordPolicy.js';
+import { loginRateLimiter } from '../rateLimit.js';
 
 const r = Router();
 const FIELDS =
   'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version';
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: process.env.NODE_ENV === 'test' ? 1000 : 20,
-  message: { error: 'Too many sign-in attempts. Try again later.' }
-});
-
 r.post(
   '/login',
-  loginLimiter,
+  loginRateLimiter,
   h(async (req, res) => {
     const { username, password } = parse(
       z.object({ username: z.string().min(1).max(32), password: z.string().min(1).max(100) }),
