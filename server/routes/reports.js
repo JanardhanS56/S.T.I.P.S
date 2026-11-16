@@ -19,6 +19,18 @@ r.post(
       }),
       req.body
     );
+
+    const targetTable =
+      targetType === 'post' ? 'posts' : targetType === 'poll' ? 'polls' : 'messages';
+    const { data: target } = await db
+      .from(targetTable)
+      .select('id,community_id')
+      .eq('id', targetId)
+      .maybeSingle();
+    if (!target || target.community_id !== req.user.community_id) {
+      throw new HttpError(404, 'Target not found.');
+    }
+
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const { count } = await db
       .from('reports')
