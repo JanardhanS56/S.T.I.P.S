@@ -5,9 +5,9 @@
 ## Current status
 
 - Day: 2
-- Branch: chore/d1-logging-ci
-- Last green check: npm run lint, npm test, npm run build (Day 1 Phase D complete)
-- First task for next session / phase: Day 2, task D2-01
+- Branch: main
+- Last green check: npm run lint, npm test, npm run build (Day 2 Phase A complete, 79 tests passing)
+- First task for next session / phase: Day 2 Phase B, task D2-04 (Posts cursor pagination, duplicate-text guard, min gap 3s)
 
 ## Blocked / needs owner
 
@@ -21,12 +21,21 @@
 - Token revocation enabled via `users.token_version` check in `requireAuth` and bumped on `POST /api/auth/logout-all` or password reset.
 - Structured logging with Pino & Pino-HTTP enforcing request ID propagation (`X-Request-Id`) and strict secret/body redaction.
 - Health endpoint verifies database connectivity (`{ ok: true, db: true }`), returning 503 on database unavailability.
+- Foreign object lookups across all community resources (`/api/messages/with/:id`, `POST /api/reports`, etc.) return 404 rather than leaking entity existence across tenant boundaries.
+- Central scoped loader `loadInCommunity(table, id, req, fields)` added to `server/http.js` and re-exported from `server/db.js` for uniform community isolation.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 5 - Day 2 Phase A (Authorization and Isolation)
+
+- Task D2-01: Created `docs/AUTHZ_MATRIX.md` detailing the 25 Express routes line-by-line across roles, status (`muted`, `suspended`), and community isolation boundaries.
+- Task D2-02: Auth and isolation test suite (ISO-01..ISO-09) implemented in `tests/api/isolation.test.js` (26 tests). Upgraded `tests/helpers/mockDb.js` to full relational in-memory database with cross-community seed. Fixed foreign entity handling in `server/routes/messages.js` and `server/routes/reports.js` to return 404.
+- Task D2-03: Implemented `loadInCommunity` helper in `server/http.js` and `server/db.js`. Refactored `server/routes/posts.js` and `server/routes/polls.js` to use the scoped loader.
+- Merged branch `test/d2-isolation` to `main`.
 
 ### Session 4 - Phase D (Logging and CI)
 
