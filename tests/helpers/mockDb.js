@@ -435,8 +435,20 @@ export function createMockDb(initialData = {}) {
           return queryBuilder;
         },
         or(expression) {
-          // Supports simple or patterns like "sender_id.eq.X,recipient_id.eq.X"
+          // Supports expressions like:
+          // 1. "sender_id.eq.X,recipient_id.eq.X"
+          // 2. "and(sender_id.eq.A,recipient_id.eq.B),and(sender_id.eq.B,recipient_id.eq.A)"
           filters.push((item) => {
+            if (expression.startsWith('and(')) {
+              const clauses = expression.split('),and(').map((c) => c.replace(/^and\(|\)$/g, ''));
+              return clauses.some((clause) => {
+                const parts = clause.split(',');
+                return parts.every((part) => {
+                  const [k, v] = part.split('.eq.');
+                  return item[k] === v;
+                });
+              });
+            }
             if (expression.includes('sender_id.eq') && expression.includes('recipient_id.eq')) {
               const matches = expression.match(/[a-z_]+\.eq\.([0-9a-f-]+)/g);
               if (matches) {

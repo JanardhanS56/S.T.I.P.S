@@ -93,6 +93,9 @@ r.post(
       z.object({ toUserId: uuid, body: z.string().trim().min(1).max(config.messageMaxChars) }),
       req.body
     );
+    if (toUserId === req.user.id) {
+      throw new HttpError(400, 'Cannot message yourself.');
+    }
     const { data: to } = await db
       .from('users')
       .select('id,role,community_id,status')
