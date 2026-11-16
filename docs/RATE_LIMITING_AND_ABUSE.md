@@ -13,20 +13,21 @@
 
 ## Limits table (single source: `server/config.js`; keep this table in sync)
 
-| Action                                                                                                                               | Limit                                     | Window           | Response             |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ---------------- | -------------------- |
-| Any `/api` request                                                                                                                   | 300                                       | 15 min per IP    | 429 + `Retry-After`  |
-| Login attempts                                                                                                                       | 10                                        | 15 min per IP    | 429                  |
-| Wrong passwords per account                                                                                                          | 5                                         | then lock 10 min | 429                  |
-| Posts                                                                                                                                | 10                                        | 1 h per user     | 429 friendly message |
-| Replies                                                                                                                              | 30                                        | 1 h per user     | 429                  |
-| Reactions                                                                                                                            | 120                                       | 1 h per user     | 429                  |
-| Polls                                                                                                                                | 5                                         | 24 h per user    | 429                  |
-| Votes                                                                                                                                | 1 per poll                                | forever          | 409                  |
-| Messages                                                                                                                             | 60                                        | 1 h per user     | 429                  |
-| Reports                                                                                                                              | 20                                        | 24 h per user    | 429                  |
-| Account creation (admin)                                                                                                             | 200 per request, 1000 / day per community |                  | 400 / 429            |
+| Action                                                                                                                               | Limit                                     | Window                     | Response             |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | -------------------------- | -------------------- |
+| Any `/api` request                                                                                                                   | 300                                       | 15 min per IP              | 429 + `Retry-After`  |
+| Login attempts                                                                                                                       | 10                                        | 15 min per IP and username | 429 + `Retry-After`  |
+| Wrong passwords per account                                                                                                          | 5                                         | then lock 10 min           | 429                  |
+| Posts                                                                                                                                | 10                                        | 1 h per user               | 429 friendly message |
+| Replies                                                                                                                              | 30                                        | 1 h per user               | 429                  |
+| Reactions                                                                                                                            | 120                                       | 1 h per user               | 429                  |
+| Polls                                                                                                                                | 5                                         | 24 h per user              | 429                  |
+| Votes                                                                                                                                | 1 per poll                                | forever                    | 409                  |
+| Messages                                                                                                                             | 60                                        | 1 h per user               | 429                  |
+| Reports                                                                                                                              | 20                                        | 24 h per user              | 429                  |
+| Account creation (admin)                                                                                                             | 200 per request, 1000 / day per community |                            | 400 / 429            |
 | Every 429 returns `Retry-After` (seconds) and a human sentence. The UI shows a calm "take a short break" message, never a raw error. |
+| Per-user caps are unified in `server/limits.js` querying exact DB counts against limits configured in `server/config.js`.            |
 
 ## Spam heuristics (cheap, no AI)
 
