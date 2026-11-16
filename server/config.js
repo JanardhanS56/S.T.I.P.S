@@ -9,6 +9,8 @@ export const config = {
   messageMaxChars: 500,
   limits: {
     postsPerHour: 10,
+    repliesPerHour: 30,
+    reactionsPerHour: 120,
     pollsPerDay: 5,
     messagesPerHour: 60,
     reportsPerDay: 20,
@@ -16,6 +18,20 @@ export const config = {
     lockMinutes: 10,
     autoMuteThreshold: 5,
     autoMuteWindowSeconds: 3600
+  },
+  rateLimits: {
+    global: {
+      requests: env.NODE_ENV === 'test' ? 1000 : 300,
+      windowSeconds: 900
+    },
+    loginIp: {
+      requests: env.NODE_ENV === 'test' ? 1000 : 10,
+      windowSeconds: 900
+    },
+    loginUser: {
+      requests: env.NODE_ENV === 'test' ? 1000 : 10,
+      windowSeconds: 900
+    }
   },
   spam: {
     maxRepeatedChars: 6,

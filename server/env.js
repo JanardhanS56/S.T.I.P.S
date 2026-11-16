@@ -8,7 +8,10 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   LLM_API_KEY: z.string().optional(),
   LLM_BASE_URL: z.string().url('LLM_BASE_URL must be a valid URL').optional(),
-  LLM_MODEL: z.string().optional()
+  LLM_MODEL: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: z.string().url('UPSTASH_REDIS_REST_URL must be a valid URL').optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  MAINTENANCE_MODE: z.string().optional()
 });
 
 const raw = {
@@ -19,7 +22,10 @@ const raw = {
   JWT_SECRET: process.env.JWT_SECRET,
   LLM_API_KEY: process.env.LLM_API_KEY || undefined,
   LLM_BASE_URL: process.env.LLM_BASE_URL || undefined,
-  LLM_MODEL: process.env.LLM_MODEL || undefined
+  LLM_MODEL: process.env.LLM_MODEL || undefined,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || undefined,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
+  MAINTENANCE_MODE: process.env.MAINTENANCE_MODE || undefined
 };
 
 const result = envSchema.safeParse(raw);

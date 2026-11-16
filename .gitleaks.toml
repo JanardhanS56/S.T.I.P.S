@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for test fixtures, mock hashes, and package lockfile"
+paths = [
+  '''tests/''',
+  '''package-lock\.json'''
+]
