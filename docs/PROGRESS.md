@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 2 (Complete)
-- Branch: feat/d2-rate-limits-headers
-- Last green check: npm run lint, npm test, npm run build (Day 2 complete, 147 tests passing across 13 test suites)
-- First task for next session / phase: Day 3 Phase A, task D3-01 (Replies data model and migration)
+- Day: 3 (Phase A Complete)
+- Branch: main (Phase A merged, ready for feat/d3-social)
+- Last green check: npm run lint, npm test, npm run build (158 tests passing across 15 test suites)
+- First task for next session / phase: Day 3 Phase B, task D3-05 (Replies: migration, endpoints, tests, thread UI)
 
 ## Blocked / needs owner
 
@@ -15,24 +15,31 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Rate limiting implemented via `@upstash/ratelimit` + `@upstash/redis` with durable sliding window algorithm and resilient in-memory fallback store (`MemoryStore`).
-- Fallback invariant: missing Redis credentials or Redis connectivity failures log a structured warning (`logger.warn`) and smoothly fall back to in-memory tracking without service interruption.
-- Standard headers (`Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`) returned on all rate-limited responses.
-- Login endpoint rate-limited on both client IP and username (10 requests per 15 min each), preventing credential stuffing and brute-force attacks across accounts.
-- Per-user caps unified in `server/limits.js` (`checkUserCap`, `enforceUserCap`, and route helpers), reading config and querying exact DB counts.
-- Strict Content-Security-Policy (CSP) configured in Helmet (`default-src 'self'`, `style-src 'self' https://fonts.googleapis.com 'unsafe-inline'`, `font-src 'self' https://fonts.gstatic.com`, `script-src 'self'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`).
-- Permissions-Policy header added (`camera=(), microphone=(), geolocation=(), payment=(), usb=()`).
-- Strict-Transport-Security (HSTS) enforced when `config.isProd` is active.
-- Non-JSON writes rejected with 415; payloads > 10kb rejected with 413.
-- Maintenance mode middleware added: setting `MAINTENANCE_MODE=1` returns 503 for all write methods (`POST`, `PUT`, `PATCH`, `DELETE`) while reads (`GET`, `/api/health`) stay operational.
-- RFC 9116 security policy published at `/.well-known/security.txt` and repo root `SECURITY.md`.
-- RLS proof test (`tests/api/rls.test.js`) verifies deny-all security for anon Supabase clients across all 8 tables.
+- Shared design system component primitives extracted to `src/components/ui/` (`Button`, `Chip`, `Badge`, `Card`, `Field`, `Banner`, `Toast`, `EmptyState`, `Skeleton`, `Modal`, `RateLimitNotice`, `OfflineBanner`), strictly following `docs/DESIGN.md` (no gradients, 2px border radius, no drop shadows, 44px min touch targets).
+- Accessible `Modal` implemented with proper ARIA dialog semantics, backdrop dismiss, Esc key handler, focus trap (cycling Tab/Shift+Tab across focusable elements), and focus restoration to the trigger element on unmount.
+- Accessible `Field` wires visible label, hint text, and error alert using `aria-describedby` and `aria-invalid`.
+- Mobile navigation: below 760px, app shell displays a top bar with community branding and a 44x44px menu toggle button (`aria-expanded`, `aria-controls`), smoothly revealing navigation without visual degradation at 320px viewport.
+- Skip-to-content link (`<a href="#main-content" className="skip-link">Skip to content</a>`) wired to `<main id="main-content" tabIndex="-1">`.
+- Focus and title management on route change (`RouteFocusAndTitle`) syncs `document.title` and programmatically sets focus to page `<h1>` for screen reader and keyboard accessibility.
+- Global Error Boundary (`ErrorBoundary`) catches render crashes with calm 500 error card and refresh/home recovery options.
+- Catch-all 404 page (`NotFound`) styled per design tokens.
+- Dynamic rate limit notice component (`RateLimitNotice`) uses server `Retry-After` header to count down remaining lock window and update copy politely.
+- Offline banner (`OfflineBanner`) detects network drops and provides clear indicator when connection is lost.
+- All pages (`Feed`, `Polls`, `Messages`, `Create`, `Auth`, `Profile`) refactored to use shared components, loading skeletons, and empty states.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 9 - Day 3 Phase A (UI Foundation: D3-01..D3-04)
+
+- Task D3-01: Extracted and tested reusable components in `src/components/ui/`: `Button`, `Chip`, `Badge`, `Card`, `Field`, `Banner`, `Toast`, `EmptyState`, `Skeleton`, `Modal`. Refactored `Feed.jsx`, `Polls.jsx`, `Messages.jsx`, `Create.jsx`, `Auth.jsx`, and `Profile.jsx` to use shared components page-by-page with atomic commits.
+- Task D3-02: Upgraded app shell (`src/components/Shell.jsx` & `src/styles.css`): mobile top bar with menu button (< 760px), skip-to-content link, route-based page titles (`document.title`), and focus shifting to `<h1>` on route change (`RouteFocusAndTitle`).
+- Task D3-03: Created `ErrorBoundary.jsx` (500 crash screen with calm reload and home buttons), `NotFound.jsx` (404 page), `RateLimitNotice.jsx` (counting down `Retry-After` seconds politely), and `OfflineBanner.jsx` (detecting offline state). Enhanced `src/api.js` to throw `ApiError` with `status` and `retryAfter`.
+- Task D3-04: Wired skeleton loaders, empty states, and friendly rate limit banners into `Feed.jsx`, `Polls.jsx`, and `Messages.jsx`.
+- Verified lint, 158 tests, and production build. Merged `feat/d3-ui-foundation` into `main` without squash and pushed to `origin`.
 
 ### Session 8 - Day 2 Phase D (Rate Limits & HTTP Hardening: D2-11..D2-15)
 
