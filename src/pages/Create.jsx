@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import { Button, Chip, Card, Banner, Field } from '../components/ui/index.js';
 
 export default function Create() {
   const { user } = useAuth();
@@ -16,9 +17,9 @@ export default function Create() {
       <h1>Create</h1>
       <div className="chips">
         {tabs.map(([k, l]) => (
-          <button key={k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
+          <Chip key={k} active={tab === k} onClick={() => setTab(k)}>
             {l}
-          </button>
+          </Chip>
         ))}
       </div>
       {tab === 'post' && <PostForm />}
@@ -45,35 +46,31 @@ function PostForm() {
   }
   return (
     <form className="form narrow" onSubmit={go}>
-      <label>
-        Your post
-        <textarea
-          maxLength={280}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Up to 280 characters"
-        />
-      </label>
-      <label>
-        Category
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+      <Field
+        label="Your post"
+        id="post-body"
+        as="textarea"
+        maxLength={280}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Up to 280 characters"
+      />
+      <div className="stack tight">
+        <label htmlFor="post-category">Category</label>
+        <select id="post-category" value={category} onChange={(e) => setCategory(e.target.value)}>
           {['Notice', 'Event', 'Meme', 'Moment'].map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
-      </label>
+      </div>
       <p className="small muted">
         Posts are checked for unsuitable language before they go live. Keep it kind and
         campus-related.
       </p>
-      {err && (
-        <div className="error" role="alert">
-          {err}
-        </div>
-      )}
-      <button className="btn btn-dark" disabled={!body.trim()}>
+      {err && <Banner variant="error">{err}</Banner>}
+      <Button type="submit" variant="dark" disabled={!body.trim()}>
         Publish post
-      </button>
+      </Button>
     </form>
   );
 }
@@ -100,15 +97,14 @@ function PollForm() {
   }
   return (
     <form className="form narrow" onSubmit={go}>
-      <label>
-        Question
-        <input
-          maxLength={120}
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="What should we decide?"
-        />
-      </label>
+      <Field
+        label="Question"
+        id="poll-question"
+        maxLength={120}
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="What should we decide?"
+      />
       <fieldset>
         <legend>Options (2 to 6)</legend>
         {opts.map((o, i) => (
@@ -122,28 +118,26 @@ function PollForm() {
           />
         ))}
         {opts.length < 6 && (
-          <button type="button" className="link-btn" onClick={() => setOpts([...opts, ''])}>
+          <Button type="button" variant="link" onClick={() => setOpts([...opts, ''])}>
             + Add option
-          </button>
+          </Button>
         )}
       </fieldset>
-      <label>
-        Closes after
-        <select value={days} onChange={(e) => setDays(e.target.value)}>
+      <div className="stack tight">
+        <label htmlFor="poll-days">Closes after</label>
+        <select id="poll-days" value={days} onChange={(e) => setDays(e.target.value)}>
           <option value={1}>1 day</option>
           <option value={3}>3 days</option>
           <option value={7}>7 days</option>
         </select>
-      </label>
+      </div>
       <p className="small muted">
         Each person gets one vote. Votes cannot be changed after they are cast.
       </p>
-      {err && (
-        <div className="error" role="alert">
-          {err}
-        </div>
-      )}
-      <button className="btn btn-dark">Start poll</button>
+      {err && <Banner variant="error">{err}</Banner>}
+      <Button type="submit" variant="dark">
+        Start poll
+      </Button>
     </form>
   );
 }
@@ -207,26 +201,22 @@ function Admin() {
       )}
       <form className="form narrow" onSubmit={add}>
         <h3>Add members</h3>
-        <label>
-          One per line: name, role
-          <textarea
-            className="mono"
-            value={lines}
-            onChange={(e) => setLines(e.target.value)}
-            placeholder={'Ravi K, teacher\nMeera P, student'}
-          />
-        </label>
-        {err && (
-          <div className="error" role="alert">
-            {err}
-          </div>
-        )}
-        <button className="btn btn-dark" disabled={!lines.trim()}>
+        <Field
+          label="One per line: name, role"
+          id="members-lines"
+          as="textarea"
+          className="mono"
+          value={lines}
+          onChange={(e) => setLines(e.target.value)}
+          placeholder={'Ravi K, teacher\nMeera P, student'}
+        />
+        {err && <Banner variant="error">{err}</Banner>}
+        <Button type="submit" variant="dark" disabled={!lines.trim()}>
           Create usernames
-        </button>
+        </Button>
       </form>
       {!!created.length && (
-        <div className="card">
+        <Card>
           <p>
             <b>Hand these over now.</b> Passwords are shown once and cannot be recovered. Each
             person sets their own on first sign-in.
@@ -251,26 +241,26 @@ function Admin() {
               ))}
             </tbody>
           </table>
-          <button className="btn btn-dark" onClick={csv}>
+          <Button variant="dark" onClick={csv}>
             Copy as CSV
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
       <h3>Open reports</h3>
       {reports.map((r) => (
-        <div key={r.id} className="card">
+        <Card key={r.id}>
           <p>
             <b>{r.target_type}</b> reported by @{r.reporter.username}: {r.reason}
           </p>
           <div className="row">
-            <button className="btn btn-dark" onClick={() => resolve(r.id, 'hide')}>
+            <Button variant="dark" onClick={() => resolve(r.id, 'hide')}>
               Hide content
-            </button>
-            <button className="btn" onClick={() => resolve(r.id, 'dismiss')}>
+            </Button>
+            <Button variant="outline" onClick={() => resolve(r.id, 'dismiss')}>
               Dismiss
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       ))}
       {!reports.length && <p className="muted">No open reports.</p>}
     </div>
