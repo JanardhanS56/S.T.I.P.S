@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { env } from './env.js';
-import { normalise } from './lib/normalize.js';
+import { normalise, collapseRepeats, despaceRuns } from './lib/normalize.js';
 import { hasContactInfo } from './lib/detectors.js';
 
 export { hasContactInfo };
@@ -18,9 +18,21 @@ const BLOCKED = readFileSync(listPath, 'utf8')
   .filter((w) => w && !w.startsWith('#'));
 
 export function localCheck(text) {
-  const words = normalise(text).split(/\s+/);
+  if (!text) return { ok: true };
+  const rawWords = normalise(text).split(/\s+/).filter(Boolean);
+  const despacedText = despaceRuns(normalise(text));
+  const despacedWords = despacedText.split(/\s+/).filter(Boolean);
+  const allWords = new Set([...rawWords, ...despacedWords]);
   const squashed = normalise(text).replace(/\s+/g, '');
-  const hit = BLOCKED.some((b) => words.includes(b) || (b.length > 4 && squashed.includes(b)));
+
+  const hit = BLOCKED.some((b) => {
+    const collapsedB = collapseRepeats(b);
+    for (const w of allWords) {
+      if (w === b || collapseRepeats(w) === collapsedB) return true;
+    }
+    if (b.length > 4 && squashed.includes(b)) return true;
+    return false;
+  });
   return hit
     ? { ok: false, reason: 'Please keep it respectful and family-friendly.' }
     : { ok: true };
