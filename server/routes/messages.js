@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { h, parse, uuid, HttpError } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
+import { enforceMessageCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -106,14 +107,7 @@ r.post(
     if (config.dmRule === 'teacher-student' && req.user.role === 'student' && to.role === 'student')
       throw new HttpError(403, 'Students can message teachers and the office.');
 
-    const since = new Date(Date.now() - 3600 * 1000).toISOString();
-    const { count } = await db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender_id', req.user.id)
-      .gte('created_at', since);
-    if (count >= config.limits.messagesPerHour)
-      throw new HttpError(429, 'Message limit reached for this hour.');
+    await enforceMessageCap(req, res);
 
     const check = await screen(body); // also blocks phone numbers and emails
     if (!check.ok) {
