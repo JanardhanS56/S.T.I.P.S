@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
-import { h, parse, uuid, HttpError } from '../http.js';
+import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
 
@@ -98,13 +98,8 @@ r.post(
   h(async (req, res) => {
     const id = parse(uuid, req.params.id);
     const { optionId } = parse(z.object({ optionId: uuid }), req.body);
-    const { data: poll } = await db
-      .from('polls')
-      .select('id,community_id,closes_at,status')
-      .eq('id', id)
-      .maybeSingle();
-    if (!poll || poll.community_id !== req.user.community_id || poll.status !== 'visible')
-      throw new HttpError(404, 'Poll not found.');
+    const poll = await loadInCommunity('polls', id, req, 'id,community_id,closes_at,status');
+    if (poll.status !== 'visible') throw new HttpError(404, 'Poll not found.');
     if (new Date(poll.closes_at) <= new Date()) throw new HttpError(409, 'This poll has closed.');
     const { data: opt } = await db
       .from('poll_options')
