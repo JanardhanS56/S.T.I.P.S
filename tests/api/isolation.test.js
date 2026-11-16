@@ -204,14 +204,11 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
       expect(repPoll.status).toBe(404);
       expect(repPoll.body.error).toBe('Target not found.');
 
-      const repMsg = await request(app)
-        .post('/api/reports')
-        .set('Cookie', cookieA)
-        .send({
-          targetType: 'message',
-          targetId: foreignMessageId,
-          reason: 'Foreign message spam'
-        });
+      const repMsg = await request(app).post('/api/reports').set('Cookie', cookieA).send({
+        targetType: 'message',
+        targetId: foreignMessageId,
+        reason: 'Foreign message spam'
+      });
       expect(repMsg.status).toBe(404);
       expect(repMsg.body.error).toBe('Target not found.');
     });
@@ -224,6 +221,69 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
         .send({ action: 'dismiss' });
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Report not found.');
+    });
+  });
+
+  describe('ISO-06: Client-supplied IDs in request body are ignored', () => {
+    it('ignores client-supplied community_id and author_id on POST /api/posts', async () => {
+      const cookieA = await loginAs('student_a1');
+      const forgedCommunity = '00000000-0000-0000-0000-000000000002';
+      const forgedAuthor = '00000000-0000-0000-0002-000000000002';
+
+      const res = await request(app).post('/api/posts').set('Cookie', cookieA).send({
+        body: 'Testing client supplied ids ignored',
+        category: 'Notice',
+        community_id: forgedCommunity,
+        author_id: forgedAuthor
+      });
+
+      expect(res.status).toBe(201);
+      const postId = res.body.id;
+      const createdPost = mockDb.posts.find((p) => p.id === postId);
+      expect(createdPost.community_id).toBe('00000000-0000-0000-0000-000000000001');
+      expect(createdPost.author_id).toBe('00000000-0000-0000-0001-000000000004');
+    });
+
+    it('ignores client-supplied community_id and author_id on POST /api/polls', async () => {
+      const cookieA = await loginAs('student_a1');
+      const forgedCommunity = '00000000-0000-0000-0000-000000000002';
+      const forgedAuthor = '00000000-0000-0000-0002-000000000002';
+
+      const res = await request(app)
+        .post('/api/polls')
+        .set('Cookie', cookieA)
+        .send({
+          question: 'Are client ids ignored?',
+          options: ['Yes indeed', 'Absolutely'],
+          days: 3,
+          community_id: forgedCommunity,
+          author_id: forgedAuthor
+        });
+
+      expect(res.status).toBe(201);
+      const pollId = res.body.id;
+      const createdPoll = mockDb.polls.find((p) => p.id === pollId);
+      expect(createdPoll.community_id).toBe('00000000-0000-0000-0000-000000000001');
+      expect(createdPoll.author_id).toBe('00000000-0000-0000-0001-000000000004');
+    });
+
+    it('ignores client-supplied community_id and sender_id on POST /api/messages', async () => {
+      const cookieA = await loginAs('teacher_a1');
+      const targetUser = '00000000-0000-0000-0001-000000000004';
+      const forgedCommunity = '00000000-0000-0000-0000-000000000002';
+      const forgedSender = '00000000-0000-0000-0002-000000000002';
+
+      const res = await request(app).post('/api/messages').set('Cookie', cookieA).send({
+        toUserId: targetUser,
+        body: 'Hello message with forged body fields',
+        community_id: forgedCommunity,
+        sender_id: forgedSender
+      });
+
+      expect(res.status).toBe(201);
+      const createdMsg = mockDb.messages[mockDb.messages.length - 1];
+      expect(createdMsg.community_id).toBe('00000000-0000-0000-0000-000000000001');
+      expect(createdMsg.sender_id).toBe('00000000-0000-0000-0001-000000000002');
     });
   });
 });
