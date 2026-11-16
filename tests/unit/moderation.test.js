@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { localCheck, hasContactInfo, checkSpam } from '../../server/moderation.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { localCheck, hasContactInfo, checkSpam, checkLlm } from '../../server/moderation.js';
+import { env } from '../../server/env.js';
 import { checkRepetition, checkAllCaps, checkLinks } from '../../server/lib/spam.js';
 
 describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
@@ -160,6 +161,70 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
       it('allows clean messages', () => {
         expect(checkSpam('Looking for study group partners for Physics 101').ok).toBe(true);
       });
+    });
+  });
+
+  describe('MOD-04: LLM layer provider failures fall back to allow without crashing', () => {
+    let originalFetch;
+    let originalApiKey;
+
+    beforeEach(() => {
+      originalFetch = globalThis.fetch;
+      originalApiKey = env.LLM_API_KEY;
+      env.LLM_API_KEY = 'mock-llm-key';
+      env.LLM_BASE_URL = 'https://api.mock.llm';
+      env.LLM_MODEL = 'mock-model';
+    });
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+      env.LLM_API_KEY = originalApiKey;
+    });
+
+    it('falls back to allow on fetch timeout / abort error', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new DOMException('Timeout', 'AbortError'));
+      const res = await checkLlm('Some border-line post');
+      expect(res.ok).toBe(true);
+    });
+
+    it('falls back to allow on provider 500 status', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      });
+      const res = await checkLlm('Some border-line post');
+      expect(res.ok).toBe(true);
+    });
+
+    it('falls back to allow on malformed JSON content', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: 'not valid json text at all' } }]
+        })
+      });
+      const res = await checkLlm('Some border-line post');
+      expect(res.ok).toBe(true);
+    });
+
+    it('falls back to allow on schema mismatch (missing allowed boolean)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"status":"success"}' } }]
+        })
+      });
+      const res = await checkLlm('Some border-line post');
+      expect(res.ok).toBe(true);
+    });
+
+    it('falls back to allow when LLM_API_KEY is not set', async () => {
+      env.LLM_API_KEY = undefined;
+      globalThis.fetch = vi.fn();
+      const res = await checkLlm('Some border-line post');
+      expect(res.ok).toBe(true);
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
   });
 });
