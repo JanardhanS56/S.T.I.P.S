@@ -74,9 +74,25 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
       expect(hasContactInfo('contact: test.user@gmail.com')).toBe(true);
     });
 
+    it('detects spelled-out email addresses (at / dot variants)', () => {
+      expect(hasContactInfo('reach me at student [at] campus [dot] edu')).toBe(true);
+      expect(hasContactInfo('send notes to student at gmail dot com')).toBe(true);
+      expect(hasContactInfo('contact me: user(at)domain(dot)org')).toBe(true);
+    });
+
+    it('detects social media handle sharing patterns (ig, snap, telegram, dm me)', () => {
+      expect(hasContactInfo('Follow my photography on ig: @campus_snaps')).toBe(true);
+      expect(hasContactInfo('Hit me up on snap: partyguy99')).toBe(true);
+      expect(hasContactInfo('Reach me on telegram: @sameer')).toBe(true);
+      expect(hasContactInfo('dm me on @cool_student')).toBe(true);
+    });
+
     it('allows normal text without contact info', () => {
       expect(hasContactInfo('Join us in hall 4 at 3 PM for the tech talk')).toBe(false);
       expect(hasContactInfo('Assignment 1 is due on Friday')).toBe(false);
+      expect(hasContactInfo('Testing client supplied ids ignored')).toBe(false);
+      expect(hasContactInfo('Are client ids ignored?')).toBe(false);
+      expect(hasContactInfo('Instant coffee in the canteen')).toBe(false);
     });
   });
 });
