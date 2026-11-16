@@ -23,14 +23,12 @@ export function localCheck(text) {
   const despacedText = despaceRuns(normalise(text));
   const despacedWords = despacedText.split(/\s+/).filter(Boolean);
   const allWords = new Set([...rawWords, ...despacedWords]);
-  const squashed = normalise(text).replace(/\s+/g, '');
 
   const hit = BLOCKED.some((b) => {
     const collapsedB = collapseRepeats(b);
     for (const w of allWords) {
       if (w === b || collapseRepeats(w) === collapsedB) return true;
     }
-    if (b.length > 4 && squashed.includes(b)) return true;
     return false;
   });
   return hit

@@ -49,6 +49,9 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
     it('allows words containing substrings of blocked words (e.g. skill contains kill)', () => {
       expect(localCheck('Developing your coding skill is rewarding').ok).toBe(true);
       expect(localCheck('He showed great skillet work').ok).toBe(true);
+      expect(localCheck('The shuttle bus arrives at noon').ok).toBe(true);
+      expect(localCheck('Please close the shutter behind you').ok).toBe(true);
+      expect(localCheck('Come closer to the front stage').ok).toBe(true);
     });
   });
 
