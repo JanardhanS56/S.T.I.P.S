@@ -4,6 +4,7 @@ import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { OfflineBanner } from './components/ui/index.js';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
 import Feed from './pages/Feed.jsx';
@@ -81,6 +82,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <OfflineBanner />
       <AuthCtx.Provider value={{ ...state, refresh, logout }}>
         <RouteFocusAndTitle />
         <Routes>
