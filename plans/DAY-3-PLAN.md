@@ -1,0 +1,51 @@
+# Day 3 Plan: Product Features and UX
+
+**Theme:** turn the prototype UI into a consistent, accessible, feature-complete product.
+**Branches:** `feat/d3-ui-foundation` (A), `feat/d3-social` (B), `feat/d3-messages-polls` (C), `feat/d3-admin-e2e` (D).
+**Read first:** `GEMINI.md`, `docs/PROGRESS.md`, `docs/DESIGN.md` (all), `docs/DATABASE.md` (planned migrations), `docs/TESTING.md` (POST-10..12, MSG-08/09, ADM, E2E, A11Y).
+Every new table or column = a migration file first (apply to dev + staging), then API + tests, then UI.
+
+## Phase A: UI foundation (about 2 h)
+| ID | Task | Acceptance | Expected commits |
+| --- | --- | --- | --- |
+| D3-01 | Extract shared components in `src/components/ui/`: Button, Chip, Badge, Card, Field (label + hint + error), Banner, EmptyState, Skeleton, Modal (focus trap, Esc), Toast (aria-live). Replace ad-hoc markup page by page | no visual regressions vs DESIGN.md; each component has all states | one commit per component, e.g. `feat(ui): add button component`, `feat(ui): add field component with error wiring`, `feat(ui): add modal with focus trap`, then `refactor(ui): use shared components in feed`, `...in polls`, etc. |
+| D3-02 | App shell: mobile top bar with menu button, skip-to-content link, route-based page titles (`document.title`), focus moves to `<h1>` on route change | keyboard + 320px viewport OK | `feat(ui): add mobile navigation`, `feat(a11y): add skip link`, `feat(a11y): manage focus and titles on route change` |
+| D3-03 | Error boundary (500 screen), 404 page, offline/failed-fetch banner, API error component using `Retry-After` for 429 | each state reachable and styled | `feat(ui): add error boundary page`, `feat(ui): add not found page`, `feat(ui): show friendly rate limit message` |
+| D3-04 | Loading, empty and error states on Feed, Polls, Messages, Admin placeholders | per DESIGN.md section 7 | `feat(ui): add loading and empty states to feed`, `...to polls`, `...to messages` |
+**Exit:** lint + build + axe smoke on 3 pages (manual) OK.
+
+## Phase B: Social features (about 2.5 h)
+| ID | Task | Acceptance | Expected commits |
+| --- | --- | --- | --- |
+| D3-05 | **Replies:** migration `post_replies` (`parent_id`, depth 1 only), API `POST /api/posts/:id/replies`, `GET /api/posts/:id` with replies; limits; moderation; tests POST-10; UI thread page `/app/feed/:id` | green | `feat(db): add post replies migration`, `feat(posts): add reply endpoint`, `test(posts): cover replies (POST-10)`, `feat(ui): add post thread page`, `feat(ui): add reply composer` |
+| D3-06 | **Reactions:** migration `post_reactions` (PK post_id+user_id, kinds: `like`, `thanks`, `laugh` as text with check), toggle endpoint, counts in feed; tests POST-12; UI buttons (real `<button aria-pressed>`) | green | `feat(db): add post reactions migration`, `feat(posts): add reaction toggle endpoint`, `test(posts): cover reactions (POST-12)`, `feat(ui): add reaction buttons` |
+| D3-07 | **Official/pinned posts (admin):** migration `pinned_posts`; admin endpoints pin/unpin; official badge; pinned shown first; tests POST-11 | green | `feat(db): add pinned and official columns`, `feat(admin): add pin and unpin endpoints`, `test(posts): cover official flag permissions (POST-11)`, `feat(ui): show pinned official posts` |
+| D3-08 | Feed "Load more" using the cursor API (no infinite scroll) | keyboard friendly | `feat(ui): add load more to feed` |
+**Exit:** POST suite incl. 10..12 green.
+
+## Phase C: Messaging and polls (about 2.5 h)
+| ID | Task | Acceptance | Expected commits |
+| --- | --- | --- | --- |
+| D3-09 | **Blocks:** migration `blocks`; endpoints block/unblock/list; sending to a blocker rejected; people picker hides blockers; tests MSG-08; UI in thread header | green | `feat(db): add user blocks migration`, `feat(messages): add block and unblock endpoints`, `feat(messages): enforce blocks on send`, `test(messages): cover blocking (MSG-08)`, `feat(ui): add block control to thread` |
+| D3-10 | **Unread:** migration `message_read` (`read_at`), mark-read on thread open, unread counts endpoint, badge in sidebar and thread list (polite live region); tests MSG-09 | green | `feat(db): add message read_at migration`, `feat(messages): mark thread read on open`, `feat(messages): add unread counts endpoint`, `test(messages): cover unread counts (MSG-09)`, `feat(ui): show unread badges` |
+| D3-11 | Messaging UX: auto-scroll to newest, timestamps, character counter, disabled send while sending, 8 s polling paused when tab hidden (Page Visibility API) | no memory leaks (cleanup intervals) | `feat(ui): add message timestamps and counter`, `perf(ui): pause polling when tab is hidden` |
+| D3-12 | Poll UX: progress bars with `role="progressbar"` or table semantics + text percentages, closes-in countdown, close-early button for author/admin, "you voted" state; Create poll: add/remove options with 2 to 6 rules | axe clean on Polls | `feat(ui): make poll results accessible`, `feat(ui): add close poll control`, `feat(ui): improve poll creation form` |
+**Exit:** MSG + POLL suites green; unread works in two browsers.
+
+## Phase D: Admin and E2E (about 2 h)
+| ID | Task | Acceptance | Expected commits |
+| --- | --- | --- | --- |
+| D3-13 | **Audit log:** migration `audit_log`; helper `audit(req, action, target, meta)`; write on every admin action; endpoint `GET /api/admin/audit`; tests ADM-07 | green | `feat(db): add audit log migration`, `feat(admin): add audit helper`, `feat(admin): audit member, status and report actions`, `test(admin): cover audit entries (ADM-07)` |
+| D3-14 | **Admin dashboard `/app/admin`:** members table (search by name/username, role filter, status controls with confirm modal, reset password showing one-time password once), reports queue (hide/dismiss with note), audit view; endpoints `GET /api/admin/members`, status, reset | usable on mobile; confirm dialogs accessible | `feat(admin): add members list endpoint`, `feat(ui): add admin members table`, `feat(ui): add status controls with confirmation`, `feat(ui): add reports queue view`, `feat(ui): add audit log view` |
+| D3-15 | Admin tests ADM-01..06 | green | `test(admin): cover reports flow (ADM-01..03)`, `test(admin): cover bulk creation and reset (ADM-04, ADM-05)`, `test(admin): cover status changes (ADM-06)` |
+| D3-16 | Playwright setup + E2E-01..06 (desktop + one mobile project); fixtures use the seed accounts | E2E green locally | `build(deps): add playwright`, `chore(tests): add playwright config`, `test(e2e): sign in and password change (E2E-01)`, `test(e2e): admin creates members (E2E-02)`, `test(e2e): post, reply, react (E2E-03)`, `test(e2e): poll voting (E2E-04)`, `test(e2e): messaging (E2E-05)`, `test(e2e): report and hide (E2E-06)` |
+| D3-17 | CI: run Playwright in a separate job on PRs; docs and PROGRESS | CI green | `ci(ci): add e2e job`, `docs(api): add day 3 endpoints`, `docs(progress): record day 3` |
+**Must vs stretch:** Phase A, B (D3-05..07), C (D3-09, D3-10, D3-12), D (D3-13..16) are **must**. **Stretch:** D3-08 load more, D3-11 polish, per-community blocklist editor (admin UI + `community_blocklist` migration), D3-17 E2E-07..10 (move to Day 4 if not done).
+
+## Day 3 exit checklist
+- [ ] All routes in DESIGN.md section 7 that are due today exist with all states
+- [ ] New features each have API tests; E2E-01..06 pass
+- [ ] Keyboard-only walkthrough of sign in, post, vote, message works
+- [ ] No horizontal scroll at 320px; touch targets 44px
+- [ ] 4 PRs merged without squash; 35+ meaningful commits
+- [ ] PROGRESS.md updated; first task for Day 4 = D4-01
