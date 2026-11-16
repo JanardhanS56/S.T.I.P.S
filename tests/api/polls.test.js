@@ -206,4 +206,80 @@ describe('Polls API (POLL-01..POLL-09)', () => {
       expect(userVotes).toHaveLength(1);
     });
   });
+
+  describe('POLL-05: Closed and Foreign Polls', () => {
+    const pollAId = '00000000-0000-0000-0004-000000000001';
+    const optA1Id = '00000000-0000-0000-0005-000000000001';
+    const pollBId = '00000000-0000-0000-0004-000000000002';
+    const optB1Id = '00000000-0000-0000-0005-000000000003';
+
+    it('POLL-05: rejects vote on expired poll with 409', async () => {
+      const cookie = await loginAs('student_a1');
+      // Set closes_at to past
+      const target = mockDb.polls.find((p) => p.id === pollAId);
+      target.closes_at = new Date(Date.now() - 60000).toISOString();
+
+      const res = await request(app)
+        .post(`/api/polls/${pollAId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optA1Id });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toContain('This poll has closed');
+    });
+
+    it('POLL-05: early close by author or admin succeeds, then blocks voting with 409', async () => {
+      const teacherCookie = await loginAs('teacher_a1'); // Author
+      const studentCookie = await loginAs('student_a1');
+
+      // Unauthorized student close attempt fails with 403
+      const unauthClose = await request(app)
+        .post(`/api/polls/${pollAId}/close`)
+        .set('Cookie', studentCookie)
+        .send({});
+      expect(unauthClose.status).toBe(403);
+
+      // Author closes poll early
+      const closeRes = await request(app)
+        .post(`/api/polls/${pollAId}/close`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(closeRes.status).toBe(200);
+      expect(closeRes.body.ok).toBe(true);
+
+      // Subsequent vote attempt returns 409
+      const voteRes = await request(app)
+        .post(`/api/polls/${pollAId}/vote`)
+        .set('Cookie', studentCookie)
+        .send({ optionId: optA1Id });
+      expect(voteRes.status).toBe(409);
+      expect(voteRes.body.error).toContain('This poll has closed');
+    });
+
+    it('POLL-05: rejects option belonging to a different poll with 400', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Option optB1Id belongs to pollB, but attempting to vote on pollA
+      const res = await request(app)
+        .post(`/api/polls/${pollAId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optB1Id });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Invalid option');
+    });
+
+    it('POLL-05: rejects vote on foreign community poll with 404', async () => {
+      const cookie = await loginAs('student_a1'); // In Community A
+
+      // pollBId is in Community B
+      const res = await request(app)
+        .post(`/api/polls/${pollBId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optB1Id });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toContain('not found');
+    });
+  });
 });
