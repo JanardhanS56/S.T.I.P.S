@@ -7,12 +7,19 @@ export const redactionPaths = [
   'req.headers.cookie',
   'res.headers["set-cookie"]',
   'req.body',
+  'body',
   '*.body',
+  'password',
   '*.password',
+  'current',
   '*.current',
+  'next',
   '*.next',
+  'token',
   '*.token',
+  'cookie',
   '*.cookie',
+  'authorization',
   '*.authorization'
 ];
 
