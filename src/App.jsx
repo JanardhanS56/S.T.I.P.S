@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
 import Feed from './pages/Feed.jsx';
@@ -77,25 +78,27 @@ export default function App() {
   const ready = state.user && state.community;
 
   return (
-    <AuthCtx.Provider value={{ ...state, refresh, logout }}>
-      <RouteFocusAndTitle />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signin" element={<Auth />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/guidelines" element={<Guidelines />} />
-        <Route path="/cookies" element={<Cookies />} />
-        <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
-          <Route index element={<Navigate to="feed" replace />} />
-          <Route path="feed" element={<Feed />} />
-          <Route path="polls" element={<Polls />} />
-          <Route path="messages" element={<Messages />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="create" element={<Create />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <CookieNotice />
-    </AuthCtx.Provider>
+    <ErrorBoundary>
+      <AuthCtx.Provider value={{ ...state, refresh, logout }}>
+        <RouteFocusAndTitle />
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/signin" element={<Auth />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/guidelines" element={<Guidelines />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
+            <Route index element={<Navigate to="feed" replace />} />
+            <Route path="feed" element={<Feed />} />
+            <Route path="polls" element={<Polls />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="create" element={<Create />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <CookieNotice />
+      </AuthCtx.Provider>
+    </ErrorBoundary>
   );
 }
