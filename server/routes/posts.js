@@ -106,7 +106,13 @@ r.post(
 
     const { data, error } = await db
       .from('posts')
-      .insert({ community_id: req.user.community_id, author_id: req.user.id, category, body })
+      .insert({
+        community_id: req.user.community_id,
+        author_id: req.user.id,
+        category,
+        body,
+        status: 'visible'
+      })
       .select('id')
       .single();
     if (error) throw error;
