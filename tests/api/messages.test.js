@@ -196,4 +196,107 @@ describe('Messages API (MSG-01..MSG-10)', () => {
       expect(foreignRes.body.error).toContain('not found');
     });
   });
+
+  describe('MSG-07 & MSG-10: Thread Privacy and Isolation', () => {
+    it('MSG-07: thread endpoint returns only the two participants messages, ordered ascending', async () => {
+      const teacherCookie = await loginAs('teacher_a1');
+      const studentCookie = await loginAs('student_a1');
+
+      // Seed conversation between teacherA1 and studentA1
+      const now = Date.now();
+      mockDb.messages.splice(
+        0,
+        mockDb.messages.length,
+        {
+          id: '00000000-0000-0000-0006-000000000010',
+          community_id: '00000000-0000-0000-0000-000000000001',
+          sender_id: teacherA1Id,
+          recipient_id: studentA1Id,
+          body: 'First message from teacher to student A1',
+          created_at: new Date(now - 10000).toISOString()
+        },
+        {
+          id: '00000000-0000-0000-0006-000000000011',
+          community_id: '00000000-0000-0000-0000-000000000001',
+          sender_id: studentA1Id,
+          recipient_id: teacherA1Id,
+          body: 'Second message reply from student A1',
+          created_at: new Date(now - 5000).toISOString()
+        }
+      );
+
+      // Student fetches thread with teacher
+      const sRes = await request(app)
+        .get(`/api/messages/with/${teacherA1Id}`)
+        .set('Cookie', studentCookie);
+      expect(sRes.status).toBe(200);
+      expect(sRes.body.messages).toHaveLength(2);
+      expect(sRes.body.messages[0].body).toBe('First message from teacher to student A1');
+      expect(sRes.body.messages[0].mine).toBe(false);
+      expect(sRes.body.messages[1].body).toBe('Second message reply from student A1');
+      expect(sRes.body.messages[1].mine).toBe(true);
+
+      // Teacher fetches thread with student
+      const tRes = await request(app)
+        .get(`/api/messages/with/${studentA1Id}`)
+        .set('Cookie', teacherCookie);
+      expect(tRes.status).toBe(200);
+      expect(tRes.body.messages).toHaveLength(2);
+      expect(tRes.body.messages[0].mine).toBe(true);
+      expect(tRes.body.messages[1].mine).toBe(false);
+    });
+
+    it('MSG-10: a third user can never read someone else thread by guessing IDs', async () => {
+      const student2Cookie = await loginAs('student_a2');
+
+      // Seed conversation between teacherA1 and studentA1
+      const now = Date.now();
+      mockDb.messages.splice(0, mockDb.messages.length, {
+        id: '00000000-0000-0000-0006-000000000020',
+        community_id: '00000000-0000-0000-0000-000000000001',
+        sender_id: teacherA1Id,
+        recipient_id: studentA1Id,
+        body: 'Private grades discussion between teacher and student 1',
+        created_at: new Date(now - 5000).toISOString()
+      });
+
+      // Student 2 queries messages with teacherA1
+      const resWithTeacher = await request(app)
+        .get(`/api/messages/with/${teacherA1Id}`)
+        .set('Cookie', student2Cookie);
+      expect(resWithTeacher.status).toBe(200);
+      expect(resWithTeacher.body.messages).toHaveLength(0); // None of student 1's messages appear
+
+      // Student 2 queries messages with studentA1
+      const resWithStudent1 = await request(app)
+        .get(`/api/messages/with/${studentA1Id}`)
+        .set('Cookie', student2Cookie);
+      expect(resWithStudent1.status).toBe(200);
+      expect(resWithStudent1.body.messages).toHaveLength(0);
+
+      // Student 2 checks threads list
+      const resThreads = await request(app)
+        .get('/api/messages/threads')
+        .set('Cookie', student2Cookie);
+      expect(resThreads.status).toBe(200);
+      expect(resThreads.body.threads).toHaveLength(0);
+    });
+
+    it('MSG: /people endpoint returns only permitted recipients in own community', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Student view: only teachers and admins
+      const sRes = await request(app).get('/api/messages/people').set('Cookie', studentCookie);
+      expect(sRes.status).toBe(200);
+      expect(sRes.body.people.every((u) => u.role === 'teacher' || u.role === 'admin')).toBe(true);
+      expect(sRes.body.people.some((u) => u.id === studentA1Id)).toBe(false); // not self
+
+      // Teacher view: all active users in community A except self
+      const tRes = await request(app).get('/api/messages/people').set('Cookie', teacherCookie);
+      expect(tRes.status).toBe(200);
+      expect(tRes.body.people.some((u) => u.role === 'student')).toBe(true);
+      expect(tRes.body.people.some((u) => u.id === teacherA1Id)).toBe(false); // not self
+    });
+  });
 });
