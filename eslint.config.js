@@ -26,6 +26,7 @@ export default [
       'api/**/*.{js,jsx}',
       'scripts/**/*.{js,jsx}',
       'templates/**/*.{js,jsx}',
+      'tests/**/*.{js,jsx}',
       '*.config.js'
     ],
     languageOptions: {

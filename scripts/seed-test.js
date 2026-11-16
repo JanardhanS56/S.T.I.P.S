@@ -1,31 +1,10 @@
 import bcrypt from 'bcryptjs';
 import { db } from '../server/db.js';
 import { env } from '../server/env.js';
-
-// Production safety guard (Invariant: Never seed production with test users)
-function guardAgainstProduction() {
-  if (env.NODE_ENV === 'production') {
-    throw new Error('FATAL: seed-test.js cannot run in production mode (NODE_ENV=production).');
-  }
-
-  const prodKeywords = ['production', 'prod-'];
-  const urlLower = env.SUPABASE_URL.toLowerCase();
-  for (const kw of prodKeywords) {
-    if (urlLower.includes(kw)) {
-      throw new Error(
-        `FATAL: SUPABASE_URL (${env.SUPABASE_URL}) appears to be a production database.`
-      );
-    }
-  }
-
-  // Refuse if explicit PROD_SUPABASE_URL environment variable matches current SUPABASE_URL
-  if (process.env.PROD_SUPABASE_URL && process.env.PROD_SUPABASE_URL === env.SUPABASE_URL) {
-    throw new Error('FATAL: SUPABASE_URL matches PROD_SUPABASE_URL. Seeding aborted.');
-  }
-}
+import { guardAgainstProduction } from '../tests/helpers/prodGuard.js';
 
 export async function runSeed() {
-  guardAgainstProduction();
+  guardAgainstProduction(env.SUPABASE_URL, env.NODE_ENV);
 
   const testPassword = 'TestPassword123!';
   const passwordHash = await bcrypt.hash(testPassword, 10);
