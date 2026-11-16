@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { h, parse, HttpError } from '../http.js';
 import { setSession, clearSession, requireAuth, publicUser, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
+import { validatePassword } from '../lib/passwordPolicy.js';
 
 const r = Router();
 const FIELDS =
@@ -113,10 +114,13 @@ r.post(
     const { current, next } = parse(
       z.object({
         current: z.string().max(100),
-        next: z.string().min(10, 'Use at least 10 characters.').max(100)
+        next: z.string().max(100)
       }),
       req.body
     );
+    const policy = validatePassword(next, req.user.username);
+    if (!policy.valid) throw new HttpError(400, policy.reason);
+
     const { data: u } = await db
       .from('users')
       .select('password_hash')
