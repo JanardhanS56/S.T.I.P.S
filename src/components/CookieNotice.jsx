@@ -5,13 +5,29 @@ import { Link } from 'react-router-dom';
 // banner is legally required in most places, but we tell people plainly anyway.
 // If you ever add analytics or ads, replace this with a real consent choice.
 export default function CookieNotice() {
-  const [seen, setSeen] = useState(() => { try { return localStorage.getItem('stips_notice') === '1'; } catch { return false; } });
+  const [seen, setSeen] = useState(() => {
+    try {
+      return localStorage.getItem('stips_notice') === '1';
+    } catch {
+      return false;
+    }
+  });
   if (seen) return null;
-  const close = () => { try { localStorage.setItem('stips_notice', '1'); } catch {} setSeen(true); };
+  const close = () => {
+    try {
+      localStorage.setItem('stips_notice', '1');
+    } catch {}
+    setSeen(true);
+  };
   return (
     <div className="cookie" role="region" aria-label="Cookie notice">
-      <span>We use one cookie to keep you signed in. No tracking, no ads. <Link to="/cookies">Details</Link></span>
-      <button className="btn btn-dark" onClick={close}>Got it</button>
+      <span>
+        We use one cookie to keep you signed in. No tracking, no ads.{' '}
+        <Link to="/cookies">Details</Link>
+      </span>
+      <button className="btn btn-dark" onClick={close}>
+        Got it
+      </button>
     </div>
   );
 }

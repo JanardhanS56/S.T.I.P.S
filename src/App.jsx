@@ -26,9 +26,14 @@ export default function App() {
       setState({ loading: false, user: null, community: null });
     }
   }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const logout = async () => { await api.post('/auth/logout'); setState({ loading: false, user: null, community: null }); };
+  const logout = async () => {
+    await api.post('/auth/logout');
+    setState({ loading: false, user: null, community: null });
+  };
 
   if (state.loading) return <div className="center-note">Loading…</div>;
   const ready = state.user && state.community;
