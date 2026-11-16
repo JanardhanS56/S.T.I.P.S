@@ -4,7 +4,8 @@ import { config } from './config.js';
 import { HttpError } from './http.js';
 
 const COOKIE = 'stips_session';
-const USER_FIELDS = 'id,username,display_name,role,community_id,bio,department,status,must_change_password';
+const USER_FIELDS =
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password';
 
 export function setSession(res, user) {
   const token = jwt.sign({ sub: user.id }, config.jwtSecret, { expiresIn: '7d' });
@@ -13,7 +14,7 @@ export function setSession(res, user) {
     secure: config.isProd, // HTTPS only in production
     sameSite: 'strict', // not sent on cross-site requests (CSRF protection)
     maxAge: 7 * 24 * 3600 * 1000,
-    path: '/',
+    path: '/'
   });
 }
 
@@ -41,10 +42,19 @@ export const requireAdmin = (req, _res, next) =>
 
 // Muted accounts can read but not create anything.
 export const requireNotMuted = (req, _res, next) =>
-  next(req.user.status === 'muted' ? new HttpError(403, 'Your account is muted. Contact the office.') : undefined);
+  next(
+    req.user.status === 'muted'
+      ? new HttpError(403, 'Your account is muted. Contact the office.')
+      : undefined
+  );
 
 export const publicUser = (u) => ({
-  id: u.id, username: u.username, displayName: u.display_name, role: u.role,
-  communityId: u.community_id, bio: u.bio, department: u.department,
-  mustChangePassword: u.must_change_password,
+  id: u.id,
+  username: u.username,
+  displayName: u.display_name,
+  role: u.role,
+  communityId: u.community_id,
+  bio: u.bio,
+  department: u.department,
+  mustChangePassword: u.must_change_password
 });

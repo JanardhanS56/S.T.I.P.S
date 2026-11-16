@@ -6,7 +6,9 @@ export default function Shell() {
   return (
     <div className="shell">
       <aside className="side">
-        <Link to="/" className="wordmark">S.T.I.P.S</Link>
+        <Link to="/" className="wordmark">
+          S.T.I.P.S
+        </Link>
         <div className="side-community">
           <span className="mono small green-light">COMMUNITY</span>
           <strong>{community.name}</strong>
@@ -17,14 +19,23 @@ export default function Shell() {
           <NavLink to="/app/messages">Messages</NavLink>
           <NavLink to="/app/profile">Profile</NavLink>
         </nav>
-        <Link to="/app/create" className="btn btn-green">+ Create</Link>
+        <Link to="/app/create" className="btn btn-green">
+          + Create
+        </Link>
         <div className="side-foot">
           <strong>{user.username}</strong>
           <span>{user.role}</span>
-          <span><button className="link-btn" onClick={logout}>Sign out</button> · <Link to="/privacy">Policy</Link> · <Link to="/cookies">Cookies</Link></span>
+          <span>
+            <button className="link-btn" onClick={logout}>
+              Sign out
+            </button>{' '}
+            · <Link to="/privacy">Policy</Link> · <Link to="/cookies">Cookies</Link>
+          </span>
         </div>
       </aside>
-      <main className="main"><Outlet /></main>
+      <main className="main">
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -4,7 +4,7 @@ async function call(method, path, body) {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-    credentials: 'same-origin',
+    credentials: 'same-origin'
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Something went wrong.');
@@ -14,5 +14,5 @@ export const api = {
   get: (p) => call('GET', p),
   post: (p, b = {}) => call('POST', p, b),
   patch: (p, b) => call('PATCH', p, b),
-  del: (p) => call('DELETE', p, {}),
+  del: (p) => call('DELETE', p, {})
 };

@@ -4,12 +4,19 @@
   "private": true,
   "type": "module",
   "description": "S.T.I.P.S - Student-Teacher Interaction and Polling System (prototype)",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "dev:api": "node --env-file=.env server/dev.js",
     "build": "vite build",
-    "create-admin": "node --env-file=.env scripts/create-admin.js"
+    "create-admin": "node --env-file=.env scripts/create-admin.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -25,7 +32,18 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^9.39.5",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.1",
+    "prettier": "^3.10.1",
     "vite": "^5.4.0"
   }
 }
