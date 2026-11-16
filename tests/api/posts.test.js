@@ -285,4 +285,70 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(post.body).toBe(xssPayload);
     });
   });
+
+  describe('POST-09: Cursor Pagination', () => {
+    it('POST-09: paginates stably through posts with before and limit', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Clear existing posts in community A to have a deterministic set
+      for (let i = mockDb.posts.length - 1; i >= 0; i--) {
+        if (mockDb.posts[i].community_id === '00000000-0000-0000-0000-000000000001') {
+          mockDb.posts.splice(i, 1);
+        }
+      }
+
+      // Seed 5 posts with distinct ascending timestamps (so newest is P5)
+      const baseTime = 1700000000000;
+      for (let i = 1; i <= 5; i++) {
+        mockDb.posts.push({
+          id: `00000000-0000-0000-0003-00000000000${i}`,
+          community_id: '00000000-0000-0000-0000-000000000001',
+          author_id: '00000000-0000-0000-0001-000000000004',
+          category: 'Notice',
+          body: `Paginated post ${i}`,
+          status: 'visible',
+          created_at: new Date(baseTime + i * 10000).toISOString()
+        });
+      }
+
+      // Page 1: limit 2 -> returns post 5 and post 4
+      const page1 = await request(app).get('/api/posts?limit=2').set('Cookie', cookie);
+      expect(page1.status).toBe(200);
+      expect(page1.body.posts).toHaveLength(2);
+      expect(page1.body.posts[0].body).toBe('Paginated post 5');
+      expect(page1.body.posts[1].body).toBe('Paginated post 4');
+      expect(page1.body.nextCursor).toBe(page1.body.posts[1].created_at);
+
+      // Page 2: limit 2 & before=nextCursor -> returns post 3 and post 2
+      const page2 = await request(app)
+        .get(`/api/posts?limit=2&before=${encodeURIComponent(page1.body.nextCursor)}`)
+        .set('Cookie', cookie);
+      expect(page2.status).toBe(200);
+      expect(page2.body.posts).toHaveLength(2);
+      expect(page2.body.posts[0].body).toBe('Paginated post 3');
+      expect(page2.body.posts[1].body).toBe('Paginated post 2');
+      expect(page2.body.nextCursor).toBe(page2.body.posts[1].created_at);
+
+      // Page 3: limit 2 & before=nextCursor -> returns post 1, nextCursor is null
+      const page3 = await request(app)
+        .get(`/api/posts?limit=2&before=${encodeURIComponent(page2.body.nextCursor)}`)
+        .set('Cookie', cookie);
+      expect(page3.status).toBe(200);
+      expect(page3.body.posts).toHaveLength(1);
+      expect(page3.body.posts[0].body).toBe('Paginated post 1');
+      expect(page3.body.nextCursor).toBeNull();
+    });
+
+    it('POST-09: validates limit parameter boundary (1..50)', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // limit > 50 -> 400
+      const resHigh = await request(app).get('/api/posts?limit=51').set('Cookie', cookie);
+      expect(resHigh.status).toBe(400);
+
+      // limit < 1 -> 400
+      const resLow = await request(app).get('/api/posts?limit=0').set('Cookie', cookie);
+      expect(resLow.status).toBe(400);
+    });
+  });
 });
