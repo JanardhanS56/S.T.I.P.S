@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { env } from './env.js';
 import { normalise, collapseRepeats, despaceRuns } from './lib/normalize.js';
 import { hasContactInfo } from './lib/detectors.js';
+import { checkSpam } from './lib/spam.js';
 
-export { hasContactInfo };
+export { hasContactInfo, checkSpam };
 
 const listPath = fileURLToPath(new URL('./blocklist.txt', import.meta.url));
 const BLOCKED = readFileSync(listPath, 'utf8')
@@ -72,6 +73,8 @@ async function aiCheck(text) {
 export async function screen(text, { allowContact = false } = {}) {
   const local = localCheck(text);
   if (!local.ok) return local;
+  const spam = checkSpam(text);
+  if (!spam.ok) return spam;
   if (!allowContact && hasContactInfo(text)) {
     return { ok: false, reason: 'Phone numbers and email addresses are not allowed here.' };
   }

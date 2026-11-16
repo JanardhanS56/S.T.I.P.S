@@ -15,6 +15,13 @@ export const config = {
     loginFailuresBeforeLock: 5,
     lockMinutes: 10
   },
+  spam: {
+    maxRepeatedChars: 6,
+    maxRepeatedWords: 4,
+    allCapsMinLength: 10,
+    allCapsRatio: 0.7,
+    allowLinks: false
+  },
   // 'teacher-student': a DM needs at least one teacher or admin. Student-to-student DMs are off.
   dmRule: 'teacher-student'
 };
