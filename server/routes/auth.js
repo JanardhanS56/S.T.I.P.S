@@ -72,6 +72,17 @@ r.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
+r.post(
+  '/logout-all',
+  requireAuth,
+  h(async (req, res) => {
+    const newVersion = (req.user.token_version ?? 0) + 1;
+    await db.from('users').update({ token_version: newVersion }).eq('id', req.user.id);
+    clearSession(res);
+    res.json({ ok: true });
+  })
+);
+
 r.get(
   '/me',
   requireAuth,
