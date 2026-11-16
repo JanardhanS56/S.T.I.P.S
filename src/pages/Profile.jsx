@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import { Badge, Button, Banner, Field } from '../components/ui/index.js';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
@@ -49,48 +50,53 @@ export default function Profile() {
         <div>
           <div className="big-name">{user.displayName}</div>
           <div className="mono muted">@{user.username}</div>
-          <span className={`role ${user.role}`}>{user.role.toUpperCase()}</span>
+          <Badge variant={user.role}>{user.role.toUpperCase()}</Badge>
         </div>
       </div>
       <form className="form narrow" onSubmit={save}>
-        <label>
-          Display name
-          <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Short bio (160 characters)
-          <textarea value={bio} maxLength={160} onChange={(e) => setBio(e.target.value)} />
-        </label>
-        <button className="btn btn-dark">Save changes</button>
+        <Field
+          label="Display name"
+          id="profile-name"
+          value={name}
+          maxLength={60}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Field
+          label="Short bio (160 characters)"
+          id="profile-bio"
+          as="textarea"
+          value={bio}
+          maxLength={160}
+          onChange={(e) => setBio(e.target.value)}
+        />
+        <Button type="submit" variant="dark">
+          Save changes
+        </Button>
       </form>
       <form className="form narrow" onSubmit={changePw}>
         <h3>Change password</h3>
-        <label>
-          Current password
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={pw.current}
-            onChange={(e) => setPw({ ...pw, current: e.target.value })}
-          />
-        </label>
-        <label>
-          New password (10+ characters)
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={pw.next}
-            onChange={(e) => setPw({ ...pw, next: e.target.value })}
-          />
-        </label>
-        <button className="btn btn-dark">Change password</button>
+        <Field
+          label="Current password"
+          id="current-pw"
+          type="password"
+          autoComplete="current-password"
+          value={pw.current}
+          onChange={(e) => setPw({ ...pw, current: e.target.value })}
+        />
+        <Field
+          label="New password (10+ characters)"
+          id="next-pw"
+          type="password"
+          autoComplete="new-password"
+          value={pw.next}
+          onChange={(e) => setPw({ ...pw, next: e.target.value })}
+        />
+        <Button type="submit" variant="dark">
+          Change password
+        </Button>
       </form>
-      {msg && <div className="ok">{msg}</div>}
-      {err && (
-        <div className="error" role="alert">
-          {err}
-        </div>
-      )}
+      {msg && <Banner variant="success">{msg}</Banner>}
+      {err && <Banner variant="error">{err}</Banner>}
       <section className="narrow note-block">
         <h3>What others can see</h3>
         <p>
