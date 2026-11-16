@@ -70,6 +70,9 @@ export function resetRateLimits() {
 
 function getUpstashLimiter(prefix, tokens, windowSeconds) {
   if (!redisClient) return null;
+  if (typeof redisClient.limit === 'function') {
+    return redisClient;
+  }
   const cacheKey = `${prefix}:${tokens}:${windowSeconds}`;
   let limiter = ratelimitInstances.get(cacheKey);
   if (!limiter) {
