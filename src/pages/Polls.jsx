@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { Badge, Card, Banner, EmptyState } from '../components/ui/index.js';
 
 export default function Polls() {
   const [polls, setPolls] = useState([]);
@@ -25,10 +26,10 @@ export default function Polls() {
   const Poll = ({ p }) => {
     const showBars = p.total !== null;
     return (
-      <article className={`card ${p.closed ? '' : 'card-strong'}`}>
+      <Card as="article" variant={p.closed ? 'default' : 'strong'}>
         <div className="row meta">
           <b>{p.author.username}</b>
-          <span className={`role ${p.author.role}`}>{p.author.role.toUpperCase()}</span>
+          <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
           <span className="muted small">
             {p.closed ? 'Closed' : `Closes ${new Date(p.closes_at).toLocaleDateString()}`} · One
             vote per person
@@ -58,7 +59,7 @@ export default function Polls() {
             ? `${p.total} vote${p.total === 1 ? '' : 's'}`
             : 'Pick one to vote and see results.'}
         </p>
-      </article>
+      </Card>
     );
   };
 
@@ -70,17 +71,15 @@ export default function Polls() {
           Start a poll
         </Link>
       </div>
-      {err && (
-        <div className="error" role="alert">
-          {err}
-        </div>
-      )}
+      {err && <Banner variant="error">{err}</Banner>}
       <div className="mono small green label">OPEN NOW</div>
       <div className="stack">
         {open.map((p) => (
           <Poll key={p.id} p={p} />
         ))}
-        {!open.length && <p className="muted">No open polls.</p>}
+        {!open.length && (
+          <EmptyState title="No open polls" description="Check back later or start a new one." />
+        )}
       </div>
       {!!closed.length && (
         <>
