@@ -248,4 +248,78 @@ describe('Auth API Integration Tests (AUTH-01..AUTH-06, AUTH-10..AUTH-12)', () =
       expect(isCleared).toBe(true);
     });
   });
+
+  describe('AUTH-07 & AUTH-08: /api/auth/change-password enforcement', () => {
+    it('AUTH-07: rejects change-password when current password is wrong', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+
+      const cookie = extractCookie(loginRes);
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({ current: 'WrongCurrent123!', next: 'NewValidPassword2026!' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Current password is wrong.');
+    });
+
+    it('AUTH-08: rejects new password identical to username', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+
+      const cookie = extractCookie(loginRes);
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({ current: 'TestPassword123!', next: 'student_a1' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('identical to your username');
+    });
+
+    it('AUTH-08: rejects new password in common passwords list', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+
+      const cookie = extractCookie(loginRes);
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({ current: 'TestPassword123!', next: 'password123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('too common');
+    });
+
+    it('AUTH-07: successfully updates password when current is correct and next passes policy', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+
+      const cookie = extractCookie(loginRes);
+
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({ current: 'TestPassword123!', next: 'BrandNewValidPass2026!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
+    });
+  });
 });
