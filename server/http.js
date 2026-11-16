@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from './logger.js';
 
 export class HttpError extends Error {
   constructor(status, message) {
@@ -18,8 +19,10 @@ export function parse(schema, data) {
 
 export const uuid = z.string().uuid('Invalid id.');
 
-export function errorHandler(err, _req, res, _next) {
+export function errorHandler(err, req, res, _next) {
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
-  console.error(err); // never send internals to the browser
+  const reqId = req?.id || req?.headers?.['x-request-id'];
+  const log = req?.log || logger;
+  log.error({ err, reqId }, 'Unhandled server error');
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 }

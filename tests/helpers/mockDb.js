@@ -117,6 +117,9 @@ export function createMockDb(initialData = {}) {
         select(_fields) {
           return queryBuilder;
         },
+        limit(_n) {
+          return queryBuilder;
+        },
         eq(col, val) {
           filters.push((item) => item[col] === val);
           return queryBuilder;

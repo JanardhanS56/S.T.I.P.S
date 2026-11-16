@@ -17,20 +17,21 @@ server/http.js            HttpError, h() async wrapper, parse(), errorHandler
 server/session.js         cookie session, requireAuth/Community/Admin/NotMuted, publicUser
 server/moderation.js      word filter, contact-info check, optional LLM check
 server/blocklist.txt      starter word list
+server/logger.js          structured logging with pino and pino-http (redaction, x-request-id)
 server/routes/            auth, posts, polls, messages, reports, admin
 scripts/create-admin.js   bootstraps a community + first admin
 src/                      React app (pages/, components/, api.js, styles.css)
-supabase/schema.sql       baseline schema (to be converted to migrations on Day 1)
+supabase/migrations/      versioned database migrations (baseline + token_version)
 vercel.json               rewrites: /api/* -> /api ; everything else -> index.html
 ```
 
-## Endpoints (baseline)
+## Endpoints (current)
 
-auth: login, logout, me, join, change-password, profile. posts: list, create, delete. polls: list, create, vote. messages: people, threads, with/:id, send. reports: create. admin: community, members, reports, resolve, users/:id/status, reset-password. Health: `/api/health`. See the code for exact shapes; keep `docs/API.md` current once created.
+auth: login, logout, logout-all, me, join, change-password, profile. posts: list, create, delete. polls: list, create, vote. messages: people, threads, with/:id, send. reports: create. admin: community, members, reports, resolve, users/:id/status, reset-password. Health: `/api/health` ({ok, db}). See `docs/API.md`.
 
-## Data model (baseline)
+## Data model (current)
 
-communities, users, posts, polls, poll_options, poll_votes (PK poll_id+user_id), messages, reports. RLS enabled on all with no policies.
+communities, users (with token_version), posts, polls, poll_options, poll_votes (PK poll_id+user_id), messages, reports. RLS enabled on all with no policies.
 
 ## Roles and rules
 
@@ -42,9 +43,9 @@ communities, users, posts, polls, poll_options, poll_votes (PK poll_id+user_id),
 
 posts 10/h, polls 5/day, messages 60/h, reports 20/day, 5 failed logins then 10 min lock, post 280 chars, message 500 chars, bio 160 chars, JSON body 10 kb.
 
-## Known gaps in the baseline (to be closed by the plan)
+## Known gaps in the baseline (to be closed by subsequent day plans)
 
-No tests, no linter, no CI, no migrations, in-memory IP throttle, no audit log, no replies/reactions/blocks, no admin UI beyond Create, no structured logging, no error tracking, no session revocation, no data export/deletion, no CSP tuned for the app, no legal review.
+In-memory IP throttle (Upstash planned for Day 2), no audit log, no replies/reactions/blocks (Day 3), no admin UI beyond Create, no error tracking (Sentry), no data export/deletion, no CSP tuned for the app (Day 2), no legal review (Day 4).
 
 ## Local commands
 
