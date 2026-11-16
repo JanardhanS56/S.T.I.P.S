@@ -11,6 +11,7 @@ import Polls from './pages/Polls.jsx';
 import Messages from './pages/Messages.jsx';
 import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
+import NotFound from './pages/NotFound.jsx';
 import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
 
 const AuthCtx = createContext(null);
@@ -34,7 +35,8 @@ function RouteFocusAndTitle() {
     };
 
     const path = location.pathname;
-    const pageTitle = titles[path] || (path.startsWith('/app/feed/') ? 'Post Thread' : '');
+    const pageTitle =
+      titles[path] || (path.startsWith('/app/feed/') ? 'Post Thread' : 'Page Not Found');
     document.title = pageTitle ? `${pageTitle} · S.T.I.P.S` : 'S.T.I.P.S';
 
     const timer = setTimeout(() => {
@@ -94,8 +96,9 @@ export default function App() {
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="create" element={<Create />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <CookieNotice />
       </AuthCtx.Provider>
