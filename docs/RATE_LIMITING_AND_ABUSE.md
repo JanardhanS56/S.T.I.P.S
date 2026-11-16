@@ -38,12 +38,12 @@
 
 ## Moderation pipeline for every user-generated text
 
-1. Normalize (lowercase, strip zero-width and look-alike characters).
-2. Word filter (`server/blocklist.txt`, per-community additions stored in DB on Day 3).
-3. Contact-info detector (phone numbers, emails, "dm me on", social handles patterns).
-4. Optional LLM check (Groq/OpenRouter/NVIDIA via env). Prompt treats text as data. Timeout 4 s. Fails open.
-5. Outcome: allow, reject with a gentle reason, or allow + flag for admin review (soft-flag for borderline).
-   Log the **decision and reason code only**, not the text.
+1. Normalize: lowercase, strip zero-width characters (`\u200B..\u200D`, `\uFEFF`, soft hyphens, directional marks), homoglyphs/look-alikes (NFKD decomposition, Cyrillic substitutions like `і`, `с`, `а`, `е`, `ѕ`, `о`), and collapse repeated characters (`collapseRepeats`). Single-letter spaced runs (`l o s e r`) are despaced while preserving standalone articles (`a`, `i`) to ensure Scunthorpe-safe whole-word matching.
+2. Word filter (`server/blocklist.txt`, per-community additions stored in DB on Day 3): starter blocklist matches whole word boundaries and repeat-collapsed tokens, preventing innocent substring false positives (e.g., `skill`, `skillet`, `shuttle`, `closer`).
+3. Spam heuristics (`server/lib/spam.js`): rejects 6+ consecutive identical characters, 4+ repeated words, >= 70% ALL CAPS (min 10 letters), and rejects all links/URLs in v1.
+4. Contact-info detector (`server/lib/detectors.js`): detects standard and international phone numbers (+91, spaced digits), standard emails, spelled-out email variants (`user [at] campus [dot] edu`, `(at)` / `at` / `dot`), and social handle patterns (`ig:`, `snap:`, `telegram:`, `dm me on`).
+5. Optional LLM check (`server/lib/llm.js`): Groq/OpenRouter/NVIDIA via env. Prompt treats text strictly as untrusted data within `<user_text>` tags without user metadata. Strict Zod schema validation. Timeout 4 s. Fails open on errors/timeouts.
+6. Auto-mute repeat offenders (`server/lib/rejections.js`): 5 moderation rejections in 1 hour automatically mutes the account in the database and creates an open system report for the office queue.
 
 ### LLM moderation rules
 

@@ -488,6 +488,7 @@ export function createMockDb(initialData = {}) {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
               ...(tableName === 'posts' || tableName === 'polls' ? { status: 'visible' } : {}),
+              ...(tableName === 'reports' ? { status: 'open' } : {}),
               ...item
             };
             collection.push(record);
