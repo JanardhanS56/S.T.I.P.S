@@ -1,3 +1,12 @@
+export class ApiError extends Error {
+  constructor(message, status = 500, retryAfter = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.retryAfter = retryAfter ? parseInt(retryAfter, 10) : null;
+  }
+}
+
 // Tiny fetch wrapper. Cookies are sent automatically (same origin); we never touch tokens in JS.
 async function call(method, path, body) {
   const res = await fetch(`/api${path}`, {
@@ -7,7 +16,10 @@ async function call(method, path, body) {
     credentials: 'same-origin'
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+  if (!res.ok) {
+    const retryAfter = res.headers ? res.headers.get('Retry-After') : null;
+    throw new ApiError(data.error || 'Something went wrong.', res.status, retryAfter);
+  }
   return data;
 }
 export const api = {
