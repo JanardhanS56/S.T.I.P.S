@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
+import { Button, Chip, Badge, Card, Banner, EmptyState } from '../components/ui/index.js';
 
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
 const MAX = 280;
@@ -55,7 +56,7 @@ export default function Feed() {
   return (
     <div className="page">
       <h1>Community feed</h1>
-      <form className="card composer" onSubmit={publish}>
+      <Card as="form" variant="composer" onSubmit={publish}>
         <label htmlFor="post">Share with campus</label>
         <textarea
           id="post"
@@ -67,57 +68,48 @@ export default function Feed() {
         <div className="row between">
           <div className="chips">
             {CATS.map((c) => (
-              <button
-                type="button"
-                key={c}
-                className={`chip ${cat === c ? 'on' : ''}`}
-                onClick={() => setCat(c)}
-              >
+              <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
                 {c}
-              </button>
+              </Chip>
             ))}
           </div>
           <div className="row">
             <span className={`mono small ${left < 30 ? 'warn' : ''}`}>{left} left</span>
-            <button className="btn btn-dark" disabled={!text.trim()}>
+            <Button type="submit" variant="dark" disabled={!text.trim()}>
               Post
-            </button>
+            </Button>
           </div>
         </div>
-        {err && (
-          <div className="error" role="alert">
-            {err}
-          </div>
-        )}
-      </form>
+        {err && <Banner variant="error">{err}</Banner>}
+      </Card>
 
       <div className="chips filters">
         {['All', ...CATS].map((c) => (
-          <button
-            key={c}
-            className={`chip ${filter === c ? 'on' : ''}`}
-            onClick={() => setFilter(c)}
-          >
+          <Chip key={c} active={filter === c} onClick={() => setFilter(c)}>
             {c}
-          </button>
+          </Chip>
         ))}
       </div>
       <div className="stack">
         {posts.map((p) => (
-          <article key={p.id} className="card">
+          <Card as="article" key={p.id}>
             <div className="row meta">
               <b>{p.author.username}</b>
-              <span className={`role ${p.author.role}`}>{p.author.role.toUpperCase()}</span>
+              <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
               <span className="muted small">{ago(p.created_at)}</span>
-              <span className={`tag ${p.category}`}>{p.category}</span>
+              <Badge type="tag" variant={p.category}>
+                {p.category}
+              </Badge>
             </div>
             <p className="post-body">{p.body}</p>
-            <button className="link-btn small muted" onClick={() => report(p.id)}>
+            <Button variant="link" className="muted small" onClick={() => report(p.id)}>
               Report
-            </button>
-          </article>
+            </Button>
+          </Card>
         ))}
-        {!posts.length && <p className="muted">Nothing here yet. Be the first to post.</p>}
+        {!posts.length && (
+          <EmptyState title="Nothing here yet" description="Be the first to post." />
+        )}
       </div>
     </div>
   );
