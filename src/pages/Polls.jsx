@@ -1,25 +1,57 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
-import { Badge, Card, Banner, EmptyState } from '../components/ui/index.js';
+import {
+  Badge,
+  Card,
+  Banner,
+  EmptyState,
+  Skeleton,
+  RateLimitNotice
+} from '../components/ui/index.js';
 
 export default function Polls() {
   const [polls, setPolls] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const load = useCallback(async () => setPolls((await api.get('/polls')).polls), []);
+  const [rateLimitErr, setRateLimitErr] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      const res = await api.get('/polls');
+      setPolls(res.polls);
+    } catch (e) {
+      if (e.status === 429) {
+        setRateLimitErr(e);
+      } else {
+        setErr(e.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    load().catch((e) => setErr(e.message));
+    load();
   }, [load]);
 
   async function vote(pollId, optionId) {
     setErr('');
+    setRateLimitErr(null);
     try {
       await api.post(`/polls/${pollId}/vote`, { optionId });
       await load();
     } catch (e) {
-      setErr(e.message);
+      if (e.status === 429) {
+        setRateLimitErr(e);
+      } else {
+        setErr(e.message);
+      }
     }
   }
+
   const open = polls.filter((p) => !p.closed);
   const closed = polls.filter((p) => p.closed);
 
@@ -71,24 +103,69 @@ export default function Polls() {
           Start a poll
         </Link>
       </div>
+
       {err && <Banner variant="error">{err}</Banner>}
-      <div className="mono small green label">OPEN NOW</div>
-      <div className="stack">
-        {open.map((p) => (
-          <Poll key={p.id} p={p} />
-        ))}
-        {!open.length && (
-          <EmptyState title="No open polls" description="Check back later or start a new one." />
-        )}
-      </div>
-      {!!closed.length && (
+      {rateLimitErr && (
+        <RateLimitNotice
+          seconds={rateLimitErr.retryAfter || 15}
+          message={rateLimitErr.message || 'Please wait a moment before trying again.'}
+          onReady={() => setRateLimitErr(null)}
+        />
+      )}
+
+      {loading ? (
+        <div className="stack" aria-busy="true" aria-label="Loading polls">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <div className="row meta" style={{ marginBottom: '12px', gap: '8px' }}>
+                <Skeleton width="100px" height="16px" />
+                <Skeleton width="60px" height="16px" />
+                <Skeleton width="120px" height="16px" />
+              </div>
+              <Skeleton width="75%" height="24px" style={{ marginBottom: '16px' }} />
+              <div className="stack tight">
+                <Skeleton height="40px" />
+                <Skeleton height="40px" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : polls.length === 0 ? (
+        <EmptyState
+          title="No polls active"
+          description="No polls have been created yet. You can start one to gather campus opinion."
+          action={
+            <Link to="/app/create" className="btn btn-dark">
+              Start a poll
+            </Link>
+          }
+        />
+      ) : (
         <>
-          <div className="mono small muted label">CLOSED</div>
+          <div className="mono small green label">OPEN NOW</div>
           <div className="stack">
-            {closed.map((p) => (
+            {open.map((p) => (
               <Poll key={p.id} p={p} />
             ))}
+            {!open.length && (
+              <EmptyState
+                title="No open polls right now"
+                description="Check back soon or create a new poll for your community."
+              />
+            )}
           </div>
+          {!!closed.length && (
+            <>
+              <div className="mono small muted label" style={{ marginTop: '24px' }}>
+                CLOSED
+              </div>
+              <div className="stack">
+                {closed.map((p) => (
+                  <Poll key={p.id} p={p} />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
