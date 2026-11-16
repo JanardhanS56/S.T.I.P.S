@@ -90,4 +90,54 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
       }
     });
   });
+
+  describe('ISO-03: Cross-community list reads are isolated', () => {
+    it('community A user cannot read community B posts, and vice versa', async () => {
+      const cookieA = await loginAs('student_a1');
+      const resA = await request(app).get('/api/posts').set('Cookie', cookieA);
+      expect(resA.status).toBe(200);
+      expect(resA.body.posts.length).toBeGreaterThan(0);
+      const postIdsA = resA.body.posts.map((p) => p.id);
+      expect(postIdsA).toContain('00000000-0000-0000-0003-000000000001');
+      expect(postIdsA).not.toContain('00000000-0000-0000-0003-000000000002');
+
+      const cookieB = await loginAs('student_b1');
+      const resB = await request(app).get('/api/posts').set('Cookie', cookieB);
+      expect(resB.status).toBe(200);
+      const postIdsB = resB.body.posts.map((p) => p.id);
+      expect(postIdsB).toContain('00000000-0000-0000-0003-000000000002');
+      expect(postIdsB).not.toContain('00000000-0000-0000-0003-000000000001');
+    });
+
+    it('community A user cannot read community B polls, and vice versa', async () => {
+      const cookieA = await loginAs('student_a1');
+      const resA = await request(app).get('/api/polls').set('Cookie', cookieA);
+      expect(resA.status).toBe(200);
+      const pollIdsA = resA.body.polls.map((p) => p.id);
+      expect(pollIdsA).toContain('00000000-0000-0000-0004-000000000001');
+      expect(pollIdsA).not.toContain('00000000-0000-0000-0004-000000000002');
+
+      const cookieB = await loginAs('student_b1');
+      const resB = await request(app).get('/api/polls').set('Cookie', cookieB);
+      expect(resB.status).toBe(200);
+      const pollIdsB = resB.body.polls.map((p) => p.id);
+      expect(pollIdsB).toContain('00000000-0000-0000-0004-000000000002');
+      expect(pollIdsB).not.toContain('00000000-0000-0000-0004-000000000001');
+    });
+
+    it('community A user cannot read community B message threads or members', async () => {
+      const cookieA = await loginAs('student_a1');
+      const threadsRes = await request(app).get('/api/messages/threads').set('Cookie', cookieA);
+      expect(threadsRes.status).toBe(200);
+      for (const thread of threadsRes.body.threads) {
+        expect(thread.with.username).not.toContain('_b');
+      }
+
+      const peopleRes = await request(app).get('/api/messages/people').set('Cookie', cookieA);
+      expect(peopleRes.status).toBe(200);
+      for (const person of peopleRes.body.people) {
+        expect(person.username).not.toContain('_b');
+      }
+    });
+  });
 });
