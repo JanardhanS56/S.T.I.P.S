@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { env } from './env.js';
 import { config } from './config.js';
 import { httpLogger } from './logger.js';
 import { errorHandler } from './http.js';
@@ -58,6 +59,17 @@ app.use(cookieParser());
 
 // Global IP limiter backed by Upstash Redis with safe in-memory fallback.
 app.use('/api', globalRateLimiter);
+
+// Maintenance mode switch: MAINTENANCE_MODE=1 blocks write methods with 503 while reads stay up.
+app.use('/api', (req, res, next) => {
+  const isMaintenance = process.env.MAINTENANCE_MODE === '1' || env.MAINTENANCE_MODE === '1';
+  if (isMaintenance && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return res.status(503).json({
+      error: 'Platform is in maintenance mode. Writes are temporarily disabled.'
+    });
+  }
+  next();
+});
 
 // Require JSON on writes so a cross-site HTML form cannot trigger them.
 app.use('/api', (req, res, next) => {
