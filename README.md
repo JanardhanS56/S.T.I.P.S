@@ -8,21 +8,22 @@ A private space for one college campus: a community feed for notices and memes, 
 
 ## What is in the box
 
-| Area | What it does |
-| --- | --- |
-| Landing page | Explains the goal, then leads to sign-in |
-| Sign-in | Username + password issued by the office. First sign-in forces a new password |
-| Communities | Created by the platform operator; the office (admin) then adds teachers and students, or shares a community code |
-| Community feed | Posts up to 280 characters, in four categories: Notice, Event, Meme, Moment |
-| Polls & votes | 2 to 6 options, 1 to 7 days, one vote per person, results visible after you vote |
-| Messages | One-to-one, username only. Students can message teachers and the office. Phone numbers and emails are blocked |
-| Profile | Display name, 160-character bio, change password |
-| Create | One place to make a post, a poll, and (for admins) accounts and reports |
-| Safety | Word filter, optional AI screening, reporting, rate limits, mute / suspend, minimal data |
+| Area           | What it does                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Landing page   | Explains the goal, then leads to sign-in                                                                         |
+| Sign-in        | Username + password issued by the office. First sign-in forces a new password                                    |
+| Communities    | Created by the platform operator; the office (admin) then adds teachers and students, or shares a community code |
+| Community feed | Posts up to 280 characters, in four categories: Notice, Event, Meme, Moment                                      |
+| Polls & votes  | 2 to 6 options, 1 to 7 days, one vote per person, results visible after you vote                                 |
+| Messages       | One-to-one, username only. Students can message teachers and the office. Phone numbers and emails are blocked    |
+| Profile        | Display name, 160-character bio, change password                                                                 |
+| Create         | One place to make a post, a poll, and (for admins) accounts and reports                                          |
+| Safety         | Word filter, optional AI screening, reporting, rate limits, mute / suspend, minimal data                         |
 
 ## Documents
 
 Engineering & Build Kit:
+
 - [GEMINI.md](GEMINI.md) agent directives and rules
 - [docs/PROGRESS.md](docs/PROGRESS.md) living progress and handoff log
 - [docs/PRODUCT.md](docs/PRODUCT.md) product boundaries and user persona
@@ -35,11 +36,13 @@ Engineering & Build Kit:
 - [plans/DAY-1-PLAN.md](plans/DAY-1-PLAN.md) Day 1 task plan
 
 General (anyone):
+
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for students and teachers
 - [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for the principal or office
 - [docs/ROADMAP.md](docs/ROADMAP.md) what is not built yet
 
 Technical (developers):
+
 - [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) run it on your laptop
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) how the pieces fit
 - [docs/API.md](docs/API.md) every endpoint

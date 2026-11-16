@@ -9,61 +9,117 @@ import { screen } from '../moderation.js';
 const r = Router();
 r.use(requireCommunity);
 
-r.get('/', h(async (req, res) => {
-  const { data: polls, error } = await db.from('polls')
-    .select('id,question,closes_at,created_at,author:users!author_id(username,display_name,role),options:poll_options(id,label)')
-    .eq('community_id', req.user.community_id).eq('status', 'visible')
-    .order('created_at', { ascending: false }).limit(30);
-  if (error) throw error;
-  const ids = polls.map((p) => p.id);
-  const { data: votes } = ids.length ? await db.from('poll_votes').select('poll_id,user_id,option_id').in('poll_id', ids) : { data: [] };
+r.get(
+  '/',
+  h(async (req, res) => {
+    const { data: polls, error } = await db
+      .from('polls')
+      .select(
+        'id,question,closes_at,created_at,author:users!author_id(username,display_name,role),options:poll_options(id,label)'
+      )
+      .eq('community_id', req.user.community_id)
+      .eq('status', 'visible')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) throw error;
+    const ids = polls.map((p) => p.id);
+    const { data: votes } = ids.length
+      ? await db.from('poll_votes').select('poll_id,user_id,option_id').in('poll_id', ids)
+      : { data: [] };
 
-  const now = Date.now();
-  res.json({ polls: polls.map((p) => {
-    const mine = votes.find((v) => v.poll_id === p.id && v.user_id === req.user.id)?.option_id ?? null;
-    const closed = new Date(p.closes_at).getTime() <= now;
-    const showResults = closed || mine || req.user.role === 'admin'; // no peeking before you vote
-    const pv = votes.filter((v) => v.poll_id === p.id);
-    return {
-      ...p, closed, myVote: mine, total: showResults ? pv.length : null,
-      options: p.options.map((o) => ({ ...o, count: showResults ? pv.filter((v) => v.option_id === o.id).length : null })),
-    };
-  }) });
-}));
+    const now = Date.now();
+    res.json({
+      polls: polls.map((p) => {
+        const mine =
+          votes.find((v) => v.poll_id === p.id && v.user_id === req.user.id)?.option_id ?? null;
+        const closed = new Date(p.closes_at).getTime() <= now;
+        const showResults = closed || mine || req.user.role === 'admin'; // no peeking before you vote
+        const pv = votes.filter((v) => v.poll_id === p.id);
+        return {
+          ...p,
+          closed,
+          myVote: mine,
+          total: showResults ? pv.length : null,
+          options: p.options.map((o) => ({
+            ...o,
+            count: showResults ? pv.filter((v) => v.option_id === o.id).length : null
+          }))
+        };
+      })
+    });
+  })
+);
 
-r.post('/', requireNotMuted, h(async (req, res) => {
-  const { question, options, days } = parse(z.object({
-    question: z.string().trim().min(5, 'Question is too short.').max(120),
-    options: z.array(z.string().trim().min(1).max(60)).min(2, 'Add at least 2 options.').max(6),
-    days: z.number().int().min(1).max(7),
-  }), req.body);
+r.post(
+  '/',
+  requireNotMuted,
+  h(async (req, res) => {
+    const { question, options, days } = parse(
+      z.object({
+        question: z.string().trim().min(5, 'Question is too short.').max(120),
+        options: z.array(z.string().trim().min(1).max(60)).min(2, 'Add at least 2 options.').max(6),
+        days: z.number().int().min(1).max(7)
+      }),
+      req.body
+    );
 
-  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const { count } = await db.from('polls').select('id', { count: 'exact', head: true }).eq('author_id', req.user.id).gte('created_at', since);
-  if (count >= config.limits.pollsPerDay) throw new HttpError(429, `You can start ${config.limits.pollsPerDay} polls a day.`);
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { count } = await db
+      .from('polls')
+      .select('id', { count: 'exact', head: true })
+      .eq('author_id', req.user.id)
+      .gte('created_at', since);
+    if (count >= config.limits.pollsPerDay)
+      throw new HttpError(429, `You can start ${config.limits.pollsPerDay} polls a day.`);
 
-  const check = await screen([question, ...options].join('\n'));
-  if (!check.ok) throw new HttpError(422, check.reason);
+    const check = await screen([question, ...options].join('\n'));
+    if (!check.ok) throw new HttpError(422, check.reason);
 
-  const closes = new Date(Date.now() + days * 86400000).toISOString();
-  const { data: poll, error } = await db.from('polls').insert({ community_id: req.user.community_id, author_id: req.user.id, question, closes_at: closes }).select('id').single();
-  if (error) throw error;
-  await db.from('poll_options').insert(options.map((label) => ({ poll_id: poll.id, label })));
-  res.status(201).json({ id: poll.id });
-}));
+    const closes = new Date(Date.now() + days * 86400000).toISOString();
+    const { data: poll, error } = await db
+      .from('polls')
+      .insert({
+        community_id: req.user.community_id,
+        author_id: req.user.id,
+        question,
+        closes_at: closes
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+    await db.from('poll_options').insert(options.map((label) => ({ poll_id: poll.id, label })));
+    res.status(201).json({ id: poll.id });
+  })
+);
 
-r.post('/:id/vote', requireNotMuted, h(async (req, res) => {
-  const id = parse(uuid, req.params.id);
-  const { optionId } = parse(z.object({ optionId: uuid }), req.body);
-  const { data: poll } = await db.from('polls').select('id,community_id,closes_at,status').eq('id', id).maybeSingle();
-  if (!poll || poll.community_id !== req.user.community_id || poll.status !== 'visible') throw new HttpError(404, 'Poll not found.');
-  if (new Date(poll.closes_at) <= new Date()) throw new HttpError(409, 'This poll has closed.');
-  const { data: opt } = await db.from('poll_options').select('id').eq('id', optionId).eq('poll_id', id).maybeSingle();
-  if (!opt) throw new HttpError(400, 'Invalid option.');
-  const { error } = await db.from('poll_votes').insert({ poll_id: id, user_id: req.user.id, option_id: optionId });
-  if (error?.code === '23505') throw new HttpError(409, 'You already voted in this poll.'); // primary key = one vote each
-  if (error) throw error;
-  res.status(201).json({ ok: true });
-}));
+r.post(
+  '/:id/vote',
+  requireNotMuted,
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { optionId } = parse(z.object({ optionId: uuid }), req.body);
+    const { data: poll } = await db
+      .from('polls')
+      .select('id,community_id,closes_at,status')
+      .eq('id', id)
+      .maybeSingle();
+    if (!poll || poll.community_id !== req.user.community_id || poll.status !== 'visible')
+      throw new HttpError(404, 'Poll not found.');
+    if (new Date(poll.closes_at) <= new Date()) throw new HttpError(409, 'This poll has closed.');
+    const { data: opt } = await db
+      .from('poll_options')
+      .select('id')
+      .eq('id', optionId)
+      .eq('poll_id', id)
+      .maybeSingle();
+    if (!opt) throw new HttpError(400, 'Invalid option.');
+    const { error } = await db
+      .from('poll_votes')
+      .insert({ poll_id: id, user_id: req.user.id, option_id: optionId });
+    if (error?.code === '23505') throw new HttpError(409, 'You already voted in this poll.'); // primary key = one vote each
+    if (error) throw error;
+    res.status(201).json({ ok: true });
+  })
+);
 
 export default r;

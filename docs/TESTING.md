@@ -1,21 +1,24 @@
 # Testing Strategy and Test Cases
 
 ## 1. Goals
+
 Prove, automatically, that: roles and community isolation hold, one-vote rules hold, limits work, moderation blocks what it should, nothing leaks, pages are accessible, and the main user journeys work end to end.
 
 ## 2. Tools (decision D10; verify current versions/docs when installing)
-| Layer | Tool | Notes |
-| --- | --- | --- |
-| Unit | **Vitest** | pure functions: moderation, slug, validators, config |
-| API integration | **Vitest + Supertest** | runs the Express `app` in-process against a **test Supabase project** (never production) |
-| Component | Vitest + Testing Library (optional, Day 3) | forms and polls UI logic |
-| End to end | **Playwright** | Chromium + a mobile viewport; runs against local dev or preview |
-| Accessibility | **@axe-core/playwright** | every page, plus manual keyboard pass |
-| Security | custom tests + `npm audit` + gitleaks + OWASP ZAP baseline scan (optional) | |
-| Load | **k6** or **autocannon** | light smoke load on a preview |
-Scripts to add: `test`, `test:watch`, `test:api`, `test:e2e`, `test:a11y`, `test:coverage`, `lint`, `format:check`.
+
+| Layer                                                                                                               | Tool                                                                       | Notes                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Unit                                                                                                                | **Vitest**                                                                 | pure functions: moderation, slug, validators, config                                     |
+| API integration                                                                                                     | **Vitest + Supertest**                                                     | runs the Express `app` in-process against a **test Supabase project** (never production) |
+| Component                                                                                                           | Vitest + Testing Library (optional, Day 3)                                 | forms and polls UI logic                                                                 |
+| End to end                                                                                                          | **Playwright**                                                             | Chromium + a mobile viewport; runs against local dev or preview                          |
+| Accessibility                                                                                                       | **@axe-core/playwright**                                                   | every page, plus manual keyboard pass                                                    |
+| Security                                                                                                            | custom tests + `npm audit` + gitleaks + OWASP ZAP baseline scan (optional) |                                                                                          |
+| Load                                                                                                                | **k6** or **autocannon**                                                   | light smoke load on a preview                                                            |
+| Scripts to add: `test`, `test:watch`, `test:api`, `test:e2e`, `test:a11y`, `test:coverage`, `lint`, `format:check`. |
 
 ## 3. Layout
+
 ```
 tests/
   helpers/          app factory, login helper (returns cookie), seed/reset, factories
@@ -28,18 +31,22 @@ e2e/                landing.spec.js, signin.spec.js, feed.spec.js, polls.spec.js
 ```
 
 ## 4. Environments and data
+
 - `.env.test` points at a **separate Supabase project** (test/staging). Tests refuse to run if `SUPABASE_URL` equals the production URL (guard in `tests/helpers`).
 - `seed` creates communities **A** and **B** with an admin, 2 teachers, 4 students each. Tests reset known tables before the suite and use unique usernames per test where needed.
 - Time-dependent tests (poll close, lockout) use fake timers or small configurable windows.
 - Never put real passwords or keys in tests; use generated test accounts.
 
 ## 5. Coverage targets (proposed; owner may change)
+
 Server: 80% lines overall, **100% of auth, authorization, voting and moderation decision paths**. Frontend: critical flows by E2E rather than a line target.
 
 ## 6. Test case catalog
+
 IDs are referenced by the day plans and in commit messages (`test(auth): add AUTH-03`).
 
 ### Authentication (AUTH)
+
 - AUTH-01 login with correct credentials sets an HttpOnly cookie and returns the public user (no hash).
 - AUTH-02 wrong password and unknown user return the same 401 message.
 - AUTH-03 5 wrong passwords lock the account for 10 min (429), correct password still rejected while locked.
@@ -54,6 +61,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - AUTH-12 logout clears the cookie.
 
 ### Authorization and isolation (ISO)
+
 - ISO-01 student calling any `/api/admin/*` gets 403.
 - ISO-02 teacher calling `/api/admin/*` gets 403.
 - ISO-03 community A user cannot read community B posts, polls, threads (lists contain none of B's ids).
@@ -65,6 +73,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - ISO-09 muted user can read but cannot post, poll, vote, message, reply, react.
 
 ### Posts and replies (POST)
+
 - POST-01 create with valid body and category returns 201; appears in feed.
 - POST-02 281 characters rejected (400); empty and whitespace-only rejected.
 - POST-03 invalid category rejected.
@@ -79,6 +88,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - POST-12 reactions: one per user per post; toggling removes; invalid kind rejected.
 
 ### Polls (POLL)
+
 - POLL-01 create with 2 to 6 options, 1 to 7 days.
 - POLL-02 1 option, 7 options, 0 days, 8 days rejected.
 - POLL-03 6th poll in 24h returns 429.
@@ -90,6 +100,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - POLL-09 percentages sum within rounding; zero-vote poll shows 0 without dividing by zero.
 
 ### Messages (MSG)
+
 - MSG-01 teacher to student and student to teacher succeed.
 - MSG-02 student to student rejected (403).
 - MSG-03 phone number and email in body rejected (including spaced digits "9 8 7 6...").
@@ -102,6 +113,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - MSG-10 a third user can never read someone else's thread by guessing ids.
 
 ### Reports and admin (ADM)
+
 - ADM-01 any member can report; limit 20/day.
 - ADM-02 admin sees open reports for own community only.
 - ADM-03 resolve with hide hides the post and marks the report actioned; dismiss marks dismissed.
@@ -112,12 +124,14 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - ADM-08 export-my-data returns only the requester's data; deletion request flow anonymizes content.
 
 ### Rate limiting (RATE)
+
 - RATE-01 global limiter returns 429 after the threshold with `Retry-After`.
 - RATE-02 login limiter per IP and per username.
 - RATE-03 limiter falls back safely when Redis is unavailable (simulate) and logs a warning.
 - RATE-04 limits are read from `server/config.js` (change config in test, behavior changes).
 
 ### Moderation (MOD)
+
 - MOD-01 word filter blocks plain, leetspeak (`1d10t`), spaced and mixed-case variants.
 - MOD-02 word filter does not block innocent words that contain blocked substrings (Scunthorpe cases) per the rules.
 - MOD-03 contact-info detector: +91 and plain 10-digit numbers, spaced digits, emails, "at/dot" spellings, social handles.
@@ -126,6 +140,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - MOD-06 repeated rejections trigger the auto-mute rule.
 
 ### Security and platform (SEC)
+
 - SEC-01 security headers present (CSP, HSTS in prod, nosniff, frame-ancestors none, referrer policy).
 - SEC-02 non-JSON write returns 415; body over 10 kb returns 413.
 - SEC-03 error responses never include stack traces or SQL text.
@@ -138,6 +153,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - SEC-10 maintenance mode returns 503 for writes and 200 for reads.
 
 ### Accessibility (A11Y)
+
 - A11Y-01 axe finds 0 serious/critical violations on every public and app page, mobile and desktop.
 - A11Y-02 full keyboard flow: sign in, post, vote, send a message, with visible focus.
 - A11Y-03 modals trap focus and close with Esc; focus returns to the trigger.
@@ -146,6 +162,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - A11Y-06 `prefers-reduced-motion` respected.
 
 ### End to end (E2E)
+
 - E2E-01 landing to sign in to forced password change to feed.
 - E2E-02 admin creates members, a student signs in with the issued credentials.
 - E2E-03 student posts, teacher replies and reacts; admin pins.
@@ -158,16 +175,20 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 - E2E-10 session revoke: "sign out everywhere" logs out another browser context.
 
 ### Performance and resilience (PERF)
+
 - PERF-01 feed, polls and thread queries under 200 ms server time with seeded realistic data `[TARGET: owner confirms]`.
 - PERF-02 k6/autocannon smoke: 50 concurrent users for 60 seconds, error rate under 1% `[TARGET]`.
 - PERF-03 Supabase down: API returns 503 friendly error; no crash loop.
 - PERF-04 front-end bundle size budget `[TARGET: e.g. under 250 kB gzip JS]`.
 
 ## 7. Manual QA checklist (before release)
+
 Sign in on a real phone; try slow 3G in dev tools; try with a screen reader quickly; try in Firefox and Safari; try a tablet width; test with JavaScript errors in console (none allowed); test back/forward and refresh on every route; test expired session behavior; test two tabs voting simultaneously.
 
 ## 8. CI gate (see `templates/.github/workflows/ci.yml`)
+
 lint, format check, unit + API tests, build, `npm audit`, secret scan. E2E and axe run on pull requests against a preview or local server. **No merge to main on red.**
 
 ## 9. Rules for the agent about tests
+
 Write the test with the feature (or just before). A bug fix starts with a failing test. Never delete or `.skip` a test to get green; if a test is wrong, explain why and fix it in a separate `test:` commit.

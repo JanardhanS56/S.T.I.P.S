@@ -1,6 +1,7 @@
 # Roadmap After v0.1.0
 
 ## Next (v0.2 to v0.3)
+
 - Admin setting to allow student-student DMs (with stricter limits)
 - Notifications digest inside the app; per-user mute of categories
 - Poll variants: multi-choice, anonymous results export CSV for the office
@@ -11,6 +12,7 @@
 - Supabase Realtime for messages (requires explicit per-table RLS policies; update D1/D8)
 
 ## Later
+
 - TypeScript migration; stricter lint rules
 - Installable PWA (offline read-only feed)
 - Image attachments with scanning (large safety implications; needs review first)
@@ -21,4 +23,5 @@
 - Mobile apps
 
 ## Parking lot rules
+
 New ideas go here or in `PROGRESS.md` > Parked ideas. They do not enter a day plan without the owner's decision.

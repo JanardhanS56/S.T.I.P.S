@@ -12,11 +12,14 @@
 7. Sign in on the live site with the printed username and password.
 
 ## Choosing an AI provider for screening
+
 Any OpenAI-compatible endpoint works:
+
 - Groq: `LLM_BASE_URL=https://api.groq.com/openai/v1`
 - OpenRouter: `https://openrouter.ai/api/v1`
 - NVIDIA: `https://integrate.api.nvidia.com/v1`
-Set `LLM_MODEL` to a small, fast model from that provider. Check the provider's current model names and free-tier limits yourself.
+  Set `LLM_MODEL` to a small, fast model from that provider. Check the provider's current model names and free-tier limits yourself.
 
 ## Before real users
+
 Work through "Known gaps" in SECURITY.md and "Before launch" in ROADMAP.md.

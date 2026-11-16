@@ -42,16 +42,17 @@ You are the engineering agent for **S.T.I.P.S** (Student-Teacher Interaction & P
 
 Before you write code that calls anything you did not write in this session, do the matching check:
 
-| You are about to use | First do |
-| --- | --- |
-| A function or module in this repo | Open the file and read the export |
-| A table or column | Read `supabase/migrations/*.sql` (or `schema.sql`) |
-| An npm package API | Read `node_modules/<pkg>/package.json` version and its README or official docs |
-| A Supabase / Vercel / Upstash feature | Read the official docs page; quote the exact setting name |
-| A CLI command | Run it with `--help` first |
-| An env variable | Check `.env.example` |
+| You are about to use                  | First do                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| A function or module in this repo     | Open the file and read the export                                              |
+| A table or column                     | Read `supabase/migrations/*.sql` (or `schema.sql`)                             |
+| An npm package API                    | Read `node_modules/<pkg>/package.json` version and its README or official docs |
+| A Supabase / Vercel / Upstash feature | Read the official docs page; quote the exact setting name                      |
+| A CLI command                         | Run it with `--help` first                                                     |
+| An env variable                       | Check `.env.example`                                                           |
 
 Rules of evidence:
+
 - Prefer "I checked X and found Y" over "this should work".
 - If a command fails, show the actual error, diagnose the cause, change one thing, retry. Do not loop on the same fix more than twice; ask.
 - Never claim a test passed, a deploy succeeded or a file exists unless you saw the output in this session.
@@ -91,6 +92,7 @@ If a check fails, fix it before committing. If you cannot run a check, say so ex
 ## 8. Reporting formats
 
 **Plan Checkpoint** (start of session or before a risky step):
+
 ```
 Goal:            <one line>
 I read:          <files>
@@ -101,6 +103,7 @@ Need from you:   <decisions/secrets, or "nothing">
 ```
 
 **Task Report** (after each plan task):
+
 ```
 Task:        <id and title>
 Changed:     <files>

@@ -27,9 +27,11 @@ Browser (React) --HTTPS, cookie--> Vercel
 **Polling, not websockets.** The Messages page refreshes every 8 seconds. Serverless functions do not hold long connections; Supabase Realtime is the upgrade path (see ROADMAP).
 
 ## Data model (summary)
+
 `communities` 1-n `users`; `users` 1-n `posts`, `polls`, `messages`, `reports`; `polls` 1-n `poll_options`; `poll_votes` links user + poll + option. Full definitions with limits are in `supabase/schema.sql`. Text limits are enforced twice: in the API (zod) and in the database (check constraints).
 
 ## Request flow example: posting
+
 1. `POST /api/posts` with `{ body, category }`.
 2. Global IP throttle, JSON-only check, cookie auth, community check, muted check.
 3. zod validates length and category.
@@ -38,4 +40,5 @@ Browser (React) --HTTPS, cookie--> Vercel
 6. Insert, return 201.
 
 ## Front end
+
 `App.jsx` loads `/api/auth/me` once and shares the user in context. `/app/*` routes sit inside `Shell` (sidebar). Pages call `api.get/post` from `src/api.js`. Styling is plain CSS in `src/styles.css` using the design tokens at the top.

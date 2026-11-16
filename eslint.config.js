@@ -21,7 +21,13 @@ export default [
     }
   },
   {
-    files: ['server/**/*.{js,jsx}', 'api/**/*.{js,jsx}', 'scripts/**/*.{js,jsx}', 'templates/**/*.{js,jsx}', '*.config.js'],
+    files: [
+      'server/**/*.{js,jsx}',
+      'api/**/*.{js,jsx}',
+      'scripts/**/*.{js,jsx}',
+      'templates/**/*.{js,jsx}',
+      '*.config.js'
+    ],
     languageOptions: {
       globals: {
         ...globals.node

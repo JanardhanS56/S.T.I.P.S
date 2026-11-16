@@ -3,6 +3,7 @@ name: Feature request
 about: Suggest an improvement
 labels: enhancement
 ---
+
 **Problem to solve**
 
 **Who benefits** (student, teacher, admin)

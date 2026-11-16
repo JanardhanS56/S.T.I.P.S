@@ -14,6 +14,7 @@ Each master prompt has the same 10 blocks so the agent behaves the same every da
 10. **Stop conditions and hand-off**: when to ask, what to write in PROGRESS.md.
 
 Tips for you:
+
 - Paste the whole prompt as the first message of a **fresh** agent conversation each day. Long chats drift; fresh context plus `docs/PROGRESS.md` is more reliable.
 - Keep the agent in Planning mode (verify the setting in Antigravity) for the Plan Checkpoint; approve, then let it execute.
 - Approve phase by phase. If a phase goes wrong, use `RECOVERY_PROMPTS.md` instead of arguing in the same thread.

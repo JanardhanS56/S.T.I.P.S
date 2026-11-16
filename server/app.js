@@ -20,8 +20,16 @@ app.use(cookieParser());
 
 // Blanket throttle per IP. NOTE: in-memory, so counted per serverless instance. The strict
 // per-user caps (posts, polls, messages) live in the database and are exact. See docs/SECURITY.md.
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many requests. Please slow down.' } }));
+app.use(
+  '/api',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' }
+  })
+);
 
 // Require JSON on writes so a cross-site HTML form cannot trigger them.
 app.use('/api', (req, res, next) => {
