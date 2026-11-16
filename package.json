@@ -16,6 +16,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "seed:test": "node --env-file=.env.test scripts/seed-test.js",
     "prepare": "husky"
   },
   "dependencies": {
