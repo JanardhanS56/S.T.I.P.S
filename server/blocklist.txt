@@ -1,0 +1,9 @@
+# One word per line. Lower case. Lines starting with # are ignored.
+# This is a SMALL STARTER LIST. Your office should extend it for your institute and language(s).
+idiot
+stupid
+loser
+dumb
+shut
+kill
+hate
