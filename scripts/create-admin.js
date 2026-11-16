@@ -4,6 +4,7 @@
 import bcrypt from 'bcryptjs';
 import { randomInt } from 'node:crypto';
 import { db } from '../server/db.js';
+import { slug } from '../server/lib/slug.js';
 
 const [instituteName, adminName] = process.argv.slice(2);
 if (!instituteName || !adminName) {
@@ -14,13 +15,7 @@ const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const pick = (n) => Array.from({ length: n }, () => CHARS[randomInt(CHARS.length)]).join('');
 const code = `${pick(4)}-${pick(4)}`;
 const password = pick(12);
-const username =
-  adminName
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '.')
-    .replace(/[^a-z0-9.]/g, '')
-    .slice(0, 26) || 'admin';
+const username = slug(adminName) || 'admin';
 
 const { data: community, error: e1 } = await db
   .from('communities')

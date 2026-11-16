@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { h, parse, uuid, HttpError } from '../http.js';
 import { requireCommunity, requireAdmin } from '../session.js';
+import { slug } from '../lib/slug.js';
 
 const r = Router();
 r.use(requireAdmin, requireCommunity);
@@ -12,15 +13,6 @@ r.use(requireAdmin, requireCommunity);
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; // no look-alike characters
 const tempPassword = () =>
   Array.from({ length: 12 }, () => CHARS[randomInt(CHARS.length)]).join('');
-const slug = (name) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '.')
-    .replace(/[^a-z0-9.]/g, '')
-    .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '')
-    .slice(0, 26);
 
 // Create accounts in bulk. Passwords are shown ONCE in this response and stored only as hashes.
 r.post(
@@ -150,7 +142,7 @@ r.post(
     const id = parse(uuid, req.params.id);
     const { data: u } = await db
       .from('users')
-      .select('id,role,community_id')
+      .select('id,role,community_id,token_version')
       .eq('id', id)
       .maybeSingle();
     if (!u || u.community_id !== req.user.community_id || u.role === 'admin')
@@ -162,7 +154,8 @@ r.post(
         password_hash: await bcrypt.hash(password, 10),
         must_change_password: true,
         failed_attempts: 0,
-        locked_until: null
+        locked_until: null,
+        token_version: (u.token_version ?? 0) + 1
       })
       .eq('id', id);
     res.json({ password });

@@ -7,14 +7,15 @@ import { config } from '../config.js';
 import { h, parse, HttpError } from '../http.js';
 import { setSession, clearSession, requireAuth, publicUser, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
+import { validatePassword } from '../lib/passwordPolicy.js';
 
 const r = Router();
 const FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until';
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version';
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: process.env.NODE_ENV === 'test' ? 1000 : 20,
   message: { error: 'Too many sign-in attempts. Try again later.' }
 });
 
@@ -71,6 +72,17 @@ r.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
+r.post(
+  '/logout-all',
+  requireAuth,
+  h(async (req, res) => {
+    const newVersion = (req.user.token_version ?? 0) + 1;
+    await db.from('users').update({ token_version: newVersion }).eq('id', req.user.id);
+    clearSession(res);
+    res.json({ ok: true });
+  })
+);
+
 r.get(
   '/me',
   requireAuth,
@@ -113,10 +125,13 @@ r.post(
     const { current, next } = parse(
       z.object({
         current: z.string().max(100),
-        next: z.string().min(10, 'Use at least 10 characters.').max(100)
+        next: z.string().max(100)
       }),
       req.body
     );
+    const policy = validatePassword(next, req.user.username);
+    if (!policy.valid) throw new HttpError(400, policy.reason);
+
     const { data: u } = await db
       .from('users')
       .select('password_hash')
@@ -124,10 +139,16 @@ r.post(
       .single();
     if (!(await bcrypt.compare(current, u.password_hash)))
       throw new HttpError(400, 'Current password is wrong.');
+    const newVersion = (req.user.token_version ?? 0) + 1;
     await db
       .from('users')
-      .update({ password_hash: await bcrypt.hash(next, 10), must_change_password: false })
+      .update({
+        password_hash: await bcrypt.hash(next, 10),
+        must_change_password: false,
+        token_version: newVersion
+      })
       .eq('id', req.user.id);
+    setSession(res, { ...req.user, token_version: newVersion });
     res.json({ ok: true });
   })
 );
