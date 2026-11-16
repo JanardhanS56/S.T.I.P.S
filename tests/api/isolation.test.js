@@ -140,4 +140,90 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
       }
     });
   });
+
+  describe('ISO-04 & ISO-05: Foreign object IDs return 404', () => {
+    const foreignPostId = '00000000-0000-0000-0003-000000000002';
+    const foreignPollId = '00000000-0000-0000-0004-000000000002';
+    const foreignUserId = '00000000-0000-0000-0002-000000000003';
+    const foreignMessageId = '00000000-0000-0000-0006-000000000002';
+    const foreignReportId = '00000000-0000-0000-0007-000000000002';
+
+    it('deleting a foreign post returns 404 (not 403)', async () => {
+      const cookieA = await loginAs('student_a1');
+      const res = await request(app)
+        .delete(`/api/posts/${foreignPostId}`)
+        .set('Cookie', cookieA)
+        .send({});
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Post not found.');
+    });
+
+    it('voting in a foreign poll returns 404', async () => {
+      const cookieA = await loginAs('student_a1');
+      const res = await request(app)
+        .post(`/api/polls/${foreignPollId}/vote`)
+        .set('Cookie', cookieA)
+        .send({ optionId: '00000000-0000-0000-0005-000000000003' });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Poll not found.');
+    });
+
+    it('messaging a user in a foreign community returns 404', async () => {
+      const cookieA = await loginAs('teacher_a1');
+      const res = await request(app)
+        .post('/api/messages')
+        .set('Cookie', cookieA)
+        .send({ toUserId: foreignUserId, body: 'Hello foreign user' });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Person not found.');
+    });
+
+    it('fetching message thread with a foreign user returns 404', async () => {
+      const cookieA = await loginAs('student_a1');
+      const res = await request(app)
+        .get(`/api/messages/with/${foreignUserId}`)
+        .set('Cookie', cookieA);
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Person not found.');
+    });
+
+    it('reporting a foreign post, poll, or message returns 404', async () => {
+      const cookieA = await loginAs('student_a1');
+
+      const repPost = await request(app)
+        .post('/api/reports')
+        .set('Cookie', cookieA)
+        .send({ targetType: 'post', targetId: foreignPostId, reason: 'Foreign post spam' });
+      expect(repPost.status).toBe(404);
+      expect(repPost.body.error).toBe('Target not found.');
+
+      const repPoll = await request(app)
+        .post('/api/reports')
+        .set('Cookie', cookieA)
+        .send({ targetType: 'poll', targetId: foreignPollId, reason: 'Foreign poll spam' });
+      expect(repPoll.status).toBe(404);
+      expect(repPoll.body.error).toBe('Target not found.');
+
+      const repMsg = await request(app)
+        .post('/api/reports')
+        .set('Cookie', cookieA)
+        .send({
+          targetType: 'message',
+          targetId: foreignMessageId,
+          reason: 'Foreign message spam'
+        });
+      expect(repMsg.status).toBe(404);
+      expect(repMsg.body.error).toBe('Target not found.');
+    });
+
+    it('admin resolving a foreign report returns 404', async () => {
+      const adminCookieA = await loginAs('admin_a');
+      const res = await request(app)
+        .post(`/api/admin/reports/${foreignReportId}/resolve`)
+        .set('Cookie', adminCookieA)
+        .send({ action: 'dismiss' });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Report not found.');
+    });
+  });
 });
