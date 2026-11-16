@@ -322,4 +322,104 @@ describe('Auth API Integration Tests (AUTH-01..AUTH-06, AUTH-10..AUTH-12)', () =
       expect(res.body).toEqual({ ok: true });
     });
   });
+
+  describe('AUTH-09: Token revocation via token_version', () => {
+    it('AUTH-09: /api/auth/logout-all revokes active session', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+
+      const cookie = extractCookie(loginRes);
+      expect(cookie).toBeTruthy();
+
+      // Verify session is initially valid
+      const meBefore = await request(app).get('/api/auth/me').set('Cookie', cookie);
+      expect(meBefore.status).toBe(200);
+
+      // Call logout-all
+      const logoutAllRes = await request(app)
+        .post('/api/auth/logout-all')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({});
+
+      expect(logoutAllRes.status).toBe(200);
+      expect(logoutAllRes.body).toEqual({ ok: true });
+
+      // Check cookie was cleared in response headers
+      const cookies = logoutAllRes.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+
+      // Subsequent request using old cookie is rejected with 401
+      const meAfter = await request(app).get('/api/auth/me').set('Cookie', cookie);
+      expect(meAfter.status).toBe(401);
+      expect(meAfter.body.error).toBe('Session revoked. Please sign in again.');
+    });
+
+    it('AUTH-09: change-password revokes previously issued session tokens', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'teacher_a1', password: 'TestPassword123!' });
+
+      const oldCookie = extractCookie(loginRes);
+
+      const changeRes = await request(app)
+        .post('/api/auth/change-password')
+        .set('Cookie', oldCookie)
+        .set('Content-Type', 'application/json')
+        .send({ current: 'TestPassword123!', next: 'SuperSecret2026!' });
+
+      expect(changeRes.status).toBe(200);
+      const newCookie = extractCookie(changeRes);
+      expect(newCookie).toBeTruthy();
+      expect(newCookie).not.toBe(oldCookie);
+
+      // Old cookie is now revoked
+      const oldRes = await request(app).get('/api/auth/me').set('Cookie', oldCookie);
+      expect(oldRes.status).toBe(401);
+      expect(oldRes.body.error).toBe('Session revoked. Please sign in again.');
+
+      // New cookie works
+      const newRes = await request(app).get('/api/auth/me').set('Cookie', newCookie);
+      expect(newRes.status).toBe(200);
+      expect(newRes.body.user.username).toBe('teacher_a1');
+    });
+
+    it('AUTH-09: admin reset-password revokes target user session', async () => {
+      // Login admin
+      const adminLogin = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'admin_a', password: 'TestPassword123!' });
+      const adminCookie = extractCookie(adminLogin);
+
+      // Login student
+      const studentLogin = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+      const studentCookie = extractCookie(studentLogin);
+
+      // Student session is active
+      const beforeRes = await request(app).get('/api/auth/me').set('Cookie', studentCookie);
+      expect(beforeRes.status).toBe(200);
+
+      // Admin resets student password
+      const resetRes = await request(app)
+        .post('/api/admin/users/00000000-0000-0000-0001-000000000004/reset-password')
+        .set('Cookie', adminCookie)
+        .set('Content-Type', 'application/json')
+        .send({});
+
+      expect(resetRes.status).toBe(200);
+      expect(resetRes.body.password).toBeDefined();
+
+      // Student session is now revoked
+      const afterRes = await request(app).get('/api/auth/me').set('Cookie', studentCookie);
+      expect(afterRes.status).toBe(401);
+      expect(afterRes.body.error).toBe('Session revoked. Please sign in again.');
+    });
+  });
 });
