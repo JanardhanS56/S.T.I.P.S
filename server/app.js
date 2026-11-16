@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import { httpLogger } from './logger.js';
 import { errorHandler } from './http.js';
 import { requireAuth } from './session.js';
 import auth from './routes/auth.js';
@@ -14,6 +15,7 @@ import reports from './routes/reports.js';
 const app = express();
 app.set('trust proxy', 1); // Vercel sits in front: use the real client IP for rate limits
 app.disable('x-powered-by');
+app.use(httpLogger);
 app.use(helmet());
 app.use(express.json({ limit: '10kb' })); // tiny bodies only: stops oversized-payload abuse
 app.use(cookieParser());
