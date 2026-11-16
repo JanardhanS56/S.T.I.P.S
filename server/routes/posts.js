@@ -13,18 +13,30 @@ const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
 r.get(
   '/',
   h(async (req, res) => {
-    const { category } = parse(z.object({ category: z.enum(CATS).optional() }), req.query);
+    const { category, before, limit } = parse(
+      z.object({
+        category: z.enum(CATS).optional(),
+        before: z
+          .string()
+          .refine((val) => !isNaN(Date.parse(val)), 'Invalid before cursor.')
+          .optional(),
+        limit: z.coerce.number().int().min(1).max(50).default(50)
+      }),
+      req.query
+    );
     let q = db
       .from('posts')
       .select('id,category,body,created_at,author:users!author_id(username,display_name,role)')
       .eq('community_id', req.user.community_id)
       .eq('status', 'visible')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(limit);
     if (category) q = q.eq('category', category);
+    if (before) q = q.lt('created_at', before);
     const { data, error } = await q;
     if (error) throw error;
-    res.json({ posts: data });
+    const nextCursor = data && data.length === limit ? data[data.length - 1].created_at : null;
+    res.json({ posts: data, nextCursor });
   })
 );
 

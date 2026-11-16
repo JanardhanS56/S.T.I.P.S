@@ -422,8 +422,16 @@ export function createMockDb(initialData = {}) {
           filters.push((item) => item[col] >= val);
           return queryBuilder;
         },
+        gt(col, val) {
+          filters.push((item) => item[col] > val);
+          return queryBuilder;
+        },
         lte(col, val) {
           filters.push((item) => item[col] <= val);
+          return queryBuilder;
+        },
+        lt(col, val) {
+          filters.push((item) => item[col] < val);
           return queryBuilder;
         },
         or(expression) {
