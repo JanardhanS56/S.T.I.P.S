@@ -6,21 +6,16 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { env } from './env.js';
+import { normalise } from './lib/normalize.js';
+import { hasContactInfo } from './lib/detectors.js';
+
+export { hasContactInfo };
 
 const listPath = fileURLToPath(new URL('./blocklist.txt', import.meta.url));
 const BLOCKED = readFileSync(listPath, 'utf8')
   .split('\n')
   .map((w) => w.trim().toLowerCase())
   .filter((w) => w && !w.startsWith('#'));
-
-const normalise = (t) =>
-  t
-    .toLowerCase()
-    .replace(/[@4]/g, 'a')
-    .replace(/[1!|]/g, 'i')
-    .replace(/0/g, 'o')
-    .replace(/\$/g, 's')
-    .replace(/[^a-z\s]/g, '');
 
 export function localCheck(text) {
   const words = normalise(text).split(/\s+/);
@@ -29,12 +24,6 @@ export function localCheck(text) {
   return hit
     ? { ok: false, reason: 'Please keep it respectful and family-friendly.' }
     : { ok: true };
-}
-
-const PHONE = /(?:\+?\d[\s().-]*){8,}/;
-const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-export function hasContactInfo(text) {
-  return PHONE.test(text) || EMAIL.test(text);
 }
 
 async function aiCheck(text) {
