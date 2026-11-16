@@ -16,6 +16,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "seed:test": "node --env-file=.env.test scripts/seed-test.js",
     "prepare": "husky"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.1",
     "prettier": "^3.10.1",
+    "supabase": "^3.1.0",
     "vite": "^5.4.0"
   }
 }

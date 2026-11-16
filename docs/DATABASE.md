@@ -9,11 +9,29 @@
 
 ## Migration workflow (Day 1)
 
-1. Install the Supabase CLI (verify the install method in the official docs) and `supabase init`.
-2. Convert `supabase/schema.sql` into `supabase/migrations/<timestamp>_baseline.sql` (one file, unchanged).
-3. Each later change is a new migration file named `<timestamp>_<what>.sql`. Never edit an applied migration.
-4. Apply locally (`supabase db reset` against a local stack, if Docker is available) or against a **separate staging project** first, then production.
-5. Keep `supabase/seed.sql` for dev data only. Never seed production with fake users.
+1. Local Supabase CLI installed via devDependencies (`supabase`). Project initialized via `npx supabase init`.
+2. Baseline schema converted to `supabase/migrations/20261116000001_baseline.sql`.
+3. Creating new migrations:
+   ```bash
+   npx supabase migration new <descriptive_name>
+   ```
+4. Applying migrations to remote Supabase (dev or staging):
+   ```bash
+   # Method A: Link project and push
+   npx supabase link --project-ref <project-id>
+   npx supabase db push
+
+   # Method B: Direct connection string (e.g. in CI or with DB password)
+   npx supabase db push --db-url "$SUPABASE_CONNECTION_STRING"
+   ```
+5. Local stack testing (if Docker available):
+   ```bash
+   npx supabase start
+   npx supabase db reset # applies all migrations and runs supabase/seed.sql
+   ```
+6. Rules:
+   - Never edit an applied migration file; create a new numbered migration for any schema change.
+   - Keep `supabase/seed.sql` for dev/test data only. Never seed production with test users.
 
 ## Environments
 

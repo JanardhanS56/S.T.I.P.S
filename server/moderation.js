@@ -5,6 +5,7 @@
 // Everything is also reportable by users and reviewable by the office.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { env } from './env.js';
 
 const listPath = fileURLToPath(new URL('./blocklist.txt', import.meta.url));
 const BLOCKED = readFileSync(listPath, 'utf8')
@@ -37,15 +38,15 @@ export function hasContactInfo(text) {
 }
 
 async function aiCheck(text) {
-  const key = process.env.LLM_API_KEY;
+  const key = env.LLM_API_KEY;
   if (!key) return { ok: true };
   try {
-    const res = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
+    const res = await fetch(`${env.LLM_BASE_URL}/chat/completions`, {
       method: 'POST',
       signal: AbortSignal.timeout(4000),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: process.env.LLM_MODEL,
+        model: env.LLM_MODEL,
         temperature: 0,
         max_tokens: 40,
         messages: [
