@@ -62,11 +62,44 @@ r.post(
       .select('id', { count: 'exact', head: true })
       .eq('author_id', req.user.id)
       .gte('created_at', since);
-    if (count >= config.limits.postsPerHour)
+    if (count >= config.limits.postsPerHour) {
+      res.setHeader('Retry-After', 3600);
       throw new HttpError(
         429,
         `You can post ${config.limits.postsPerHour} times an hour. Take a short break.`
       );
+    }
+
+    // Min gap 3s between posts by the same user
+    const { data: latestPost } = await db
+      .from('posts')
+      .select('created_at')
+      .eq('author_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestPost) {
+      const elapsedMs = Date.now() - new Date(latestPost.created_at).getTime();
+      if (elapsedMs < 3000) {
+        const waitSec = Math.max(1, Math.ceil((3000 - elapsedMs) / 1000));
+        res.setHeader('Retry-After', waitSec);
+        throw new HttpError(429, 'Please wait a few seconds before posting again.');
+      }
+    }
+
+    // Duplicate text guard: reject identical post text within 10 minutes by the same author
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: dup } = await db
+      .from('posts')
+      .select('id')
+      .eq('author_id', req.user.id)
+      .eq('body', body)
+      .gte('created_at', tenMinAgo)
+      .maybeSingle();
+    if (dup) {
+      throw new HttpError(409, 'You already posted that recently.');
+    }
 
     const check = await screen(body);
     if (!check.ok) throw new HttpError(422, check.reason);
