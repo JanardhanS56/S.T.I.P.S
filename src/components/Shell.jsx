@@ -10,6 +10,9 @@ export default function Shell() {
 
   return (
     <div className="shell">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <header className="mobile-bar">
         <Link to="/" className="wordmark" onClick={closeMenu}>
           S.T.I.P.S
@@ -69,7 +72,7 @@ export default function Shell() {
           </span>
         </div>
       </aside>
-      <main className="main">
+      <main className="main" id="main-content" tabIndex="-1">
         <Outlet />
       </main>
     </div>
