@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
+import { Badge, Button, Banner, EmptyState } from '../components/ui/index.js';
 
 export default function Messages() {
   const [threads, setThreads] = useState([]);
@@ -76,7 +77,7 @@ export default function Messages() {
             >
               <span className="row between">
                 <b>{t.with.username}</b>
-                <span className={`role ${t.with.role}`}>{t.with.role.toUpperCase()}</span>
+                <Badge variant={t.with.role}>{t.with.role.toUpperCase()}</Badge>
               </span>
               <span className="muted small">{t.last}</span>
             </button>
@@ -111,18 +112,22 @@ export default function Messages() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Write a message"
               />
-              <button className="btn btn-dark" disabled={!text.trim()}>
+              <Button type="submit" variant="dark" disabled={!text.trim()}>
                 Send
-              </button>
+              </Button>
             </form>
             {err && (
-              <div className="error pad" role="alert">
+              <Banner variant="error" className="pad">
                 {err}
-              </div>
+              </Banner>
             )}
           </>
         ) : (
-          <p className="muted pad">Pick someone to start a conversation.</p>
+          <EmptyState
+            className="pad"
+            title="No conversation selected"
+            description="Pick someone to start a conversation."
+          />
         )}
       </div>
     </div>
