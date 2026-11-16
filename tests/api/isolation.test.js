@@ -361,4 +361,135 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
       expect(resReset.body.error).toBe('User not found.');
     });
   });
+
+  describe('ISO-08: User without a community receives 403 on community routes', () => {
+    it('blocks unassociated user from reading posts, polls, messages, and reports', async () => {
+      const cookie = await loginAs('no_community_user');
+
+      const resPosts = await request(app).get('/api/posts').set('Cookie', cookie);
+      expect(resPosts.status).toBe(403);
+      expect(resPosts.body.error).toBe('Join a community first.');
+
+      const resPolls = await request(app).get('/api/polls').set('Cookie', cookie);
+      expect(resPolls.status).toBe(403);
+      expect(resPolls.body.error).toBe('Join a community first.');
+
+      const resMessages = await request(app).get('/api/messages').set('Cookie', cookie);
+      expect(resMessages.status).toBe(403);
+      expect(resMessages.body.error).toBe('Join a community first.');
+
+      const resReports = await request(app).post('/api/reports').set('Cookie', cookie).send({
+        targetType: 'post',
+        targetId: '00000000-0000-0000-0001-000000000010',
+        reason: 'Testing community requirement'
+      });
+      expect(resReports.status).toBe(403);
+      expect(resReports.body.error).toBe('Join a community first.');
+    });
+
+    it('blocks unassociated user from creating posts, polls, or messages', async () => {
+      const cookie = await loginAs('no_community_user');
+
+      const resPost = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Hello without community', category: 'Notice' });
+      expect(resPost.status).toBe(403);
+      expect(resPost.body.error).toBe('Join a community first.');
+
+      const resPoll = await request(app)
+        .post('/api/polls')
+        .set('Cookie', cookie)
+        .send({ question: 'Hello without community?', options: ['Yes', 'No'], days: 1 });
+      expect(resPoll.status).toBe(403);
+      expect(resPoll.body.error).toBe('Join a community first.');
+
+      const resMsg = await request(app).post('/api/messages').set('Cookie', cookie).send({
+        toUserId: '00000000-0000-0000-0001-000000000002',
+        body: 'Hello without community'
+      });
+      expect(resMsg.status).toBe(403);
+      expect(resMsg.body.error).toBe('Join a community first.');
+    });
+  });
+
+  describe('ISO-09: Muted user can read but cannot create or mutate content', () => {
+    it('allows muted user to read posts, polls, and message threads', async () => {
+      const cookie = await loginAs('muted_a');
+
+      const resPosts = await request(app).get('/api/posts').set('Cookie', cookie);
+      expect(resPosts.status).toBe(200);
+      expect(Array.isArray(resPosts.body.posts)).toBe(true);
+
+      const resPolls = await request(app).get('/api/polls').set('Cookie', cookie);
+      expect(resPolls.status).toBe(200);
+      expect(Array.isArray(resPolls.body.polls)).toBe(true);
+
+      const teacherA = '00000000-0000-0000-0001-000000000002';
+      const resThread = await request(app)
+        .get(`/api/messages/with/${teacherA}`)
+        .set('Cookie', cookie);
+      expect(resThread.status).toBe(200);
+      expect(Array.isArray(resThread.body.messages)).toBe(true);
+    });
+
+    it('blocks muted user from creating posts (403)', async () => {
+      const cookie = await loginAs('muted_a');
+
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Muted user attempting to post', category: 'Notice' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Your account is muted. Contact the office.');
+    });
+
+    it('blocks muted user from creating polls or voting (403)', async () => {
+      const cookie = await loginAs('muted_a');
+
+      const resPoll = await request(app)
+        .post('/api/polls')
+        .set('Cookie', cookie)
+        .send({ question: 'Muted poll?', options: ['Opt1', 'Opt2'], days: 2 });
+
+      expect(resPoll.status).toBe(403);
+      expect(resPoll.body.error).toBe('Your account is muted. Contact the office.');
+
+      const pollId = '00000000-0000-0000-0001-000000000020';
+      const optId = '00000000-0000-0000-0001-000000000021';
+      const resVote = await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optId });
+
+      expect(resVote.status).toBe(403);
+      expect(resVote.body.error).toBe('Your account is muted. Contact the office.');
+    });
+
+    it('blocks muted user from sending direct messages (403)', async () => {
+      const cookie = await loginAs('muted_a');
+      const teacherA = '00000000-0000-0000-0001-000000000002';
+
+      const res = await request(app)
+        .post('/api/messages')
+        .set('Cookie', cookie)
+        .send({ toUserId: teacherA, body: 'Muted user trying to DM' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Your account is muted. Contact the office.');
+    });
+
+    it('blocks muted user from updating profile (403)', async () => {
+      const cookie = await loginAs('muted_a');
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', cookie)
+        .send({ bio: 'New bio from muted user' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Your account is muted. Contact the office.');
+    });
+  });
 });
