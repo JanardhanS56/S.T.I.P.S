@@ -9,9 +9,22 @@ import { normalise, collapseRepeats, despaceRuns } from './lib/normalize.js';
 import { hasContactInfo } from './lib/detectors.js';
 import { checkSpam } from './lib/spam.js';
 import { checkLlm } from './lib/llm.js';
-import { recordRejection, getRejectionCount, clearRejections } from './lib/rejections.js';
+import {
+  recordRejection,
+  getRejectionCount,
+  clearRejections,
+  handleRejection
+} from './lib/rejections.js';
 
-export { hasContactInfo, checkSpam, checkLlm, recordRejection, getRejectionCount, clearRejections };
+export {
+  hasContactInfo,
+  checkSpam,
+  checkLlm,
+  recordRejection,
+  getRejectionCount,
+  clearRejections,
+  handleRejection
+};
 
 const listPath = fileURLToPath(new URL('./blocklist.txt', import.meta.url));
 const BLOCKED = readFileSync(listPath, 'utf8')

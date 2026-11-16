@@ -4,7 +4,7 @@ import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
-import { screen } from '../moderation.js';
+import { screen, handleRejection } from '../moderation.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -102,7 +102,10 @@ r.post(
     }
 
     const check = await screen(body);
-    if (!check.ok) throw new HttpError(422, check.reason);
+    if (!check.ok) {
+      await handleRejection(req.user, 'post');
+      throw new HttpError(422, check.reason);
+    }
 
     const { data, error } = await db
       .from('posts')

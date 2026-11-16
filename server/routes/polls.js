@@ -4,7 +4,7 @@ import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
-import { screen } from '../moderation.js';
+import { screen, handleRejection } from '../moderation.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -83,7 +83,10 @@ r.post(
       throw new HttpError(429, `You can start ${config.limits.pollsPerDay} polls a day.`);
 
     const check = await screen([question, ...options].join('\n'));
-    if (!check.ok) throw new HttpError(422, check.reason);
+    if (!check.ok) {
+      await handleRejection(req.user, 'poll');
+      throw new HttpError(422, check.reason);
+    }
 
     const closes = new Date(Date.now() + days * 86400000).toISOString();
     const { data: poll, error } = await db
