@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
-import { h, parse, uuid, HttpError } from '../http.js';
+import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
 
@@ -74,12 +74,7 @@ r.delete(
   '/:id',
   h(async (req, res) => {
     const id = parse(uuid, req.params.id);
-    const { data: p } = await db
-      .from('posts')
-      .select('author_id,community_id')
-      .eq('id', id)
-      .maybeSingle();
-    if (!p || p.community_id !== req.user.community_id) throw new HttpError(404, 'Post not found.');
+    const p = await loadInCommunity('posts', id, req, 'author_id,community_id');
     if (p.author_id !== req.user.id && req.user.role !== 'admin')
       throw new HttpError(403, 'Not allowed.');
     await db.from('posts').update({ status: 'hidden' }).eq('id', id);
