@@ -257,4 +257,32 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(feedRes2.body.posts.find((p) => p.id === post2Id)).toBeUndefined();
     });
   });
+
+  describe('POST-08: XSS Payload Storage', () => {
+    it('POST-08: stores XSS payloads as raw text and returns them unchanged', async () => {
+      const cookie = await loginAs('student_a1');
+      const xssPayload = '<script>alert("xss")</script><img src="x" onerror="alert(1)">';
+
+      // Clear existing posts by this author to avoid burst limit
+      for (let i = mockDb.posts.length - 1; i >= 0; i--) {
+        if (mockDb.posts[i].author_id === '00000000-0000-0000-0001-000000000004') {
+          mockDb.posts.splice(i, 1);
+        }
+      }
+
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: xssPayload, category: 'Notice' });
+
+      expect(res.status).toBe(201);
+      const postId = res.body.id;
+
+      const feedRes = await request(app).get('/api/posts').set('Cookie', cookie);
+      expect(feedRes.status).toBe(200);
+      const post = feedRes.body.posts.find((p) => p.id === postId);
+      expect(post).toBeDefined();
+      expect(post.body).toBe(xssPayload);
+    });
+  });
 });
