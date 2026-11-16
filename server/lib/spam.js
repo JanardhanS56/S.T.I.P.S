@@ -33,10 +33,26 @@ export function checkAllCaps(text, limits = config.spam) {
   return { ok: true };
 }
 
+export function checkLinks(text, limits = config.spam) {
+  if (!text) return { ok: true };
+  if (limits?.allowLinks) return { ok: true };
+
+  const LINK_REGEX =
+    /(?:https?:\/\/|www\.)\S+|(?:bit\.ly|t\.co|tinyurl\.com|goo\.gl|ow\.ly|is\.gd|buff\.ly|rebrand\.ly)\/\S+/i;
+
+  if (LINK_REGEX.test(text)) {
+    return { ok: false, reason: 'Links and URLs are not permitted in v1.' };
+  }
+
+  return { ok: true };
+}
+
 export function checkSpam(text, limits = config.spam) {
   const rep = checkRepetition(text, limits);
   if (!rep.ok) return rep;
   const caps = checkAllCaps(text, limits);
   if (!caps.ok) return caps;
+  const links = checkLinks(text, limits);
+  if (!links.ok) return links;
   return { ok: true };
 }
