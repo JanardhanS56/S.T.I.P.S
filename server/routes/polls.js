@@ -117,4 +117,25 @@ r.post(
   })
 );
 
+// Author or admin can close a poll early
+r.post(
+  '/:id/close',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const poll = await loadInCommunity(
+      'polls',
+      id,
+      req,
+      'id,author_id,community_id,status,closes_at'
+    );
+    if (poll.status !== 'visible') throw new HttpError(404, 'Poll not found.');
+    if (poll.author_id !== req.user.id && req.user.role !== 'admin') {
+      throw new HttpError(403, 'Not allowed.');
+    }
+    const now = new Date().toISOString();
+    await db.from('polls').update({ closes_at: now }).eq('id', id);
+    res.json({ ok: true, closes_at: now });
+  })
+);
+
 export default r;
