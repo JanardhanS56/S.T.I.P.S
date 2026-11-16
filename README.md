@@ -22,6 +22,18 @@ A private space for one college campus: a community feed for notices and memes, 
 
 ## Documents
 
+Engineering & Build Kit:
+- [GEMINI.md](GEMINI.md) agent directives and rules
+- [docs/PROGRESS.md](docs/PROGRESS.md) living progress and handoff log
+- [docs/PRODUCT.md](docs/PRODUCT.md) product boundaries and user persona
+- [docs/CONTEXT.md](docs/CONTEXT.md) codebase ground truth and stack details
+- [docs/DECISIONS.md](docs/DECISIONS.md) architectural decision records (ADRs)
+- [docs/DATABASE.md](docs/DATABASE.md) schema, migrations, RLS, indexes
+- [docs/TESTING.md](docs/TESTING.md) test strategy and test cases catalog
+- [docs/GIT_CONVENTIONS.md](docs/GIT_CONVENTIONS.md) micro-commit protocol and workflow
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 4-day roadmap and phases
+- [plans/DAY-1-PLAN.md](plans/DAY-1-PLAN.md) Day 1 task plan
+
 General (anyone):
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for students and teachers
 - [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for the principal or office
