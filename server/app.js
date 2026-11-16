@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { httpLogger } from './logger.js';
 import { errorHandler } from './http.js';
+import { db } from './db.js';
 import { requireAuth } from './session.js';
 import auth from './routes/auth.js';
 import posts from './routes/posts.js';
@@ -41,7 +42,17 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/health', async (_req, res) => {
+  try {
+    const { error } = await db.from('communities').select('id').limit(1);
+    if (error) {
+      return res.status(503).json({ ok: false, db: false, error: 'Database unavailable.' });
+    }
+    return res.json({ ok: true, db: true });
+  } catch {
+    return res.status(503).json({ ok: false, db: false, error: 'Database unavailable.' });
+  }
+});
 app.use('/api/auth', auth);
 app.use('/api/posts', requireAuth, posts);
 app.use('/api/polls', requireAuth, polls);
