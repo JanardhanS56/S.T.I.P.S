@@ -1,4 +1,6 @@
 import bcrypt from 'bcryptjs';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { db } from '../server/db.js';
 import { env } from '../server/env.js';
 import { guardAgainstProduction } from '../tests/helpers/prodGuard.js';
@@ -196,7 +198,7 @@ export async function runSeed() {
 
   // 4. Sample Poll
   const poll = {
-    id: '00000000-0000-0004-0000-000000000001',
+    id: '00000000-0000-0000-0004-000000000001',
     community_id: communities[0].id,
     author_id: users[1].id,
     question: 'Preferred time for office hours?',
@@ -206,9 +208,9 @@ export async function runSeed() {
   if (pollErr) throw new Error(`Failed to seed poll: ${pollErr.message}`);
 
   const options = [
-    { id: '00000000-0000-0005-0000-000000000001', poll_id: poll.id, label: 'Morning (10:00 AM)' },
-    { id: '00000000-0000-0005-0000-000000000002', poll_id: poll.id, label: 'Afternoon (2:00 PM)' },
-    { id: '00000000-0000-0005-0000-000000000003', poll_id: poll.id, label: 'Evening (4:00 PM)' }
+    { id: '00000000-0000-0000-0005-000000000001', poll_id: poll.id, label: 'Morning (10:00 AM)' },
+    { id: '00000000-0000-0000-0005-000000000002', poll_id: poll.id, label: 'Afternoon (2:00 PM)' },
+    { id: '00000000-0000-0000-0005-000000000003', poll_id: poll.id, label: 'Evening (4:00 PM)' }
   ];
   for (const opt of options) {
     const { error } = await db.from('poll_options').upsert(opt, { onConflict: 'id' });
@@ -219,11 +221,7 @@ export async function runSeed() {
 }
 
 // Run directly from CLI: node --env-file=.env scripts/seed-test.js
-if (
-  import.meta.url.startsWith('file:') &&
-  process.argv[1] &&
-  import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))
-) {
+if (process.argv[1] && resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1])) {
   runSeed()
     .then((res) => {
       console.log(
