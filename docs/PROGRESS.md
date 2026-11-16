@@ -4,24 +4,29 @@
 
 ## Current status
 
-- Day: 2
-- Branch: feat/d2-moderation
-- Last green check: npm run lint, npm test, npm run build (Day 2 Phase C complete, 138 tests passing)
-- First task for next session / phase: Day 2 Phase D, task D2-11 (Upstash rate limiter wrapper server/rateLimit.js)
+- Day: 2 (Complete)
+- Branch: feat/d2-rate-limits-headers
+- Last green check: npm run lint, npm test, npm run build (Day 2 complete, 147 tests passing across 13 test suites)
+- First task for next session / phase: Day 3 Phase A, task D3-01 (Replies data model and migration)
 
 ## Blocked / needs owner
 
-- Upstash Redis credentials for Phase D (or note whether REST URL/token available for live smoke check)
+- None
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Moderation layer split modularly into `server/lib/normalize.js`, `server/lib/detectors.js`, `server/lib/spam.js`, `server/lib/llm.js`, and `server/lib/rejections.js`.
-- Zero-width character stripping handles `\u200B..\u200F`, `\u202A..\u202E`, `\u2060`, `\uFEFF`, soft hyphens, and directional markers.
-- NFKD normalization and homoglyph mapping catches Cyrillic lookalikes (`і`, `с`, `а`, `е`, `ѕ`, `о`), symbol substitutions (`$`, `@`, `4`, `1`, `!`, `|`), and collapsed repeated characters.
-- Scunthorpe safety: whole-word matching and repeat-collapsed token checks ensure innocent words (e.g., `skill`, `skillet`, `shuttle`, `closer`) are never falsely blocked.
-- Spam heuristics reject excessive repetitions (6+ identical consecutive characters, 4+ repeated words), >= 70% ALL CAPS (min 10 characters), and reject all links/URLs in v1.
-- LLM moderation client strictly validates JSON output with Zod (`{ allowed: boolean, reason?: string }`), encapsulates user text in `<user_text>` tags without user metadata, enforces 4s timeout, and fails open safely on provider errors.
-- Repeat moderation rejections (5 within 1 hour) automatically update user status to `muted` in the database, block content mutation with 403, and insert an open system report into the admin reports queue.
+- Rate limiting implemented via `@upstash/ratelimit` + `@upstash/redis` with durable sliding window algorithm and resilient in-memory fallback store (`MemoryStore`).
+- Fallback invariant: missing Redis credentials or Redis connectivity failures log a structured warning (`logger.warn`) and smoothly fall back to in-memory tracking without service interruption.
+- Standard headers (`Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`) returned on all rate-limited responses.
+- Login endpoint rate-limited on both client IP and username (10 requests per 15 min each), preventing credential stuffing and brute-force attacks across accounts.
+- Per-user caps unified in `server/limits.js` (`checkUserCap`, `enforceUserCap`, and route helpers), reading config and querying exact DB counts.
+- Strict Content-Security-Policy (CSP) configured in Helmet (`default-src 'self'`, `style-src 'self' https://fonts.googleapis.com 'unsafe-inline'`, `font-src 'self' https://fonts.gstatic.com`, `script-src 'self'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`).
+- Permissions-Policy header added (`camera=(), microphone=(), geolocation=(), payment=(), usb=()`).
+- Strict-Transport-Security (HSTS) enforced when `config.isProd` is active.
+- Non-JSON writes rejected with 415; payloads > 10kb rejected with 413.
+- Maintenance mode middleware added: setting `MAINTENANCE_MODE=1` returns 503 for all write methods (`POST`, `PUT`, `PATCH`, `DELETE`) while reads (`GET`, `/api/health`) stay operational.
+- RFC 9116 security policy published at `/.well-known/security.txt` and repo root `SECURITY.md`.
+- RLS proof test (`tests/api/rls.test.js`) verifies deny-all security for anon Supabase clients across all 8 tables.
 
 ## Parked ideas (not in scope now)
 
@@ -29,7 +34,13 @@
 
 ## Session log
 
-### Session 7 - Day 2 Phase C (Moderation & Spam: D2-07..D2-10)
+### Session 8 - Day 2 Phase D (Rate Limits & HTTP Hardening: D2-11..D2-15)
+
+- Task D2-11: Installed `@upstash/ratelimit` and `@upstash/redis`. Built `server/rateLimit.js` with Upstash sliding-window limiter, safe in-memory fallback store, standard headers, global IP limiter (300/15m), and login IP/username limiter (10/15m). Added `tests/api/rateLimit.test.js` covering RATE-01..RATE-04 (6 tests).
+- Task D2-12: Unified per-user caps into `server/limits.js`. Refactored `posts.js`, `polls.js`, and `messages.js` to use cap helpers. Added `repliesPerHour` (30) and `reactionsPerHour` (120) to `server/config.js` for Day 3. Synced `docs/RATE_LIMITING_AND_ABUSE.md`.
+- Task D2-13: Hardened HTTP headers with app-tailored CSP, HSTS in production, Referrer-Policy, Permissions-Policy, 413 oversized payload rejection, and 415 non-JSON rejection. Added maintenance mode switch (`MAINTENANCE_MODE=1` returns 503 on writes). Verified production bundle served locally under CSP headers. Added `tests/api/security.test.js` (8 tests) and `tests/api/maintenance.test.js` (3 tests) covering SEC-01, SEC-02, SEC-09, SEC-10.
+- Task D2-14: Created `tests/api/rls.test.js` proving anon Supabase key has no access to any table (SEC-05). Added `.gitleaks.toml` secret scanning configuration. Published RFC 9116 `public/.well-known/security.txt` and root `SECURITY.md`.
+- Task D2-15: Updated `docs/API.md`, `docs/CONTEXT.md`, `docs/SECURITY.md` checklist, and `docs/PROGRESS.md`. All 147 tests green across 13 suites.
 
 - Task D2-07: Split moderation into modular normalize and detectors. Added zero-width stripping, NFKD decomposition, Cyrillic look-alike homoglyph mapping, repeat collapsing, single-letter despace run handling, spelled-out emails, and social handle detectors. Updated `tests/unit/moderation.test.js` covering MOD-01, MOD-02, MOD-03 (16 unit tests).
 - Task D2-08: Added configurable spam heuristics in `server/config.js` (`spam` options) and `server/lib/spam.js` covering character/word repetition, ALL CAPS ratios, and link rejection in v1. Added unit tests for spam heuristics (11 tests).
