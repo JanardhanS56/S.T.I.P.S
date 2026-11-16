@@ -152,4 +152,58 @@ describe('Polls API (POLL-01..POLL-09)', () => {
       expect(sixth.body.error).toContain('You can start 5 polls a day');
     });
   });
+
+  describe('POLL-04: Single Vote and Concurrency', () => {
+    const pollId = '00000000-0000-0000-0004-000000000001';
+    const optId1 = '00000000-0000-0000-0005-000000000001';
+    const optId2 = '00000000-0000-0000-0005-000000000002';
+    const student1Id = '00000000-0000-0000-0001-000000000004';
+
+    it('POLL-04: vote succeeds once and second vote returns 409', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // First vote
+      const vote1 = await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optId1 });
+
+      expect(vote1.status).toBe(201);
+      expect(vote1.body).toEqual({ ok: true });
+
+      // Second vote attempt
+      const vote2 = await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: optId2 });
+
+      expect(vote2.status).toBe(409);
+      expect(vote2.body.error).toContain('You already voted in this poll');
+    });
+
+    it('POLL-04: concurrent double-submit yields exactly one vote in database', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Fire parallel requests
+      const [res1, res2] = await Promise.all([
+        request(app)
+          .post(`/api/polls/${pollId}/vote`)
+          .set('Cookie', cookie)
+          .send({ optionId: optId1 }),
+        request(app)
+          .post(`/api/polls/${pollId}/vote`)
+          .set('Cookie', cookie)
+          .send({ optionId: optId2 })
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([201, 409]);
+
+      // Exactly one vote record in database for this user
+      const userVotes = mockDb.poll_votes.filter(
+        (v) => v.poll_id === pollId && v.user_id === student1Id
+      );
+      expect(userVotes).toHaveLength(1);
+    });
+  });
 });
