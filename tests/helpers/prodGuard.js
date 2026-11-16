@@ -26,7 +26,9 @@ export function guardAgainstProduction(supabaseUrl, nodeEnv = process.env.NODE_E
     (url.protocol === 'https:' && url.hostname.endsWith('.supabase.co')) ||
     (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname));
   if (!isAllowedUrl(targetUrl) || !isAllowedUrl(approvedUrl)) {
-    throw new Error('FATAL: Test database URLs must be Supabase HTTPS URLs or local development URLs.');
+    throw new Error(
+      'FATAL: Test database URLs must be Supabase HTTPS URLs or local development URLs.'
+    );
   }
 
   if (targetUrl.origin !== approvedUrl.origin) {
