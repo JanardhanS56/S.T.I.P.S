@@ -11,7 +11,7 @@ import { validatePassword } from '../lib/passwordPolicy.js';
 
 const r = Router();
 const FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until';
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version';
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -128,10 +128,16 @@ r.post(
       .single();
     if (!(await bcrypt.compare(current, u.password_hash)))
       throw new HttpError(400, 'Current password is wrong.');
+    const newVersion = (req.user.token_version ?? 0) + 1;
     await db
       .from('users')
-      .update({ password_hash: await bcrypt.hash(next, 10), must_change_password: false })
+      .update({
+        password_hash: await bcrypt.hash(next, 10),
+        must_change_password: false,
+        token_version: newVersion
+      })
       .eq('id', req.user.id);
+    setSession(res, { ...req.user, token_version: newVersion });
     res.json({ ok: true });
   })
 );

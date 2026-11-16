@@ -5,10 +5,12 @@ import { HttpError } from './http.js';
 
 const COOKIE = 'stips_session';
 const USER_FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password';
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password,token_version';
 
 export function setSession(res, user) {
-  const token = jwt.sign({ sub: user.id }, config.jwtSecret, { expiresIn: '7d' });
+  const token = jwt.sign({ sub: user.id, tv: user.token_version ?? 0 }, config.jwtSecret, {
+    expiresIn: '7d'
+  });
   res.cookie(COOKIE, token, {
     httpOnly: true, // JavaScript in the page cannot read it
     secure: config.isProd, // HTTPS only in production
@@ -24,9 +26,13 @@ export async function requireAuth(req, _res, next) {
   try {
     const token = req.cookies?.[COOKIE];
     if (!token) throw new HttpError(401, 'Please sign in.');
-    const { sub } = jwt.verify(token, config.jwtSecret);
+    const { sub, tv } = jwt.verify(token, config.jwtSecret);
     const { data: user } = await db.from('users').select(USER_FIELDS).eq('id', sub).maybeSingle();
     if (!user || user.status === 'suspended') throw new HttpError(401, 'Account unavailable.');
+    const currentVersion = user.token_version ?? 0;
+    if ((tv ?? 0) !== currentVersion) {
+      throw new HttpError(401, 'Session revoked. Please sign in again.');
+    }
     req.user = user;
     next();
   } catch (e) {
