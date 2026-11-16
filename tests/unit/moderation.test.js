@@ -21,6 +21,22 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
 
     it('blocks spaced letters intended to evade detection', () => {
       expect(localCheck('what a l o s e r').ok).toBe(false);
+      expect(localCheck('what a s.t.u.p.i.d idea').ok).toBe(false);
+    });
+
+    it('blocks zero-width character evasion (zero-width space, soft hyphen)', () => {
+      expect(localCheck('You are an id\u200biot').ok).toBe(false);
+      expect(localCheck('You are an id\u00ADiot').ok).toBe(false);
+    });
+
+    it('blocks Cyrillic and homoglyph substitutions', () => {
+      expect(localCheck('You are an \u0456d\u0456ot').ok).toBe(false);
+      expect(localCheck('\u0455tupid nonsense').ok).toBe(false);
+    });
+
+    it('blocks collapsed repeats evasion (idddiot, stuuuupid)', () => {
+      expect(localCheck('You are an idddddiooooot').ok).toBe(false);
+      expect(localCheck('That is stuuuupid').ok).toBe(false);
     });
   });
 

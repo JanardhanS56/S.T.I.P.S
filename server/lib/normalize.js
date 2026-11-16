@@ -23,6 +23,8 @@ const HOMOGLYPHS = {
   '\u0425': 'x',
   '\u0456': 'i',
   '\u0406': 'i',
+  '\u0455': 's',
+  '\u0405': 's',
   // Common symbols and leetspeak
   '@': 'a',
   4: 'a',
