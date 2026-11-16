@@ -13,7 +13,9 @@ export const config = {
     messagesPerHour: 60,
     reportsPerDay: 20,
     loginFailuresBeforeLock: 5,
-    lockMinutes: 10
+    lockMinutes: 10,
+    autoMuteThreshold: 5,
+    autoMuteWindowSeconds: 3600
   },
   spam: {
     maxRepeatedChars: 6,
