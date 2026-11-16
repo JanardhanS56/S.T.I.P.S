@@ -6,8 +6,8 @@
 
 - Day: 2
 - Branch: main
-- Last green check: npm run lint, npm test, npm run build (Day 2 Phase A complete, 79 tests passing)
-- First task for next session / phase: Day 2 Phase B, task D2-04 (Posts cursor pagination, duplicate-text guard, min gap 3s)
+- Last green check: npm run lint, npm test, npm run build (Day 2 Phase B complete, 111 tests passing)
+- First task for next session / phase: Day 2 Phase C, task D2-07 (Normalization upgrade: strip zero-width/look-alike chars, collapse repeats, Scunthorpe-safe matching)
 
 ## Blocked / needs owner
 
@@ -23,12 +23,23 @@
 - Health endpoint verifies database connectivity (`{ ok: true, db: true }`), returning 503 on database unavailability.
 - Foreign object lookups across all community resources (`/api/messages/with/:id`, `POST /api/reports`, etc.) return 404 rather than leaking entity existence across tenant boundaries.
 - Central scoped loader `loadInCommunity(table, id, req, fields)` added to `server/http.js` and re-exported from `server/db.js` for uniform community isolation.
+- Cursor pagination on posts (`GET /api/posts?before=<iso>&limit<=50&category=<cat>`) returning `{ posts, nextCursor }`.
+- Duplicate post text rejection within 10 minutes (409) and 3s minimum posting interval guard (429 with `Retry-After`).
+- Polls anonymity guarantee: voter identities never exposed in poll listings or summaries. Early close supported for author and admin. Option percentages protected against divide-by-zero.
+- Messages enforce self-DM rejection (400), target community/status verification (404), and strict two-party thread isolation.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 6 - Day 2 Phase B (Posts, Polls, Messages Rules)
+
+- Task D2-04: Implemented cursor pagination, duplicate-text rejection within 10 minutes, and 3s minimum posting interval guard in `server/routes/posts.js`. Added `tests/api/posts.test.js` covering POST-01..POST-09 (10 tests).
+- Task D2-05: Implemented early close endpoint `POST /api/polls/:id/close` for author and admin, divide-by-zero percentage guard in `server/routes/polls.js`. Added `tests/api/polls.test.js` covering validation, rate limits, concurrency double-vote guard, closed/foreign poll guards, and voter anonymity (POLL-01..POLL-09, 13 tests).
+- Task D2-06: Added self-message rejection guard to `server/routes/messages.js`. Added `tests/api/messages.test.js` covering role boundaries, contact info detection, payload length limits, hourly rate limits, target validation, and thread isolation (MSG-01..MSG-10, 9 tests).
+- Merged branch `feat/d2-content-rules` to `main`.
 
 ### Session 5 - Day 2 Phase A (Authorization and Isolation)
 
