@@ -79,6 +79,14 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+app.get(['/.well-known/security.txt', '/security.txt'], (_req, res) => {
+  res
+    .type('text/plain')
+    .send(
+      `# S.T.I.P.S Security Policy (RFC 9116)\nContact: mailto:security@example.edu\nExpires: 2027-12-31T23:59:59.000Z\nPreferred-Languages: en\nCanonical: https://stips.example.edu/.well-known/security.txt\nPolicy: https://github.com/sameer10237/S.T.I.P.S/blob/main/docs/SECURITY.md\n`
+    );
+});
+
 app.get('/api/health', async (_req, res) => {
   try {
     const { error } = await db.from('communities').select('id').limit(1);

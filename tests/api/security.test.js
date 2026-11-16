@@ -53,6 +53,14 @@ describe('Security Headers and Payload API Tests (SEC-01, SEC-02, SEC-09)', () =
       expect(res.headers['strict-transport-security']).toContain('max-age=31536000');
       expect(res.headers['strict-transport-security']).toContain('includeSubDomains');
     });
+
+    it('serves RFC 9116 security.txt at /.well-known/security.txt as text/plain', async () => {
+      const res = await request(app).get('/.well-known/security.txt');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/plain');
+      expect(res.text).toContain('Contact: mailto:');
+      expect(res.text).toContain('Expires:');
+    });
   });
 
   describe('SEC-02: Content-Type enforcement and size limits', () => {
