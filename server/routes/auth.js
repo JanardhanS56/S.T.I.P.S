@@ -14,7 +14,7 @@ const FIELDS =
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: process.env.NODE_ENV === 'test' ? 1000 : 20,
   message: { error: 'Too many sign-in attempts. Try again later.' }
 });
 
