@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -13,11 +15,31 @@ import messages from './routes/messages.js';
 import admin from './routes/admin.js';
 import reports from './routes/reports.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distDir = path.resolve(__dirname, '../dist');
+
 const app = express();
 app.set('trust proxy', 1); // Vercel sits in front: use the real client IP for rate limits
 app.disable('x-powered-by');
 app.use(httpLogger);
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"]
+      }
+    }
+  })
+);
+app.use(express.static(distDir));
 app.use(express.json({ limit: '10kb' })); // tiny bodies only: stops oversized-payload abuse
 app.use(cookieParser());
 
@@ -50,6 +72,12 @@ app.use('/api/messages', requireAuth, messages);
 app.use('/api/admin', requireAuth, admin);
 app.use('/api/reports', requireAuth, reports);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(distDir, 'index.html'), (err) => {
+    if (err) next();
+  });
+});
 app.use(errorHandler);
 
 export default app;
