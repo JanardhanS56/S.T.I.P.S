@@ -282,4 +282,84 @@ describe('Polls API (POLL-01..POLL-09)', () => {
       expect(res.body.error).toContain('not found');
     });
   });
+
+  describe('POLL-06 & POLL-07: Results Visibility and Anonymity Guarantee', () => {
+    const pollId = '00000000-0000-0000-0004-000000000001';
+    const opt1Id = '00000000-0000-0000-0005-000000000001';
+
+    it('POLL-06: hides results before voting and exposes them after voting, after close, or to admin', async () => {
+      const student1Cookie = await loginAs('student_a1');
+      const student2Cookie = await loginAs('student_a2');
+      const adminCookie = await loginAs('admin_a');
+
+      // 1. Student 1 has not voted yet on open poll -> counts/total must be null
+      const resBefore = await request(app).get('/api/polls').set('Cookie', student1Cookie);
+      const pollBefore = resBefore.body.polls.find((p) => p.id === pollId);
+      expect(pollBefore.myVote).toBeNull();
+      expect(pollBefore.total).toBeNull();
+      expect(pollBefore.options[0].count).toBeNull();
+      expect(pollBefore.options[0].percent).toBeNull();
+
+      // 2. Admin can see results even before voting
+      const resAdmin = await request(app).get('/api/polls').set('Cookie', adminCookie);
+      const pollAdmin = resAdmin.body.polls.find((p) => p.id === pollId);
+      expect(pollAdmin.total).toBe(0);
+      expect(pollAdmin.options[0].count).toBe(0);
+      expect(pollAdmin.options[0].percent).toBe(0);
+
+      // 3. Student 1 votes -> now Student 1 sees results
+      await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', student1Cookie)
+        .send({ optionId: opt1Id });
+
+      const resAfterVote = await request(app).get('/api/polls').set('Cookie', student1Cookie);
+      const pollAfterVote = resAfterVote.body.polls.find((p) => p.id === pollId);
+      expect(pollAfterVote.myVote).toBe(opt1Id);
+      expect(pollAfterVote.total).toBe(1);
+      expect(pollAfterVote.options[0].count).toBe(1);
+      expect(pollAfterVote.options[0].percent).toBe(100);
+
+      // 4. Student 2 has still not voted -> results still hidden for Student 2
+      const resStudent2 = await request(app).get('/api/polls').set('Cookie', student2Cookie);
+      const pollStudent2 = resStudent2.body.polls.find((p) => p.id === pollId);
+      expect(pollStudent2.total).toBeNull();
+      expect(pollStudent2.options[0].count).toBeNull();
+
+      // 5. Close poll -> Student 2 can now see results without voting
+      const pollRecord = mockDb.polls.find((p) => p.id === pollId);
+      pollRecord.closes_at = new Date(Date.now() - 1000).toISOString();
+
+      const resClosed = await request(app).get('/api/polls').set('Cookie', student2Cookie);
+      const pollClosed = resClosed.body.polls.find((p) => p.id === pollId);
+      expect(pollClosed.closed).toBe(true);
+      expect(pollClosed.total).toBe(1);
+      expect(pollClosed.options[0].count).toBe(1);
+    });
+
+    it('POLL-07: voter identities are never present in any response', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const adminCookie = await loginAs('admin_a');
+
+      // Cast a vote
+      await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', studentCookie)
+        .send({ optionId: opt1Id });
+
+      // Check student list response
+      const studentRes = await request(app).get('/api/polls').set('Cookie', studentCookie);
+      const serializedStudent = JSON.stringify(studentRes.body);
+      expect(serializedStudent).not.toContain('voter');
+      expect(serializedStudent).not.toContain('user_id');
+      expect(serializedStudent).not.toContain('poll_votes');
+
+      // Check admin list response
+      const adminRes = await request(app).get('/api/polls').set('Cookie', adminCookie);
+      const serializedAdmin = JSON.stringify(adminRes.body);
+      expect(serializedAdmin).not.toContain('voter');
+      expect(serializedAdmin).not.toContain('user_id');
+      expect(serializedAdmin).not.toContain('poll_votes');
+    });
+  });
 });
