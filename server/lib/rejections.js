@@ -50,7 +50,8 @@ export async function handleRejection(user, targetType = 'post') {
       reporter_id: user.id,
       target_type: targetType,
       target_id: user.id,
-      reason: 'Auto-muted: 5 moderation rejections in 1 hour'
+      reason: 'Auto-muted: 5 moderation rejections in 1 hour',
+      status: 'open'
     });
 
     return { muted: true, count };

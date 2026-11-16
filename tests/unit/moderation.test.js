@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { localCheck, hasContactInfo, checkSpam, checkLlm } from '../../server/moderation.js';
+import {
+  localCheck,
+  hasContactInfo,
+  checkSpam,
+  checkLlm,
+  recordRejection,
+  getRejectionCount,
+  clearRejections,
+  handleRejection
+} from '../../server/moderation.js';
 import { env } from '../../server/env.js';
 import { checkRepetition, checkAllCaps, checkLinks } from '../../server/lib/spam.js';
 
@@ -295,6 +304,53 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
       });
       expect(typeof res.ok).toBe('boolean');
       expect(typeof res.reason).toBe('string');
+    });
+  });
+
+  describe('MOD-06: Moderation rejection counter and auto-mute logic', () => {
+    const testUserId = '00000000-0000-0000-0001-000000000999';
+
+    beforeEach(() => {
+      clearRejections();
+    });
+
+    it('increments rejection count and respects sliding window', () => {
+      expect(getRejectionCount(testUserId)).toBe(0);
+      expect(recordRejection(testUserId)).toBe(1);
+      expect(recordRejection(testUserId)).toBe(2);
+      expect(getRejectionCount(testUserId)).toBe(2);
+
+      // Past window
+      expect(getRejectionCount(testUserId, -1000)).toBe(0);
+    });
+
+    it('clears rejection counter on demand', () => {
+      recordRejection(testUserId);
+      recordRejection(testUserId);
+      expect(getRejectionCount(testUserId)).toBe(2);
+
+      clearRejections(testUserId);
+      expect(getRejectionCount(testUserId)).toBe(0);
+    });
+
+    it('handleRejection returns muted: false before threshold and muted: true at threshold', async () => {
+      const mockUser = {
+        id: testUserId,
+        community_id: '00000000-0000-0000-0000-000000000001',
+        status: 'active'
+      };
+
+      for (let i = 1; i <= 4; i++) {
+        const result = await handleRejection(mockUser, 'post');
+        expect(result.muted).toBe(false);
+        expect(result.count).toBe(i);
+        expect(mockUser.status).toBe('active');
+      }
+
+      const triggerResult = await handleRejection(mockUser, 'post');
+      expect(triggerResult.muted).toBe(true);
+      expect(triggerResult.count).toBe(5);
+      expect(mockUser.status).toBe('muted');
     });
   });
 });
