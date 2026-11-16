@@ -8,7 +8,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.js",
+    "dev:all": "node scripts/dev.js",
+    "dev:client": "vite",
+    "dev:web": "vite",
+    "dev:server": "node --env-file=.env server/dev.js",
     "dev:api": "node --env-file=.env server/dev.js",
     "build": "vite build",
     "create-admin": "node --env-file=.env scripts/create-admin.js",
