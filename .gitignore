@@ -4,6 +4,7 @@ dist
 .env.*
 !.env.example
 !.env.test.example
+coverage
 .vercel
 Guide.txt
 *.pdf
