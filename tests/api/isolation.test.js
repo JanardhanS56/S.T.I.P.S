@@ -286,4 +286,79 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
       expect(createdMsg.sender_id).toBe('00000000-0000-0000-0001-000000000002');
     });
   });
+
+  describe('ISO-07: Admin cannot mutate users in other communities or fellow admins', () => {
+    it('returns 404 when admin A attempts to update status of community B user', async () => {
+      const cookieAdminA = await loginAs('admin_a');
+      const studentB = '00000000-0000-0000-0002-000000000003';
+
+      const res = await request(app)
+        .post(`/api/admin/users/${studentB}/status`)
+        .set('Cookie', cookieAdminA)
+        .send({ status: 'muted' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found.');
+    });
+
+    it('returns 404 when admin A attempts to reset password of community B user', async () => {
+      const cookieAdminA = await loginAs('admin_a');
+      const studentB = '00000000-0000-0000-0002-000000000003';
+
+      const res = await request(app)
+        .post(`/api/admin/users/${studentB}/reset-password`)
+        .set('Cookie', cookieAdminA)
+        .send({});
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found.');
+    });
+
+    it('returns 404 when admin A attempts to update status of another admin in community A', async () => {
+      const cookieAdminA = await loginAs('admin_a');
+      const adminA2 = '00000000-0000-0000-0001-000000000009';
+
+      const res = await request(app)
+        .post(`/api/admin/users/${adminA2}/status`)
+        .set('Cookie', cookieAdminA)
+        .send({ status: 'suspended' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found.');
+    });
+
+    it('returns 404 when admin A attempts to reset password of another admin in community A', async () => {
+      const cookieAdminA = await loginAs('admin_a');
+      const adminA2 = '00000000-0000-0000-0001-000000000009';
+
+      const res = await request(app)
+        .post(`/api/admin/users/${adminA2}/reset-password`)
+        .set('Cookie', cookieAdminA)
+        .send({});
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('User not found.');
+    });
+
+    it('returns 404 when admin A attempts to update own status or reset own password', async () => {
+      const cookieAdminA = await loginAs('admin_a');
+      const adminA = '00000000-0000-0000-0001-000000000001';
+
+      const resStatus = await request(app)
+        .post(`/api/admin/users/${adminA}/status`)
+        .set('Cookie', cookieAdminA)
+        .send({ status: 'muted' });
+
+      expect(resStatus.status).toBe(404);
+      expect(resStatus.body.error).toBe('User not found.');
+
+      const resReset = await request(app)
+        .post(`/api/admin/users/${adminA}/reset-password`)
+        .set('Cookie', cookieAdminA)
+        .send({});
+
+      expect(resReset.status).toBe(404);
+      expect(resReset.body.error).toBe('User not found.');
+    });
+  });
 });

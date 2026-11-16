@@ -95,6 +95,21 @@ export function createMockDb(initialData = {}) {
       locked_until: null,
       token_version: 0
     },
+    {
+      id: '00000000-0000-0000-0001-000000000009',
+      community_id: '00000000-0000-0000-0000-000000000001',
+      username: 'admin_a2',
+      display_name: 'Vice Principal A',
+      role: 'admin',
+      password_hash: testPasswordHash,
+      must_change_password: false,
+      bio: 'Vice Principal',
+      department: 'Office',
+      status: 'active',
+      failed_attempts: 0,
+      locked_until: null,
+      token_version: 0
+    },
     // Community B
     {
       id: '00000000-0000-0000-0002-000000000001',
