@@ -362,4 +362,62 @@ describe('Polls API (POLL-01..POLL-09)', () => {
       expect(serializedAdmin).not.toContain('poll_votes');
     });
   });
+
+  describe('POLL-08 & POLL-09: Hidden Polls and Math Edge Cases', () => {
+    const pollId = '00000000-0000-0000-0004-000000000001';
+    const opt1Id = '00000000-0000-0000-0005-000000000001';
+    const opt2Id = '00000000-0000-0000-0005-000000000002';
+
+    it('POLL-08: hidden poll is excluded from list and rejects voting with 404', async () => {
+      const cookie = await loginAs('student_a1');
+      const target = mockDb.polls.find((p) => p.id === pollId);
+      target.status = 'hidden';
+
+      // Not listed in GET /api/polls
+      const listRes = await request(app).get('/api/polls').set('Cookie', cookie);
+      expect(listRes.body.polls.some((p) => p.id === pollId)).toBe(false);
+
+      // Voting returns 404
+      const voteRes = await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', cookie)
+        .send({ optionId: opt1Id });
+      expect(voteRes.status).toBe(404);
+      expect(voteRes.body.error).toContain('not found');
+    });
+
+    it('POLL-09: zero-vote poll shows 0 without dividing by zero, and non-zero percentages sum accurately', async () => {
+      const student1Cookie = await loginAs('student_a1');
+      const student2Cookie = await loginAs('student_a2');
+      const adminCookie = await loginAs('admin_a');
+
+      // 1. Zero-vote poll viewed by admin -> percent is 0 (not NaN)
+      const resZero = await request(app).get('/api/polls').set('Cookie', adminCookie);
+      const pollZero = resZero.body.polls.find((p) => p.id === pollId);
+      expect(pollZero.total).toBe(0);
+      expect(pollZero.options[0].percent).toBe(0);
+      expect(pollZero.options[1].percent).toBe(0);
+      expect(Number.isNaN(pollZero.options[0].percent)).toBe(false);
+
+      // 2. Two votes cast: 1 for opt1, 1 for opt2 -> 50% and 50%
+      await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', student1Cookie)
+        .send({ optionId: opt1Id });
+
+      await request(app)
+        .post(`/api/polls/${pollId}/vote`)
+        .set('Cookie', student2Cookie)
+        .send({ optionId: opt2Id });
+
+      const resVoted = await request(app).get('/api/polls').set('Cookie', student1Cookie);
+      const pollVoted = resVoted.body.polls.find((p) => p.id === pollId);
+      expect(pollVoted.total).toBe(2);
+      expect(pollVoted.options[0].count).toBe(1);
+      expect(pollVoted.options[0].percent).toBe(50);
+      expect(pollVoted.options[1].count).toBe(1);
+      expect(pollVoted.options[1].percent).toBe(50);
+      expect(pollVoted.options[0].percent + pollVoted.options[1].percent).toBe(100);
+    });
+  });
 });

@@ -35,15 +35,25 @@ r.get(
         const closed = new Date(p.closes_at).getTime() <= now;
         const showResults = closed || mine || req.user.role === 'admin'; // no peeking before you vote
         const pv = votes.filter((v) => v.poll_id === p.id);
+        const total = pv.length;
         return {
           ...p,
           closed,
           myVote: mine,
-          total: showResults ? pv.length : null,
-          options: p.options.map((o) => ({
-            ...o,
-            count: showResults ? pv.filter((v) => v.option_id === o.id).length : null
-          }))
+          total: showResults ? total : null,
+          options: p.options.map((o) => {
+            const count = showResults ? pv.filter((v) => v.option_id === o.id).length : null;
+            const percent = showResults
+              ? total > 0
+                ? Math.round((count / total) * 100)
+                : 0
+              : null;
+            return {
+              ...o,
+              count,
+              percent
+            };
+          })
         };
       })
     });
