@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { h, parse, uuid, HttpError } from '../http.js';
 import { requireCommunity, requireAdmin } from '../session.js';
+import { slug } from '../lib/slug.js';
 
 const r = Router();
 r.use(requireAdmin, requireCommunity);
@@ -12,15 +13,6 @@ r.use(requireAdmin, requireCommunity);
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; // no look-alike characters
 const tempPassword = () =>
   Array.from({ length: 12 }, () => CHARS[randomInt(CHARS.length)]).join('');
-const slug = (name) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '.')
-    .replace(/[^a-z0-9.]/g, '')
-    .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '')
-    .slice(0, 26);
 
 // Create accounts in bulk. Passwords are shown ONCE in this response and stored only as hashes.
 r.post(
