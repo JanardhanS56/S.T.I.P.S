@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
@@ -14,6 +14,44 @@ import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
+
+function RouteFocusAndTitle() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const titles = {
+      '/': 'The Closed Campus Network',
+      '/signin': 'Sign In',
+      '/privacy': 'Privacy Policy',
+      '/guidelines': 'Community Guidelines',
+      '/cookies': 'Cookie Notice',
+      '/app/feed': 'Community Feed',
+      '/app/polls': 'Polls & Votes',
+      '/app/messages': 'Messages',
+      '/app/profile': 'Profile',
+      '/app/create': 'Create'
+    };
+
+    const path = location.pathname;
+    const pageTitle = titles[path] || (path.startsWith('/app/feed/') ? 'Post Thread' : '');
+    document.title = pageTitle ? `${pageTitle} · S.T.I.P.S` : 'S.T.I.P.S';
+
+    const timer = setTimeout(() => {
+      const h1 = document.querySelector('h1');
+      if (h1) {
+        h1.setAttribute('tabindex', '-1');
+        h1.focus();
+      } else {
+        const main = document.getElementById('main-content');
+        if (main) main.focus();
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
+  return null;
+}
 
 export default function App() {
   const [state, setState] = useState({ loading: true, user: null, community: null });
@@ -40,6 +78,7 @@ export default function App() {
 
   return (
     <AuthCtx.Provider value={{ ...state, refresh, logout }}>
+      <RouteFocusAndTitle />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/signin" element={<Auth />} />

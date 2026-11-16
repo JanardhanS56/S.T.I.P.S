@@ -32,6 +32,13 @@ h1 {
   font-size: 36px;
   letter-spacing: -0.03em;
 }
+h1[tabindex='-1']:focus {
+  outline: none;
+}
+h1[tabindex='-1']:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 2px;
+}
 h2,
 h3 {
   letter-spacing: -0.02em;
