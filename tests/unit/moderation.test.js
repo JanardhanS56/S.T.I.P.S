@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { localCheck, hasContactInfo } from '../../server/moderation.js';
+import { localCheck, hasContactInfo, checkSpam } from '../../server/moderation.js';
+import { checkRepetition, checkAllCaps, checkLinks } from '../../server/lib/spam.js';
 
 describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
   describe('MOD-01: Word filter blocks plain, leetspeak, spaced and mixed-case variants', () => {
@@ -93,6 +94,72 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
       expect(hasContactInfo('Testing client supplied ids ignored')).toBe(false);
       expect(hasContactInfo('Are client ids ignored?')).toBe(false);
       expect(hasContactInfo('Instant coffee in the canteen')).toBe(false);
+    });
+  });
+
+  describe('Spam Heuristics Unit Tests (Repetition, ALL CAPS, Link count)', () => {
+    describe('checkRepetition', () => {
+      it('rejects 6 or more identical consecutive characters', () => {
+        expect(checkRepetition('Hellooooooo everyone').ok).toBe(false);
+        expect(checkRepetition('No way!!!!!!!!').ok).toBe(false);
+        expect(checkRepetition('Why??????').ok).toBe(false);
+      });
+
+      it('rejects 4 or more identical consecutive words', () => {
+        expect(checkRepetition('free free free free stuff').ok).toBe(false);
+        expect(checkRepetition('spam spam spam spam').ok).toBe(false);
+      });
+
+      it('allows acceptable repetitions', () => {
+        expect(checkRepetition('Good book and cool food').ok).toBe(true);
+        expect(checkRepetition('ha ha ha').ok).toBe(true);
+      });
+    });
+
+    describe('checkAllCaps', () => {
+      it('rejects text with >= 70% uppercase when length >= 10', () => {
+        expect(checkAllCaps('THIS IS AN URGENT NOTICE EVERYONE MUST READ').ok).toBe(false);
+        expect(checkAllCaps('WHY ARE WE SHOUTING HERE').ok).toBe(false);
+      });
+
+      it('allows normal casing and mixed case', () => {
+        expect(checkAllCaps('Welcome to the Annual Science Exhibition 2026').ok).toBe(true);
+        expect(checkAllCaps('Library closes at 8 PM sharp today!').ok).toBe(true);
+      });
+
+      it('allows short acronyms and abbreviations under length threshold', () => {
+        expect(checkAllCaps('OMG YES!').ok).toBe(true);
+        expect(checkAllCaps('NASA / ISRO').ok).toBe(true);
+      });
+    });
+
+    describe('checkLinks', () => {
+      it('rejects http and https URLs in v1', () => {
+        expect(checkLinks('Visit https://example.com for more info').ok).toBe(false);
+        expect(checkLinks('Click here http://sketchy.site/deal').ok).toBe(false);
+      });
+
+      it('rejects www URLs and common URL shorteners', () => {
+        expect(checkLinks('Check out www.campus-portal.org').ok).toBe(false);
+        expect(checkLinks('Join bit.ly/3xyz for notes').ok).toBe(false);
+        expect(checkLinks('Check tinyurl.com/meeting123').ok).toBe(false);
+      });
+
+      it('allows regular text containing periods without valid URLs', () => {
+        expect(checkLinks('Meeting starts at 4 p.m. in room 302. Bring your notes.').ok).toBe(true);
+      });
+    });
+
+    describe('checkSpam pipeline', () => {
+      it('rejects spam across any triggered heuristic', () => {
+        expect(checkSpam('FREE FREE FREE FREE OFFERS').ok).toBe(false);
+        expect(checkSpam('CHECK OUT https://spam.org NOW').ok).toBe(false);
+        expect(checkSpam('NOOOOOOO WAY').ok).toBe(false);
+      });
+
+      it('allows clean messages', () => {
+        expect(checkSpam('Looking for study group partners for Physics 101').ok).toBe(true);
+      });
     });
   });
 });

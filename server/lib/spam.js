@@ -3,7 +3,7 @@ import { config } from '../config.js';
 export function checkRepetition(text, limits = config.spam) {
   if (!text) return { ok: true };
   const maxChars = limits?.maxRepeatedChars ?? 6;
-  const charRegex = new RegExp(`(.)\\1{${maxChars},}`);
+  const charRegex = new RegExp(`(.)\\1{${maxChars - 1},}`);
   if (charRegex.test(text)) {
     return { ok: false, reason: 'Please avoid excessive repetitive characters.' };
   }
