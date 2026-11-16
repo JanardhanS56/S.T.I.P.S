@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Writable } from 'node:stream';
+
+vi.mock('../../server/db.js', () => ({
+  db: {},
+  loadInCommunity: vi.fn()
+}));
+
 import { createLogger, createHttpLogger } from '../../server/logger.js';
 import { errorHandler, HttpError } from '../../server/http.js';
 
