@@ -4,9 +4,10 @@ All endpoints are under `/api`. Writes need `Content-Type: application/json`. Er
 
 | Method | Path                            | Auth           | Body / query                          | Notes                                                       |
 | ------ | ------------------------------- | -------------- | ------------------------------------- | ----------------------------------------------------------- |
-| GET    | /health                         | no             |                                       | liveness check                                              |
+| GET    | /health                         | no             |                                       | liveness + database connectivity check ({ok, db})           |
 | POST   | /auth/login                     | no             | `username, password`                  | 5 wrong passwords lock the account 10 min; IP limited       |
 | POST   | /auth/logout                    | no             |                                       | clears cookie                                               |
+| POST   | /auth/logout-all                | yes            |                                       | revokes all active sessions by bumping token_version        |
 | GET    | /auth/me                        | yes            |                                       | current user + community                                    |
 | POST   | /auth/join                      | yes            | `code`                                | only if the account has no community                        |
 | POST   | /auth/change-password           | yes            | `current, next`                       | next is at least 10 characters                              |

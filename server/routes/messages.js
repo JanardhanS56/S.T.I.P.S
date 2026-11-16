@@ -52,6 +52,18 @@ r.get(
   '/with/:userId',
   h(async (req, res) => {
     const other = parse(uuid, req.params.userId);
+    const { data: otherUser } = await db
+      .from('users')
+      .select('id,community_id,status')
+      .eq('id', other)
+      .maybeSingle();
+    if (
+      !otherUser ||
+      otherUser.community_id !== req.user.community_id ||
+      otherUser.status === 'suspended'
+    ) {
+      throw new HttpError(404, 'Person not found.');
+    }
     const me = req.user.id;
     const { data } = await db
       .from('messages')
@@ -81,6 +93,9 @@ r.post(
       z.object({ toUserId: uuid, body: z.string().trim().min(1).max(config.messageMaxChars) }),
       req.body
     );
+    if (toUserId === req.user.id) {
+      throw new HttpError(400, 'Cannot message yourself.');
+    }
     const { data: to } = await db
       .from('users')
       .select('id,role,community_id,status')

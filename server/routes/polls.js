@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
-import { h, parse, uuid, HttpError } from '../http.js';
+import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
 
@@ -35,15 +35,25 @@ r.get(
         const closed = new Date(p.closes_at).getTime() <= now;
         const showResults = closed || mine || req.user.role === 'admin'; // no peeking before you vote
         const pv = votes.filter((v) => v.poll_id === p.id);
+        const total = pv.length;
         return {
           ...p,
           closed,
           myVote: mine,
-          total: showResults ? pv.length : null,
-          options: p.options.map((o) => ({
-            ...o,
-            count: showResults ? pv.filter((v) => v.option_id === o.id).length : null
-          }))
+          total: showResults ? total : null,
+          options: p.options.map((o) => {
+            const count = showResults ? pv.filter((v) => v.option_id === o.id).length : null;
+            const percent = showResults
+              ? total > 0
+                ? Math.round((count / total) * 100)
+                : 0
+              : null;
+            return {
+              ...o,
+              count,
+              percent
+            };
+          })
         };
       })
     });
@@ -98,13 +108,8 @@ r.post(
   h(async (req, res) => {
     const id = parse(uuid, req.params.id);
     const { optionId } = parse(z.object({ optionId: uuid }), req.body);
-    const { data: poll } = await db
-      .from('polls')
-      .select('id,community_id,closes_at,status')
-      .eq('id', id)
-      .maybeSingle();
-    if (!poll || poll.community_id !== req.user.community_id || poll.status !== 'visible')
-      throw new HttpError(404, 'Poll not found.');
+    const poll = await loadInCommunity('polls', id, req, 'id,community_id,closes_at,status');
+    if (poll.status !== 'visible') throw new HttpError(404, 'Poll not found.');
     if (new Date(poll.closes_at) <= new Date()) throw new HttpError(409, 'This poll has closed.');
     const { data: opt } = await db
       .from('poll_options')
@@ -119,6 +124,27 @@ r.post(
     if (error?.code === '23505') throw new HttpError(409, 'You already voted in this poll.'); // primary key = one vote each
     if (error) throw error;
     res.status(201).json({ ok: true });
+  })
+);
+
+// Author or admin can close a poll early
+r.post(
+  '/:id/close',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const poll = await loadInCommunity(
+      'polls',
+      id,
+      req,
+      'id,author_id,community_id,status,closes_at'
+    );
+    if (poll.status !== 'visible') throw new HttpError(404, 'Poll not found.');
+    if (poll.author_id !== req.user.id && req.user.role !== 'admin') {
+      throw new HttpError(403, 'Not allowed.');
+    }
+    const now = new Date().toISOString();
+    await db.from('polls').update({ closes_at: now }).eq('id', id);
+    res.json({ ok: true, closes_at: now });
   })
 );
 
