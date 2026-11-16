@@ -39,6 +39,12 @@ export async function loadInCommunity(table, id, req, fields = '*') {
 
 export function errorHandler(err, req, res, _next) {
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
+  if (err.status === 413 || err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Payload too large.' });
+  }
+  if (err.status === 400 && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON payload.' });
+  }
   const reqId = req?.id || req?.headers?.['x-request-id'];
   const log = req?.log || logger;
   log.error({ err, reqId }, 'Unhandled server error');

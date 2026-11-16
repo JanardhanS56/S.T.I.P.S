@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { config } from './config.js';
 import { httpLogger } from './logger.js';
 import { errorHandler } from './http.js';
 import { db } from './db.js';
@@ -36,9 +37,21 @@ app.use(
         baseUri: ["'self'"],
         formAction: ["'self'"]
       }
-    }
+    },
+    referrerPolicy: { policy: 'no-referrer' },
+    hsts: false
   })
 );
+app.use((_req, res, next) => {
+  if (process.env.NODE_ENV === 'production' || config.isProd) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+  );
+  next();
+});
 app.use(express.static(distDir));
 app.use(express.json({ limit: '10kb' })); // tiny bodies only: stops oversized-payload abuse
 app.use(cookieParser());
