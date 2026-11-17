@@ -16,6 +16,7 @@ import polls from './routes/polls.js';
 import messages from './routes/messages.js';
 import admin from './routes/admin.js';
 import reports from './routes/reports.js';
+import me from './routes/me.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(__dirname, '../dist');
@@ -104,6 +105,7 @@ app.use('/api/polls', requireAuth, polls);
 app.use('/api/messages', requireAuth, messages);
 app.use('/api/admin', requireAuth, admin);
 app.use('/api/reports', requireAuth, reports);
+app.use('/api/me', requireAuth, me);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();

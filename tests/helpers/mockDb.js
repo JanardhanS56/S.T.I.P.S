@@ -188,7 +188,11 @@ export function createMockDb(initialData = {}) {
       token_version: 0
     },
     ...(initialData.users || [])
-  ];
+  ].map((u) => ({
+    accepted_terms_at: '2026-11-16T00:00:00Z',
+    terms_version: 1,
+    ...u
+  }));
 
   const posts = [
     {
@@ -309,6 +313,7 @@ export function createMockDb(initialData = {}) {
   const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
   const user_blocks = [...(initialData.user_blocks || initialData.blocks || [])];
   const audit_log = [...(initialData.audit_log || [])];
+  const account_deletion_requests = [...(initialData.account_deletion_requests || [])];
 
   const tables = {
     communities,
@@ -325,7 +330,9 @@ export function createMockDb(initialData = {}) {
     poll_votes,
     messages,
     reports,
-    audit_log
+    audit_log,
+    account_deletion_requests,
+    deletion_requests: account_deletion_requests
   };
 
   return {
@@ -414,6 +421,16 @@ export function createMockDb(initialData = {}) {
                 username: actor.username,
                 display_name: actor.display_name,
                 role: actor.role
+              }
+            : null;
+        } else if (tableName === 'account_deletion_requests') {
+          const user = users.find((u) => u.id === copy.user_id);
+          copy.user = user
+            ? {
+                id: user.id,
+                username: user.username,
+                display_name: user.display_name,
+                role: user.role
               }
             : null;
         }

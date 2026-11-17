@@ -5,7 +5,7 @@ import { HttpError } from './http.js';
 
 const COOKIE = 'stips_session';
 const USER_FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,token_version';
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password,token_version,accepted_terms_at,terms_version';
 
 export function setSession(res, user) {
   const token = jwt.sign({ sub: user.id, tv: user.token_version ?? 0 }, config.jwtSecret, {
@@ -54,6 +54,17 @@ export const requireNotMuted = (req, _res, next) =>
       : undefined
   );
 
+export const requireTerms = (req, _res, next) => {
+  const currentTermsVersion = 1;
+  const userVersion = req.user.terms_version ?? 0;
+  if (!userVersion || userVersion < currentTermsVersion) {
+    return next(
+      new HttpError(403, 'Please accept the updated terms and privacy policy to continue.')
+    );
+  }
+  next();
+};
+
 export const publicUser = (u) => ({
   id: u.id,
   username: u.username,
@@ -62,5 +73,7 @@ export const publicUser = (u) => ({
   communityId: u.community_id,
   bio: u.bio,
   department: u.department,
-  mustChangePassword: u.must_change_password
+  mustChangePassword: u.must_change_password,
+  acceptedTermsAt: u.accepted_terms_at,
+  termsVersion: u.terms_version ?? 0
 });

@@ -20,6 +20,7 @@ export default function Admin() {
   const [members, setMembers] = useState([]);
   const [reports, setReports] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [deletionRequests, setDeletionRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,6 +39,12 @@ export default function Admin() {
   // Modal state for Password Reset
   const [resetConfirmUser, setResetConfirmUser] = useState(null);
   const [oneTimePasswordData, setOneTimePasswordData] = useState(null);
+
+  // Modal state for Deletion Request Confirmation
+  const [deletionConfirmModal, setDeletionConfirmModal] = useState({
+    isOpen: false,
+    request: null
+  });
 
   // Bulk member creation state
   const [lines, setLines] = useState('');
@@ -78,13 +85,28 @@ export default function Admin() {
     }
   }, []);
 
+  const loadDeletionRequests = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/deletion-requests');
+      setDeletionRequests(res.requests || []);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     setErr('');
-    Promise.all([loadCommunity(), loadMembers(), loadReports(), loadAudit()]).finally(() => {
+    Promise.all([
+      loadCommunity(),
+      loadMembers(),
+      loadReports(),
+      loadAudit(),
+      loadDeletionRequests()
+    ]).finally(() => {
       setLoading(false);
     });
-  }, [loadCommunity, loadMembers, loadReports, loadAudit]);
+  }, [loadCommunity, loadMembers, loadReports, loadAudit, loadDeletionRequests]);
 
   // Handle member status change
   async function confirmStatusChange() {
@@ -127,6 +149,38 @@ export default function Admin() {
       await api.post(`/admin/reports/${reportId}/resolve`, { action });
       setSuccess(action === 'hide' ? 'Content hidden and report resolved.' : 'Report dismissed.');
       await loadReports();
+      await loadAudit();
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  // Handle deletion request confirmation
+  async function confirmDeletion() {
+    const { request: targetRequest } = deletionConfirmModal;
+    if (!targetRequest) return;
+    setDeletionConfirmModal({ isOpen: false, request: null });
+    setErr('');
+    try {
+      await api.post(`/admin/deletion-requests/${targetRequest.id}/confirm`, {});
+      setSuccess(
+        `Account for @${targetRequest.user?.username || 'member'} has been anonymized and credentials disabled.`
+      );
+      await loadDeletionRequests();
+      await loadMembers();
+      await loadAudit();
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  // Handle deletion request rejection
+  async function rejectDeletion(reqId) {
+    setErr('');
+    try {
+      await api.post(`/admin/deletion-requests/${reqId}/reject`, {});
+      setSuccess('Deletion request marked as rejected.');
+      await loadDeletionRequests();
       await loadAudit();
     } catch (e) {
       setErr(e.message);
@@ -220,6 +274,10 @@ export default function Admin() {
         {[
           ['members', `Members (${members.length})`],
           ['reports', `Reports Queue (${reports.length})`],
+          [
+            'deletions',
+            `Deletion Requests (${deletionRequests.filter((r) => r.status === 'pending').length})`
+          ],
           ['audit', `Audit Log (${auditLogs.length})`],
           ['create', '+ Add Members']
         ].map(([k, l]) => (
@@ -434,7 +492,73 @@ export default function Admin() {
             </div>
           )}
 
-          {/* TAB 3: AUDIT LOG */}
+          {/* TAB 3: DELETION REQUESTS */}
+          {tab === 'deletions' && (
+            <div className="stack">
+              {deletionRequests.length === 0 ? (
+                <EmptyState
+                  title="No deletion requests"
+                  description="When members request account erasure, their requests appear here for review."
+                />
+              ) : (
+                deletionRequests.map((req) => (
+                  <Card key={req.id}>
+                    <div
+                      className="row between"
+                      style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}
+                    >
+                      <div>
+                        <b>
+                          {req.user?.display_name || 'Member'} (@{req.user?.username || 'user'})
+                        </b>{' '}
+                        <Badge
+                          variant={
+                            req.status === 'pending'
+                              ? 'amber'
+                              : req.status === 'confirmed'
+                                ? 'red'
+                                : 'neutral'
+                          }
+                        >
+                          {req.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <span className="mono small muted">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {req.reason && (
+                      <p className="small muted" style={{ margin: '8px 0' }}>
+                        Reason: {req.reason}
+                      </p>
+                    )}
+
+                    {req.status === 'pending' && (
+                      <div className="row" style={{ marginTop: '12px', gap: '8px' }}>
+                        <Button
+                          variant="danger"
+                          className="small"
+                          onClick={() => setDeletionConfirmModal({ isOpen: true, request: req })}
+                        >
+                          Confirm &amp; Anonymize
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="small"
+                          onClick={() => rejectDeletion(req.id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: AUDIT LOG */}
           {tab === 'audit' && (
             <div className="stack">
               {auditLogs.length === 0 ? (
@@ -637,6 +761,34 @@ export default function Admin() {
           </Button>
           <Button variant="dark" onClick={() => setOneTimePasswordData(null)}>
             Done
+          </Button>
+        </div>
+      </Modal>
+
+      {/* CONFIRMATION MODAL: CONFIRM DELETION */}
+      <Modal
+        isOpen={deletionConfirmModal.isOpen}
+        onClose={() => setDeletionConfirmModal({ isOpen: false, request: null })}
+        title="Confirm Account Erasure & Anonymization"
+      >
+        <p>
+          Are you sure you want to permanently erase and anonymize the account for{' '}
+          <b>@{deletionConfirmModal.request?.user?.username}</b>?
+        </p>
+        <p className="small muted">
+          <strong>This action cannot be undone.</strong> The user&apos;s name and bio will be wiped,
+          username randomized to <code>deleted-*</code>, password disabled, active sessions revoked,
+          and past posts/replies anonymized to &ldquo;Deleted user&rdquo;.
+        </p>
+        <div className="row" style={{ marginTop: '20px', justifyContent: 'flex-end', gap: '8px' }}>
+          <Button
+            variant="outline"
+            onClick={() => setDeletionConfirmModal({ isOpen: false, request: null })}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDeletion}>
+            Confirm &amp; Anonymize
           </Button>
         </div>
       </Modal>

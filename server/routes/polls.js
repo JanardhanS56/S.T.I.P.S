@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
-import { requireCommunity, requireNotMuted } from '../session.js';
+import { requireCommunity, requireNotMuted, requireTerms } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
 import { enforcePollCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
+r.use(requireTerms);
 
 r.get(
   '/',

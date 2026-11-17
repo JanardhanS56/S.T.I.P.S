@@ -118,3 +118,20 @@ export async function enforceReactionCap(req, res) {
     errorMessage: `Reaction limit reached for this hour.`
   });
 }
+
+const exportTimestamps = new Map();
+
+export async function enforceExportCap(req, res) {
+  const isTest = process.env.NODE_ENV === 'test' || Boolean(process.env.PLAYWRIGHT_TEST);
+  const windowMs = isTest ? 100 : 24 * 3600 * 1000;
+  const last = exportTimestamps.get(req.user.id);
+  const now = Date.now();
+  if (last && now - last < windowMs) {
+    const retryAfter = Math.ceil((windowMs - (now - last)) / 1000);
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('Retry-After', retryAfter);
+    }
+    throw new HttpError(429, 'Data export is limited to once per 24 hours.');
+  }
+  exportTimestamps.set(req.user.id, now);
+}

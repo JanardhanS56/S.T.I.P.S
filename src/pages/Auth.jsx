@@ -124,8 +124,18 @@ export default function Auth() {
           </Button>
           <p className="small muted">
             Too many wrong attempts pause sign-in for a few minutes. Forgot your password? Ask your
-            office to reset it. <Link to="/cookies">Cookie notice</Link>
+            office to reset it.
           </p>
+          <div
+            className="row small muted"
+            style={{ marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}
+          >
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/cookies">Cookies</Link>
+            <Link to="/guidelines">Guidelines</Link>
+            <Link to="/contact">Contact</Link>
+          </div>
         </form>
       </div>
     </div>

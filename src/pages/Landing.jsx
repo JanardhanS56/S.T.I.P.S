@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import PublicFooter from '../components/PublicFooter.jsx';
 
 export default function Landing() {
   return (
@@ -116,16 +117,7 @@ export default function Landing() {
           </ul>
         </section>
 
-        <footer className="foot">
-          <span>
-            <b className="wordmark dark">S.T.I.P.S</b> · Prototype
-          </span>
-          <span>
-            <Link to="/guidelines">Community guidelines</Link>
-            <Link to="/privacy">Privacy policy</Link>
-            <Link to="/cookies">Cookie notice</Link>
-          </span>
-        </footer>
+        <PublicFooter />
       </div>
     </div>
   );

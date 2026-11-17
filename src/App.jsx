@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
+import ConsentModal from './components/ConsentModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
@@ -14,7 +15,7 @@ import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
 import Admin from './pages/Admin.jsx';
 import NotFound from './pages/NotFound.jsx';
-import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
+import { Privacy, Terms, Cookies, Guidelines, Accessibility, Contact } from './pages/Legal.jsx';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -27,8 +28,11 @@ function RouteFocusAndTitle() {
       '/': 'The Closed Campus Network',
       '/signin': 'Sign In',
       '/privacy': 'Privacy Policy',
+      '/terms': 'Terms of Use',
       '/guidelines': 'Community Guidelines',
       '/cookies': 'Cookie Notice',
+      '/accessibility': 'Accessibility Statement',
+      '/contact': 'Contact & Grievance',
       '/app/feed': 'Community Feed',
       '/app/polls': 'Polls & Votes',
       '/app/messages': 'Messages',
@@ -90,8 +94,11 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/signin" element={<Auth />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/guidelines" element={<Guidelines />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
             <Route index element={<Navigate to="feed" replace />} />
             <Route path="feed" element={<Feed />} />
@@ -114,6 +121,9 @@ export default function App() {
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
+          <ConsentModal onAccepted={refresh} />
+        )}
         <CookieNotice />
       </AuthCtx.Provider>
     </ErrorBoundary>
