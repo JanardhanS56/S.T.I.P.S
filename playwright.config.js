@@ -16,14 +16,14 @@ export default defineConfig({
       name: 'Desktop Chrome',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome'
+        ...(process.env.CI ? {} : { channel: 'chrome' })
       }
     },
     {
       name: 'Mobile Chrome',
       use: {
         ...devices['Pixel 5'],
-        channel: 'chrome'
+        ...(process.env.CI ? {} : { channel: 'chrome' })
       }
     }
   ],
