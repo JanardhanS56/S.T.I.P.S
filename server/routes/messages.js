@@ -90,23 +90,59 @@ r.get(
 );
 
 r.get(
+  '/unread',
+  h(async (req, res) => {
+    const { data, error } = await db
+      .from('messages')
+      .select('id,sender_id,read_at')
+      .eq('recipient_id', req.user.id)
+      .is('read_at', null);
+    if (error) throw error;
+
+    const bySender = {};
+    for (const m of data || []) {
+      bySender[m.sender_id] = (bySender[m.sender_id] || 0) + 1;
+    }
+    res.json({
+      total: (data || []).length,
+      bySender
+    });
+  })
+);
+
+r.get(
   '/threads',
   h(async (req, res) => {
     const me = req.user.id;
     const { data } = await db
       .from('messages')
       .select(
-        'id,body,created_at,sender_id,recipient_id,sender:users!sender_id(id,username,display_name,role),recipient:users!recipient_id(id,username,display_name,role)'
+        'id,body,created_at,sender_id,recipient_id,read_at,sender:users!sender_id(id,username,display_name,role),recipient:users!recipient_id(id,username,display_name,role)'
       )
       .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
       .order('created_at', { ascending: false })
       .limit(200);
+
     const seen = new Map();
-    for (const m of data) {
+    const unreadMap = new Map();
+
+    for (const m of data || []) {
       const other = m.sender_id === me ? m.recipient : m.sender;
-      if (!seen.has(other.id)) seen.set(other.id, { with: other, last: m.body, at: m.created_at });
+      if (!other) continue;
+      if (!seen.has(other.id)) {
+        seen.set(other.id, { with: other, last: m.body, at: m.created_at });
+      }
+      if (m.recipient_id === me && !m.read_at) {
+        unreadMap.set(other.id, (unreadMap.get(other.id) || 0) + 1);
+      }
     }
-    res.json({ threads: [...seen.values()] });
+
+    const threads = [...seen.values()].map((t) => ({
+      ...t,
+      unreadCount: unreadMap.get(t.with.id) || 0
+    }));
+
+    res.json({ threads });
   })
 );
 
