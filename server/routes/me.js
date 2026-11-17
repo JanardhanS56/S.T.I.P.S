@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
+import { z } from 'zod';
 import { db } from '../db.js';
-import { h, HttpError } from '../http.js';
+import { h, parse, HttpError } from '../http.js';
 import { enforceExportCap } from '../limits.js';
 
 const r = Router();
@@ -104,6 +106,72 @@ r.get(
     const filename = `stips-export-${user.username}-${new Date().toISOString().slice(0, 10)}.json`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.json(exportPayload);
+  })
+);
+
+r.get(
+  '/delete-request',
+  h(async (req, res) => {
+    const { data: request } = await db
+      .from('account_deletion_requests')
+      .select('id,status,reason,created_at,reviewed_at')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    res.json({ request: request || null });
+  })
+);
+
+r.post(
+  '/delete-request',
+  h(async (req, res) => {
+    const { reason } = parse(
+      z.object({
+        reason: z.string().trim().max(500).optional()
+      }),
+      req.body
+    );
+
+    // Check if there is already a pending request
+    const { data: existing } = await db
+      .from('account_deletion_requests')
+      .select('id,status,created_at')
+      .eq('user_id', req.user.id)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(200).json({
+        ok: true,
+        request: existing,
+        message: 'Account deletion request is already pending administrator review.'
+      });
+    }
+
+    const newRequest = {
+      id: randomUUID(),
+      user_id: req.user.id,
+      community_id: req.user.community_id || null,
+      status: 'pending',
+      reason: reason || null,
+      created_at: new Date().toISOString()
+    };
+
+    const { data: inserted, error } = await db
+      .from('account_deletion_requests')
+      .insert(newRequest)
+      .select()
+      .single();
+
+    if (error) throw new HttpError(500, 'Could not submit deletion request.');
+
+    res.status(201).json({
+      ok: true,
+      request: inserted,
+      message: 'Account deletion request submitted. An administrator will review your request.'
+    });
   })
 );
 
