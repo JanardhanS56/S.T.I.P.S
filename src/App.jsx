@@ -14,7 +14,7 @@ import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
 import Admin from './pages/Admin.jsx';
 import NotFound from './pages/NotFound.jsx';
-import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
+import { Privacy, Terms, Cookies, Guidelines, Accessibility, Contact } from './pages/Legal.jsx';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -27,8 +27,11 @@ function RouteFocusAndTitle() {
       '/': 'The Closed Campus Network',
       '/signin': 'Sign In',
       '/privacy': 'Privacy Policy',
+      '/terms': 'Terms of Use',
       '/guidelines': 'Community Guidelines',
       '/cookies': 'Cookie Notice',
+      '/accessibility': 'Accessibility Statement',
+      '/contact': 'Contact & Grievance',
       '/app/feed': 'Community Feed',
       '/app/polls': 'Polls & Votes',
       '/app/messages': 'Messages',
@@ -90,8 +93,11 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/signin" element={<Auth />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/guidelines" element={<Guidelines />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
             <Route index element={<Navigate to="feed" replace />} />
             <Route path="feed" element={<Feed />} />
