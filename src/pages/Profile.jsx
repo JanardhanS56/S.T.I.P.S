@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { Badge, Button, Banner, Field } from '../components/ui/index.js';
+import { Badge, Button, Banner, Field, Modal } from '../components/ui/index.js';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
@@ -12,6 +12,10 @@ export default function Profile() {
   const [err, setErr] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
+  const [deletionRequest, setDeletionRequest] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const initials = user.displayName
     .split(/\s+/)
     .map((w) => w[0])
@@ -66,6 +70,38 @@ export default function Profile() {
       setErr(e2.message || 'Export failed.');
     } finally {
       setExporting(false);
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get('/me/delete-request')
+      .then((res) => {
+        if (active && res?.request) {
+          setDeletionRequest(res.request);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleDeleteRequest(e) {
+    e.preventDefault();
+    setDeleteSubmitting(true);
+    setErr('');
+    try {
+      const res = await api.post('/me/delete-request', { reason: deleteReason || undefined });
+      setDeletionRequest(res.request);
+      setDeleteModalOpen(false);
+      setDeleteReason('');
+      setMsg('Account deletion request submitted. An administrator will review your request.');
+    } catch (e2) {
+      setErr(e2.message || 'Failed to submit deletion request.');
+    } finally {
+      setDeleteSubmitting(false);
     }
   }
 
@@ -156,7 +192,95 @@ export default function Profile() {
             {exportMsg}
           </Banner>
         )}
+
+        <div
+          style={{
+            marginTop: '24px',
+            paddingTop: '20px',
+            borderTop: '1px dashed var(--line)'
+          }}
+        >
+          <h4 style={{ marginBottom: '8px' }}>Account Deletion</h4>
+          <p className="small muted">
+            You may request permanent erasure of your account. Upon administrative confirmation,
+            your username and display name are anonymized to &ldquo;Deleted user&rdquo; and your
+            credentials are permanently deactivated.
+          </p>
+
+          {deletionRequest ? (
+            <div style={{ marginTop: '12px' }}>
+              {deletionRequest.status === 'pending' && (
+                <Banner variant="info">
+                  Account deletion requested on{' '}
+                  {new Date(deletionRequest.created_at).toLocaleDateString()}. Status:{' '}
+                  <strong>Pending administrative review</strong>.
+                </Banner>
+              )}
+              {deletionRequest.status === 'rejected' && (
+                <div>
+                  <Banner variant="warn">
+                    Your previous deletion request was rejected
+                    {deletionRequest.admin_notes ? `: "${deletionRequest.admin_notes}"` : '.'}
+                  </Banner>
+                  <div style={{ marginTop: '12px' }}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDeleteModalOpen(true)}
+                    >
+                      Request account deletion again
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {deletionRequest.status === 'confirmed' && (
+                <Banner variant="info">This account has been anonymized.</Banner>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: '16px' }}>
+              <Button type="button" variant="danger" onClick={() => setDeleteModalOpen(true)}>
+                Request account deletion
+              </Button>
+            </div>
+          )}
+        </div>
       </section>
+
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Request Account Deletion"
+      >
+        <p className="small muted">
+          Requesting account deletion is permanent. Once approved by an administrator, your name and
+          username will be anonymized (&ldquo;Deleted user&rdquo;), all active sessions will be
+          terminated, and login credentials disabled. Authored posts and replies will remain
+          attributed to &ldquo;Deleted user&rdquo; to preserve community conversation context.
+        </p>
+        <form onSubmit={handleDeleteRequest} style={{ marginTop: '16px' }}>
+          <Field
+            label="Reason for deletion (optional)"
+            id="delete-reason"
+            as="textarea"
+            value={deleteReason}
+            maxLength={300}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            placeholder="e.g., Graduating / no longer using the campus portal"
+          />
+          <div
+            className="row"
+            style={{ marginTop: '16px', justifyContent: 'flex-end', gap: '8px' }}
+          >
+            <Button type="button" variant="ghost" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="danger" loading={deleteSubmitting}>
+              Confirm Deletion Request
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
