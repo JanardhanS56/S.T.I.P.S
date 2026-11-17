@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { Button, Banner, Field } from '../components/ui/index.js';
+import { Button, Banner, Field, PasswordInput } from '../components/ui/index.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 export default function Auth() {
   const { refresh } = useAuth();
@@ -10,6 +11,7 @@ export default function Auth() {
   const [step, setStep] = useState('signin'); // signin -> password (first time) -> join (if no community)
   const [f, setF] = useState({ username: '', password: '', next: '', code: '' });
   const [err, setErr] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -38,6 +40,7 @@ export default function Auth() {
   const changePw = () =>
     run(async () => {
       await api.post('/auth/change-password', { current: f.password, next: f.next });
+      setSuccessMsg('Password updated successfully.');
       const { user } = await api.get('/auth/me');
       await finish({ ...user, mustChangePassword: false });
     });
@@ -50,6 +53,9 @@ export default function Auth() {
 
   return (
     <div className="auth">
+      <a href="#auth-form-card" className="skip-link">
+        Skip to sign in form
+      </a>
       <div className="auth-l">
         <Link to="/" className="wordmark">
           S.T.I.P.S
@@ -63,7 +69,10 @@ export default function Auth() {
           office or class teacher.
         </p>
       </div>
-      <div className="auth-r">
+      <div className="auth-r" id="auth-form-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <ThemeToggle />
+        </div>
         <form
           className="auth-form"
           onSubmit={(e) => {
@@ -81,28 +90,30 @@ export default function Auth() {
                 value={f.username}
                 onChange={set('username')}
               />
-              <Field
-                label="Password"
-                id="auth-password"
-                type="password"
-                autoComplete="current-password"
-                value={f.password}
-                onChange={set('password')}
-              />
+              <Field label="Password" id="auth-password">
+                <PasswordInput
+                  id="auth-password"
+                  name="password"
+                  autoComplete="current-password"
+                  value={f.password}
+                  onChange={set('password')}
+                />
+              </Field>
             </>
           )}
           {step === 'password' && (
             <>
               <h1>Set your own password</h1>
               <p className="muted">First sign-in: choose a new password, at least 10 characters.</p>
-              <Field
-                label="New password"
-                id="auth-next"
-                type="password"
-                autoComplete="new-password"
-                value={f.next}
-                onChange={set('next')}
-              />
+              <Field label="New password" id="auth-next">
+                <PasswordInput
+                  id="auth-next"
+                  name="next"
+                  autoComplete="new-password"
+                  value={f.next}
+                  onChange={set('next')}
+                />
+              </Field>
             </>
           )}
           {step === 'join' && (
@@ -118,6 +129,7 @@ export default function Auth() {
               />
             </>
           )}
+          {successMsg && <div className="form-success-banner">{successMsg}</div>}
           {err && <Banner variant="error">{err}</Banner>}
           <Button type="submit" variant="dark" size="lg" loading={busy}>
             {step === 'signin' ? 'Sign in' : step === 'password' ? 'Save password' : 'Join'}

@@ -5,6 +5,9 @@ import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
 import ConsentModal from './components/ConsentModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import ScrollProgress from './components/ScrollProgress.jsx';
+import BackToTop from './components/BackToTop.jsx';
+import { captureUtmParams } from './lib/utm.js';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
 import Feed from './pages/Feed.jsx';
@@ -76,6 +79,7 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
+    captureUtmParams();
     refresh();
   }, [refresh]);
 
@@ -133,6 +137,8 @@ export default function App() {
         {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
           <ConsentModal onAccepted={refresh} />
         )}
+        <ScrollProgress />
+        <BackToTop />
         <CookieNotice />
       </AuthCtx.Provider>
     </ErrorBoundary>

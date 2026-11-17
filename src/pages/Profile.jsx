@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { Badge, Button, Banner, Field, Modal } from '../components/ui/index.js';
+import { Badge, Button, Banner, Field, Modal, PasswordInput } from '../components/ui/index.js';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
@@ -138,22 +138,24 @@ export default function Profile() {
       </form>
       <form className="form narrow" onSubmit={changePw}>
         <h3>Change password</h3>
-        <Field
-          label="Current password"
-          id="current-pw"
-          type="password"
-          autoComplete="current-password"
-          value={pw.current}
-          onChange={(e) => setPw({ ...pw, current: e.target.value })}
-        />
-        <Field
-          label="New password (10+ characters)"
-          id="next-pw"
-          type="password"
-          autoComplete="new-password"
-          value={pw.next}
-          onChange={(e) => setPw({ ...pw, next: e.target.value })}
-        />
+        <Field label="Current password" id="current-pw">
+          <PasswordInput
+            id="current-pw"
+            name="current-pw"
+            autoComplete="current-password"
+            value={pw.current}
+            onChange={(e) => setPw({ ...pw, current: e.target.value })}
+          />
+        </Field>
+        <Field label="New password (10+ characters)" id="next-pw">
+          <PasswordInput
+            id="next-pw"
+            name="next-pw"
+            autoComplete="new-password"
+            value={pw.next}
+            onChange={(e) => setPw({ ...pw, next: e.target.value })}
+          />
+        </Field>
         <Button type="submit" variant="dark">
           Change password
         </Button>

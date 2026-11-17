@@ -11,8 +11,12 @@ import {
   EmptyState,
   Skeleton,
   RateLimitNotice,
-  ReactionGroup
+  ReactionGroup,
+  CopyButton,
+  ConfirmDialog,
+  LoadingSpinner
 } from '../components/ui/index.js';
+import SiteSearch from '../components/SiteSearch.jsx';
 
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
 const MAX = 280;
@@ -32,6 +36,7 @@ export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [text, setText] = useState('');
   const [cat, setCat] = useState('Notice');
   const [isOfficial, setIsOfficial] = useState(false);
@@ -39,6 +44,7 @@ export default function Feed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
+  const [confirmPost, setConfirmPost] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,6 +172,16 @@ export default function Feed() {
   }
 
   const left = MAX - text.length;
+
+  const displayPosts = searchQuery.trim()
+    ? posts.filter(
+        (p) =>
+          p.body.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.author.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : posts;
+
   return (
     <div className="page">
       <h1>Community feed</h1>
@@ -222,12 +238,22 @@ export default function Feed() {
         )}
       </Card>
 
-      <div className="chips filters">
-        {['All', ...CATS].map((c) => (
-          <Chip key={c} active={filter === c} onClick={() => setFilter(c)}>
-            {c}
-          </Chip>
-        ))}
+      <div
+        className="sticky-top"
+        style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}
+      >
+        <SiteSearch
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+          placeholder="Search feed by keyword or author..."
+        />
+        <div className="chips filters" style={{ margin: 0 }}>
+          {['All', ...CATS].map((c) => (
+            <Chip key={c} active={filter === c} onClick={() => setFilter(c)}>
+              {c}
+            </Chip>
+          ))}
+        </div>
       </div>
 
       <div className="stack">
@@ -244,8 +270,8 @@ export default function Feed() {
               </Card>
             ))}
           </div>
-        ) : posts.length > 0 ? (
-          posts.map((p) => (
+        ) : displayPosts.length > 0 ? (
+          displayPosts.map((p) => (
             <Card as="article" key={p.id} className={p.pinned_at ? 'card-pinned' : ''}>
               <div className="row meta" style={{ flexWrap: 'wrap', gap: '8px' }}>
                 {p.pinned_at && <span className="pinned-badge">📌 PINNED</span>}
@@ -276,6 +302,7 @@ export default function Feed() {
                   className="row"
                   style={{ gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
                 >
+                  <CopyButton text={p.body} label="Copy" />
                   {user?.role === 'admin' && (
                     <>
                       <Button
@@ -297,13 +324,22 @@ export default function Feed() {
                   <Link to={`/app/feed/${p.id}`} className="link-btn small">
                     Replies
                   </Link>
-                  <Button variant="link" className="muted small" onClick={() => report(p.id)}>
+                  <Button
+                    variant="link"
+                    className="muted small"
+                    onClick={() => setConfirmPost(p.id)}
+                  >
                     Report
                   </Button>
                 </div>
               </div>
             </Card>
           ))
+        ) : searchQuery ? (
+          <EmptyState
+            title="No matching posts found"
+            description={`No posts matched your search for "${searchQuery}".`}
+          />
         ) : filter !== 'All' ? (
           <EmptyState
             title={`No ${filter} posts yet`}
@@ -323,11 +359,26 @@ export default function Feed() {
               onClick={loadMore}
               style={{ minWidth: '160px' }}
             >
-              Load more
+              {loadingMore ? <LoadingSpinner label="Loading..." size={16} /> : 'Load more'}
             </Button>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(confirmPost)}
+        onClose={() => setConfirmPost(null)}
+        onConfirm={async () => {
+          if (!confirmPost) return;
+          const id = confirmPost;
+          setConfirmPost(null);
+          await report(id);
+        }}
+        title="Report Post"
+        description="Are you sure you want to flag this content for the campus administrator review?"
+        confirmText="Submit Report"
+        danger={false}
+      />
     </div>
   );
 }
