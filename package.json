@@ -26,6 +26,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
     "seed:test": "node --env-file=.env.test scripts/seed-test.js",
+    "seed:large": "node --env-file=.env scripts/seed-large.js",
     "prepare": "husky"
   },
   "dependencies": {
