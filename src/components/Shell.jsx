@@ -101,6 +101,11 @@ export default function Shell() {
           <NavLink to="/app/profile" onClick={closeMenu}>
             Profile
           </NavLink>
+          {user.role === 'admin' && (
+            <NavLink to="/app/admin" onClick={closeMenu}>
+              Admin dashboard
+            </NavLink>
+          )}
         </nav>
         <Link to="/app/create" className="btn btn-green" onClick={closeMenu}>
           + Create
