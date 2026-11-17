@@ -5,6 +5,8 @@ All notable changes to the **S.T.I.P.S (Student-Teacher Interaction & Polling Sy
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.1.0] - 2026-11-17
 
 ### Added
@@ -46,3 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Account lockout after 5 consecutive failed sign-in attempts for 10 minutes.
 - Automated git history secret scanner (`npm run security:scan`) with zero leaks detected.
 - Request payload size capping (10 kb JSON ceiling) and JSON-only write enforcement.
+
+[Unreleased]: https://github.com/sameer10237/S.T.I.P.S/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sameer10237/S.T.I.P.S/releases/tag/v0.1.0
