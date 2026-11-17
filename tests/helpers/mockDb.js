@@ -305,6 +305,7 @@ export function createMockDb(initialData = {}) {
 
   const post_replies = [...(initialData.post_replies || initialData.replies || [])];
   const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
+  const user_blocks = [...(initialData.user_blocks || initialData.blocks || [])];
 
   const tables = {
     communities,
@@ -314,6 +315,8 @@ export function createMockDb(initialData = {}) {
     replies: post_replies,
     post_reactions,
     reactions: post_reactions,
+    user_blocks,
+    blocks: user_blocks,
     polls,
     poll_options,
     poll_votes,
@@ -487,14 +490,12 @@ export function createMockDb(initialData = {}) {
                 });
               });
             }
-            if (expression.includes('sender_id.eq') && expression.includes('recipient_id.eq')) {
-              const matches = expression.match(/[a-z_]+\.eq\.([0-9a-f-]+)/g);
-              if (matches) {
-                return matches.some((m) => {
-                  const [k, v] = m.split('.eq.');
-                  return item[k] === v;
-                });
-              }
+            const matches = expression.match(/[a-z_]+\.eq\.[^,]+/g);
+            if (matches) {
+              return matches.some((m) => {
+                const [k, v] = m.split('.eq.');
+                return item[k] === v;
+              });
             }
             return true;
           });
@@ -529,6 +530,16 @@ export function createMockDb(initialData = {}) {
               if (existingIdx !== -1) {
                 post_reactions[existingIdx] = { ...post_reactions[existingIdx], ...item };
                 insertedRecord = post_reactions[existingIdx];
+                continue;
+              }
+            }
+            if (tableName === 'user_blocks' || tableName === 'blocks') {
+              const existingIdx = user_blocks.findIndex(
+                (b) => b.blocker_id === item.blocker_id && b.blocked_id === item.blocked_id
+              );
+              if (existingIdx !== -1) {
+                user_blocks[existingIdx] = { ...user_blocks[existingIdx], ...item };
+                insertedRecord = user_blocks[existingIdx];
                 continue;
               }
             }
