@@ -25,6 +25,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:load": "node --env-file=.env scripts/load-smoke.js",
+    "test:smoke": "node --env-file=.env scripts/smoke-test.js",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
     "seed:test": "node --env-file=.env.test scripts/seed-test.js",
     "seed:large": "node --env-file=.env scripts/seed-large.js",
