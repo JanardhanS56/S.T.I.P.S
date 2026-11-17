@@ -10,6 +10,53 @@ import { enforceMessageCap } from '../limits.js';
 const r = Router();
 r.use(requireCommunity);
 
+// Block management
+r.get(
+  '/blocks',
+  h(async (req, res) => {
+    const { data, error } = await db
+      .from('user_blocks')
+      .select('blocked_id')
+      .eq('blocker_id', req.user.id);
+    if (error) throw error;
+    res.json({ blocked: (data || []).map((b) => b.blocked_id) });
+  })
+);
+
+r.post(
+  '/blocks/:userId',
+  h(async (req, res) => {
+    const targetId = parse(uuid, req.params.userId);
+    if (targetId === req.user.id) {
+      throw new HttpError(400, 'Cannot block yourself.');
+    }
+    const { data: targetUser } = await db
+      .from('users')
+      .select('id,community_id')
+      .eq('id', targetId)
+      .maybeSingle();
+    if (!targetUser || targetUser.community_id !== req.user.community_id) {
+      throw new HttpError(404, 'Person not found.');
+    }
+
+    const { error } = await db.from('user_blocks').insert({
+      blocker_id: req.user.id,
+      blocked_id: targetId
+    });
+    if (error) throw error;
+    res.json({ ok: true, blocked: true });
+  })
+);
+
+r.delete(
+  '/blocks/:userId',
+  h(async (req, res) => {
+    const targetId = parse(uuid, req.params.userId);
+    await db.from('user_blocks').delete().eq('blocker_id', req.user.id).eq('blocked_id', targetId);
+    res.json({ ok: true, blocked: false });
+  })
+);
+
 // People you may message: everyone in your community who the DM rule allows.
 r.get(
   '/people',
