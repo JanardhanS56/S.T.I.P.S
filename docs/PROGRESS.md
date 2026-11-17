@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 4, Phase D In Progress (Security Sign-Off, Docs Finalization, Launch Checklist Complete; Preparing for v0.1.0 Tag and Release: Task D4-16)
-- Branch: chore/d4-release
-- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s), secret scan (0 secrets in git history)
-- First task for next session / phase: Task D4-16: Finalize version bump and changelog date, merge chore/d4-release into main without squash, tag v0.1.0, and push.
+- Day: 4 Complete, Release v0.1.0 Shipped (Compliance, Quality, Operations, Security Sign-Off, and v0.1.0 Release Tagged)
+- Branch: main
+- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s), secret scan (0 secrets in git history), release tag v0.1.0 pushed to origin
+- Next milestone: Post-v0.1.0 Campus Pilot Onboarding and Live Feedback Gathering
 
 ## Blocked / needs owner
 
@@ -26,11 +26,12 @@
 
 ## Session log
 
-### Session 16 - Day 4 Phase D (Security Sign-off, Documentation, and Launch Review: D4-13..D4-15)
+### Session 16 - Day 4 Phase D (Security Sign-off, Documentation, Launch Review, and v0.1.0 Release: D4-13..D4-16)
 
 - Task D4-13: Ran `docs/SECURITY.md` section 11 checklist. Built `scripts/scan-secrets.js` (`npm run security:scan`) and scanned git history: 0 secrets detected. Analyzed `npm audit` findings: Zod (<4.6.6) memory exhaustion is mitigated by 10kb body limit and schema length caps; React Router SSR/backslash open redirect is inapplicable to client SPA. Recorded checklist results in `docs/SECURITY.md`.
 - Task D4-14: Built `scripts/generate-third-party.js` (`npm run licenses`) and generated `docs/THIRD_PARTY.md`. Authored `CHANGELOG.md` for `0.1.0`. Authored `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`. Updated root `SECURITY.md` with vulnerability reporting commitments and safe harbor terms. Finalized root `README.md`, `docs/API.md`, and `docs/CONTEXT.md`.
 - Task D4-15: Walked `docs/LAUNCH_CHECKLIST.md`. Recorded 3 accepted-risk items with justifications. Validated that all safety, security, and quality gates pass. Owner Go/No-Go determination: **GO** for release `v0.1.0`.
+- Task D4-16: Executed comprehensive verification (lint clean, 190 Vitest tests passing, 48 Playwright E2E/A11Y tests passing, production build clean, secret scanner clean). Pushed `chore/d4-release`, merged into `main` without squash (`--no-ff`), tagged annotated release `v0.1.0` (`git tag -a v0.1.0 -m "v0.1.0: S.T.I.P.S compliant release"`), and pushed tag to `origin`. Day 4 exit checklist 100% complete.
 
 ### Session 15 - Day 4 Phase C (Observability and Production Operations: D4-09..D4-12)
 
