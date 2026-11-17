@@ -107,21 +107,41 @@ function PollForm() {
       />
       <fieldset>
         <legend>Options (2 to 6)</legend>
-        {opts.map((o, i) => (
-          <input
-            key={i}
-            aria-label={`Option ${i + 1}`}
-            maxLength={60}
-            placeholder={`Option ${i + 1}`}
-            value={o}
-            onChange={(e) => setOpts(opts.map((x, j) => (j === i ? e.target.value : x)))}
-          />
-        ))}
-        {opts.length < 6 && (
-          <Button type="button" variant="link" onClick={() => setOpts([...opts, ''])}>
-            + Add option
-          </Button>
-        )}
+        <div className="stack tight">
+          {opts.map((o, i) => (
+            <div key={i} className="row" style={{ alignItems: 'center', gap: '8px' }}>
+              <input
+                style={{ flex: 1 }}
+                aria-label={`Option ${i + 1}`}
+                maxLength={60}
+                placeholder={`Option ${i + 1}`}
+                value={o}
+                onChange={(e) => setOpts(opts.map((x, j) => (j === i ? e.target.value : x)))}
+              />
+              {opts.length > 2 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="small"
+                  aria-label={`Remove option ${i + 1}`}
+                  onClick={() => setOpts(opts.filter((_, j) => j !== i))}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+          {opts.length < 6 && (
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => setOpts([...opts, ''])}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              + Add option
+            </Button>
+          )}
+        </div>
       </fieldset>
       <div className="stack tight">
         <label htmlFor="poll-days">Closes after</label>
