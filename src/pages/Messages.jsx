@@ -19,6 +19,8 @@ export default function Messages() {
   const [rateLimitErr, setRateLimitErr] = useState(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockedBy, setIsBlockedBy] = useState(false);
 
   const loadThreads = useCallback(async () => {
     try {
@@ -45,6 +47,8 @@ export default function Messages() {
     try {
       const res = await api.get(`/messages/with/${active.id}`);
       setMsgs(res.messages);
+      setIsBlocked(Boolean(res.isBlocked));
+      setIsBlockedBy(Boolean(res.isBlockedBy));
     } catch (e) {
       if (e.status === 429) {
         setRateLimitErr(e);
@@ -55,6 +59,29 @@ export default function Messages() {
       setLoadingMsgs(false);
     }
   }, [active]);
+
+  async function toggleBlock() {
+    if (!active) return;
+    try {
+      if (isBlocked) {
+        await api.delete(`/messages/blocks/${active.id}`, {});
+        setIsBlocked(false);
+      } else {
+        const confirmed = window.confirm(
+          `Block @${active.username}? You will not receive messages from each other.`
+        );
+        if (!confirmed) return;
+        await api.post(`/messages/blocks/${active.id}`, {});
+        setIsBlocked(true);
+      }
+      api
+        .get('/messages/people')
+        .then((d) => setPeople(d.people))
+        .catch(() => {});
+    } catch (e2) {
+      alert(e2.message);
+    }
+  }
 
   useEffect(() => {
     loadThread();
@@ -139,8 +166,13 @@ export default function Messages() {
       <div className="dm-thread">
         {active ? (
           <>
-            <div className="dm-head">
-              <b>{active.display_name}</b> <span className="muted small">@{active.username}</span>
+            <div className="dm-head row between" style={{ alignItems: 'center' }}>
+              <div>
+                <b>{active.display_name}</b> <span className="muted small">@{active.username}</span>
+              </div>
+              <Button variant="outline" className="small" onClick={toggleBlock}>
+                {isBlocked ? 'Unblock' : 'Block'}
+              </Button>
             </div>
             <div className="dm-msgs">
               {loadingMsgs ? (
@@ -163,21 +195,31 @@ export default function Messages() {
                 />
               )}
             </div>
-            <form className="dm-send" onSubmit={send}>
-              <label className="sr" htmlFor="msg">
-                Message
-              </label>
-              <input
-                id="msg"
-                maxLength={500}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Write a message"
-              />
-              <Button type="submit" variant="dark" disabled={!text.trim()}>
-                Send
-              </Button>
-            </form>
+            {isBlocked ? (
+              <Banner variant="info" className="pad">
+                You have blocked @{active.username}. Unblock to send messages.
+              </Banner>
+            ) : isBlockedBy ? (
+              <Banner variant="info" className="pad">
+                Cannot send messages to @{active.username}.
+              </Banner>
+            ) : (
+              <form className="dm-send" onSubmit={send}>
+                <label className="sr" htmlFor="msg">
+                  Message
+                </label>
+                <input
+                  id="msg"
+                  maxLength={500}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Write a message"
+                />
+                <Button type="submit" variant="dark" disabled={!text.trim()}>
+                  Send
+                </Button>
+              </form>
+            )}
             {err && (
               <Banner variant="error" className="pad">
                 {err}
