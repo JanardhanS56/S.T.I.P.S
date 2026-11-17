@@ -64,4 +64,16 @@ describe('Health API Integration Tests (D1-15)', () => {
       error: 'Database unavailable.'
     });
   });
+
+  it('PERF-03: handles total database outage gracefully with 503 and preserves security headers', async () => {
+    mockDbHandler.error = new Error('ETIMEDOUT: Connection to database terminated');
+    mockDbHandler.shouldThrow = false;
+
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(503);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.db).toBe(false);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-security-policy']).toBeDefined();
+  });
 });
