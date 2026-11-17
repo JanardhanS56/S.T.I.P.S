@@ -300,6 +300,7 @@ export function createMockDb(initialData = {}) {
   ];
 
   const post_replies = [...(initialData.post_replies || initialData.replies || [])];
+  const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
 
   const tables = {
     communities,
@@ -307,6 +308,8 @@ export function createMockDb(initialData = {}) {
     posts,
     post_replies,
     replies: post_replies,
+    post_reactions,
+    reactions: post_reactions,
     polls,
     poll_options,
     poll_votes,
@@ -321,6 +324,7 @@ export function createMockDb(initialData = {}) {
       const filters = [];
       let updates = null;
       let insertedRecord = null;
+      let isDelete = false;
       let isCountHead = false;
       let orderByCol = null;
       let orderAscending = true;
@@ -333,6 +337,20 @@ export function createMockDb(initialData = {}) {
             Object.assign(item, updates);
           }
         }
+      };
+
+      const executeDelete = () => {
+        if (!isDelete) return;
+        for (let i = collection.length - 1; i >= 0; i--) {
+          if (filters.every((fn) => fn(collection[i]))) {
+            collection.splice(i, 1);
+          }
+        }
+      };
+
+      const executeMutations = () => {
+        executeUpdates();
+        executeDelete();
       };
 
       const resolveItem = (item) => {
@@ -493,6 +511,16 @@ export function createMockDb(initialData = {}) {
                 };
               }
             }
+            if (tableName === 'post_reactions' || tableName === 'reactions') {
+              const existingIdx = post_reactions.findIndex(
+                (r) => r.post_id === item.post_id && r.user_id === item.user_id
+              );
+              if (existingIdx !== -1) {
+                post_reactions[existingIdx] = { ...post_reactions[existingIdx], ...item };
+                insertedRecord = post_reactions[existingIdx];
+                continue;
+              }
+            }
             const record = {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
@@ -518,13 +546,17 @@ export function createMockDb(initialData = {}) {
           updates = fields;
           return queryBuilder;
         },
+        delete() {
+          isDelete = true;
+          return queryBuilder;
+        },
         async maybeSingle() {
-          executeUpdates();
+          executeMutations();
           const list = getFilteredData();
           return { data: list.length ? list[0] : null, error: null };
         },
         async single() {
-          executeUpdates();
+          executeMutations();
           if (insertedRecord) {
             return { data: resolveItem(insertedRecord), error: null };
           }
@@ -534,7 +566,7 @@ export function createMockDb(initialData = {}) {
             : { data: null, error: new Error('Record not found') };
         },
         then(onFulfilled, onRejected) {
-          executeUpdates();
+          executeMutations();
           if (isCountHead) {
             const count = collection.filter((item) => filters.every((fn) => fn(item))).length;
             return Promise.resolve({ count, data: null, error: null }).then(
