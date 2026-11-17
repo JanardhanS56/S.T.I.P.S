@@ -28,6 +28,7 @@ for (const p of patterns) {
     // ignore example or placeholder strings
     if (
       m.includes('YOUR-PROJECT') ||
+      m.includes('your-supabase-service-role-key') ||
       m.includes('placeholder') ||
       m.includes('undefined') ||
       m.includes('test-service-role-key')
