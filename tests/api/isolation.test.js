@@ -42,6 +42,8 @@ describe('Authorization and Community Isolation (ISO-01..ISO-09)', () => {
     const adminRoutes = [
       { method: 'get', path: '/api/admin/community', body: undefined },
       { method: 'get', path: '/api/admin/reports', body: undefined },
+      { method: 'get', path: '/api/admin/members', body: undefined },
+      { method: 'get', path: '/api/admin/audit', body: undefined },
       {
         method: 'post',
         path: '/api/admin/members',
