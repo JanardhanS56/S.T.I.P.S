@@ -44,6 +44,20 @@ Benchmark executed on live PostgreSQL engine via `EXPLAIN (ANALYZE, BUFFERS)` in
 
 All primary tenant-isolated query paths execute well under the 50ms target for sub-second page loads.
 
+## Load Smoke Test Benchmark (PERF-02, PERF-03)
+
+Load smoke tests executed using `autocannon` (`npm run test:load`) over HTTP keep-alive connections:
+
+- **Target Route:** `/api/health`
+- **Concurrency:** 10 connections
+- **Duration:** 5 seconds
+- **Throughput:** ~222 requests/second
+- **Average Latency:** 44.7 ms
+- **p50 Latency:** 6.0 ms
+- **Errors / Timeouts:** 0 / 0
+- **Rate Limit Resilience:** Rate limiting correctly triggers HTTP 429 when single-IP thresholds (300 requests / 15 min) are exceeded.
+- **Outage Handling (PERF-03):** Total database disconnection returns graceful HTTP 503 (`{ ok: false, db: false }`) with complete security headers preserved without terminating the application process.
+
 ## Incident response
 
 | Sev                                                                                                                                                                                                                                         | Meaning                                       | First response                                                                                             |
