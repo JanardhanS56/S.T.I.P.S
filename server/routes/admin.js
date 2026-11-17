@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db.js';
-import { h, parse, uuid, HttpError } from '../http.js';
+import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireAdmin } from '../session.js';
 import { slug } from '../lib/slug.js';
 
@@ -159,6 +159,45 @@ r.post(
       })
       .eq('id', id);
     res.json({ password });
+  })
+);
+
+// Pin or unpin a post
+r.post(
+  '/posts/:id/pin',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { pinned } = parse(
+      z.object({
+        pinned: z.boolean().default(true)
+      }),
+      req.body || {}
+    );
+    const post = await loadInCommunity('posts', id, req, 'id,community_id,status,pinned_at');
+    if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
+
+    const pinned_at = pinned ? new Date().toISOString() : null;
+    await db.from('posts').update({ pinned_at }).eq('id', id);
+    res.json({ id, pinned: Boolean(pinned_at), pinned_at });
+  })
+);
+
+// Mark or unmark official post
+r.post(
+  '/posts/:id/official',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { official } = parse(
+      z.object({
+        official: z.boolean().default(true)
+      }),
+      req.body || {}
+    );
+    const post = await loadInCommunity('posts', id, req, 'id,community_id,status,is_official');
+    if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
+
+    await db.from('posts').update({ is_official: official }).eq('id', id);
+    res.json({ id, is_official: official });
   })
 );
 

@@ -573,6 +573,61 @@ fieldset input {
   line-height: 1.55;
   margin: 0 0 14px;
 }
+.reaction-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reaction-btn:hover {
+  background: var(--wash);
+}
+.reaction-btn[aria-pressed='true'],
+.reaction-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.reaction-btn:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 2px;
+}
+.reaction-count {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.card-pinned {
+  border-left: 3px solid var(--ink);
+}
 .role {
   font-family: var(--mono);
   font-size: 11px;

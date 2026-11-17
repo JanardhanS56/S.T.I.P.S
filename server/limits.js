@@ -99,7 +99,7 @@ export async function enforceReportCap(req, res) {
 
 export async function enforceReplyCap(req, res) {
   return enforceUserCap(res, {
-    table: 'replies',
+    table: 'post_replies',
     userId: req.user.id,
     userColumn: 'author_id',
     limit: config.limits.repliesPerHour,
@@ -110,7 +110,7 @@ export async function enforceReplyCap(req, res) {
 
 export async function enforceReactionCap(req, res) {
   return enforceUserCap(res, {
-    table: 'reactions',
+    table: 'post_reactions',
     userId: req.user.id,
     userColumn: 'user_id',
     limit: config.limits.reactionsPerHour,

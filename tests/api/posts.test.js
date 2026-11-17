@@ -404,4 +404,380 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(resLow.status).toBe(400);
     });
   });
+
+  describe('POST-10: Post Replies', () => {
+    it('POST-10: reply to a post in same community works; appears on GET /api/posts/:id', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Create a post in community A
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', teacherCookie)
+        .send({ body: 'Discussion topic for class', category: 'Notice' });
+      expect(postRes.status).toBe(201);
+      const postId = postRes.body.id;
+
+      // Student replies to the post
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', studentCookie)
+        .send({ body: 'Here is my thoughtful reply to the discussion.' });
+
+      expect(replyRes.status).toBe(201);
+      expect(replyRes.body.id).toBeDefined();
+
+      // Thread view GET /api/posts/:id returns post and replies
+      const threadRes = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+
+      expect(threadRes.status).toBe(200);
+      expect(threadRes.body.post.id).toBe(postId);
+      expect(threadRes.body.post.body).toBe('Discussion topic for class');
+      expect(threadRes.body.post.author.username).toBe('teacher_a1');
+
+      expect(threadRes.body.replies).toHaveLength(1);
+      const reply = threadRes.body.replies[0];
+      expect(reply.id).toBe(replyRes.body.id);
+      expect(reply.body).toBe('Here is my thoughtful reply to the discussion.');
+      expect(reply.author.username).toBe('student_a1');
+      expect(reply.author.role).toBe('student');
+    });
+
+    it("POST-10: reply to another community's post returns 404", async () => {
+      const studentA = await loginAs('student_a1');
+      const studentB = await loginAs('student_b1');
+
+      // Create a post in Community B
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentB)
+        .send({ body: 'Beta exclusive post', category: 'Notice' });
+      expect(postRes.status).toBe(201);
+      const postBId = postRes.body.id;
+
+      // Student A (Community A) attempts to reply to post in Community B
+      const replyRes = await request(app)
+        .post(`/api/posts/${postBId}/replies`)
+        .set('Cookie', studentA)
+        .send({ body: 'Attempting cross-community reply' });
+      expect(replyRes.status).toBe(404);
+
+      // Student A attempts to read thread of Community B post
+      const readRes = await request(app).get(`/api/posts/${postBId}`).set('Cookie', studentA);
+      expect(readRes.status).toBe(404);
+    });
+
+    it('POST-10: reply depth is strictly limited to 1 level (cannot reply to a reply)', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Create a top-level post
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Top level post for depth testing', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Create depth 1 reply
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'First level reply' });
+      expect(replyRes.status).toBe(201);
+      const replyId = replyRes.body.id;
+
+      // Attempting to reply to a reply ID (depth 2) fails with 404 because reply is not in posts table
+      const nestedRes = await request(app)
+        .post(`/api/posts/${replyId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'Attempted nested reply (depth 2)' });
+      expect(nestedRes.status).toBe(404);
+    });
+
+    it('POST-10: rejects replies violating content moderation with 422', async () => {
+      const cookie = await loginAs('student_a1');
+
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Post to test reply moderation', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Send reply with contact info
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'Call me at 9876543210 for answers' });
+
+      expect(replyRes.status).toBe(422);
+    });
+
+    it('POST-10: rejects empty, whitespace, and over 280-char replies with 400', async () => {
+      const cookie = await loginAs('student_a1');
+
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Post to test length validation', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Empty
+      const emptyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: '' });
+      expect(emptyRes.status).toBe(400);
+
+      // Whitespace
+      const whiteRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: '    ' });
+      expect(whiteRes.status).toBe(400);
+
+      // 281 characters
+      const longRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'a'.repeat(281) });
+      expect(longRes.status).toBe(400);
+    });
+  });
+
+  describe('POST-12: Post Reactions', () => {
+    it('POST-12: toggling adds reaction, repeats remove it, changing kind updates it', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Create a post
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for reactions test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // 1. student_a1 reacts 'like' -> 200 { reacted: true, kind: 'like' }
+      const rx1 = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(rx1.status).toBe(200);
+      expect(rx1.body).toEqual({ reacted: true, kind: 'like' });
+
+      // GET /api/posts/:id shows like count 1, myReaction 'like'
+      const getPost1 = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+      expect(getPost1.status).toBe(200);
+      expect(getPost1.body.post.reactions.like).toBe(1);
+      expect(getPost1.body.post.reactions.thanks).toBe(0);
+      expect(getPost1.body.post.myReaction).toBe('like');
+
+      // 2. student_a1 toggles same kind 'like' -> removed { reacted: false, kind: null }
+      const rxToggle = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(rxToggle.status).toBe(200);
+      expect(rxToggle.body).toEqual({ reacted: false, kind: null });
+
+      const getPostToggle = await request(app)
+        .get(`/api/posts/${postId}`)
+        .set('Cookie', studentCookie);
+      expect(getPostToggle.body.post.reactions.like).toBe(0);
+      expect(getPostToggle.body.post.myReaction).toBeNull();
+
+      // 3. student_a1 reacts 'thanks'
+      const rxThanks = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'thanks' });
+      expect(rxThanks.status).toBe(200);
+      expect(rxThanks.body).toEqual({ reacted: true, kind: 'thanks' });
+
+      // 4. student_a1 switches reaction to 'laugh' -> updates to 'laugh'
+      const rxLaugh = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'laugh' });
+      expect(rxLaugh.status).toBe(200);
+      expect(rxLaugh.body).toEqual({ reacted: true, kind: 'laugh' });
+
+      // 5. teacher_a1 reacts 'like'
+      const rxTeacher = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', teacherCookie)
+        .send({ kind: 'like' });
+      expect(rxTeacher.status).toBe(200);
+      expect(rxTeacher.body).toEqual({ reacted: true, kind: 'like' });
+
+      // Verify feed aggregation
+      const feedRes = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      expect(feedRes.status).toBe(200);
+      const postInFeed = feedRes.body.posts.find((p) => p.id === postId);
+      expect(postInFeed).toBeDefined();
+      expect(postInFeed.reactions).toEqual({ like: 1, thanks: 0, laugh: 1 });
+      expect(postInFeed.myReaction).toBe('laugh');
+    });
+
+    it('POST-12: rejects invalid reaction kind with 400', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for invalid kind test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      const badRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'angry' });
+      expect(badRes.status).toBe(400);
+    });
+
+    it("POST-12: rejects reaction to another community's post with 404", async () => {
+      const studentA = await loginAs('student_a1');
+      const studentB = await loginAs('student_b1');
+
+      // Post in community B
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentB)
+        .send({ body: 'Community B post', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Student from community A attempts to react
+      const crossRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentA)
+        .send({ kind: 'like' });
+      expect(crossRes.status).toBe(404);
+    });
+
+    it('POST-12: muted user cannot react (403)', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for muted test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Mute student_a1
+      const studentUser = mockDb.users.find((u) => u.username === 'student_a1');
+      studentUser.status = 'muted';
+
+      const reactRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(reactRes.status).toBe(403);
+      expect(reactRes.body.error).toContain('muted');
+    });
+  });
+
+  describe('POST-11: Official and Pinned Posts', () => {
+    it('POST-11: admin can create official post, while student/teacher get 403', async () => {
+      const adminCookie = await loginAs('admin_a');
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Student attempt
+      const studentRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Student trying official', category: 'Notice', is_official: true });
+      expect(studentRes.status).toBe(403);
+
+      // Teacher attempt
+      const teacherRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', teacherCookie)
+        .send({ body: 'Teacher trying official', category: 'Notice', is_official: true });
+      expect(teacherRes.status).toBe(403);
+
+      // Admin succeeds
+      const adminRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', adminCookie)
+        .send({ body: 'Official campus announcement', category: 'Notice', is_official: true });
+      expect(adminRes.status).toBe(201);
+      const postId = adminRes.body.id;
+
+      // GET /api/posts/:id verifies is_official is true
+      const getPost = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+      expect(getPost.status).toBe(200);
+      expect(getPost.body.post.is_official).toBe(true);
+    });
+
+    it('POST-11: only admin can pin/unpin and mark official on existing posts; pinned shown first', async () => {
+      const adminCookie = await loginAs('admin_a');
+      const studentCookie = await loginAs('student_a1');
+
+      // Create an older post
+      const p1 = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Older post to be pinned', category: 'Notice' });
+      const p1Id = p1.body.id;
+
+      // Backdate p1 created_at in mockDb so p2 is newer
+      const dbPost1 = mockDb.posts.find((p) => p.id === p1Id);
+      dbPost1.created_at = new Date(Date.now() - 60000).toISOString();
+
+      // Create a newer regular post
+      const p2 = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Newer regular post', category: 'Notice' });
+      const p2Id = p2.body.id;
+
+      // Student cannot pin (403)
+      const studentPin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', studentCookie)
+        .send({ pinned: true });
+      expect(studentPin.status).toBe(403);
+
+      // Student cannot mark official (403)
+      const studentOff = await request(app)
+        .post(`/api/posts/${p1Id}/official`)
+        .set('Cookie', studentCookie)
+        .send({ official: true });
+      expect(studentOff.status).toBe(403);
+
+      // Admin pins older post
+      const adminPin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', adminCookie)
+        .send({ pinned: true });
+      expect(adminPin.status).toBe(200);
+      expect(adminPin.body.pinned).toBe(true);
+      expect(adminPin.body.pinned_at).toBeTruthy();
+
+      // Admin marks it official
+      const adminOff = await request(app)
+        .post(`/api/posts/${p1Id}/official`)
+        .set('Cookie', adminCookie)
+        .send({ official: true });
+      expect(adminOff.status).toBe(200);
+      expect(adminOff.body.is_official).toBe(true);
+
+      // Feed check: pinned post (p1) appears FIRST, ahead of newer post (p2)
+      const feedRes = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      expect(feedRes.status).toBe(200);
+      const postIndices = feedRes.body.posts.map((p) => p.id);
+      expect(postIndices.indexOf(p1Id)).toBeLessThan(postIndices.indexOf(p2Id));
+
+      // Admin unpins
+      const adminUnpin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', adminCookie)
+        .send({ pinned: false });
+      expect(adminUnpin.status).toBe(200);
+      expect(adminUnpin.body.pinned).toBe(false);
+      expect(adminUnpin.body.pinned_at).toBeNull();
+
+      // Feed check after unpin: newer post (p2) is now ahead of older post (p1)
+      const feedRes2 = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      const postIndices2 = feedRes2.body.posts.map((p) => p.id);
+      expect(postIndices2.indexOf(p2Id)).toBeLessThan(postIndices2.indexOf(p1Id));
+    });
+  });
 });
