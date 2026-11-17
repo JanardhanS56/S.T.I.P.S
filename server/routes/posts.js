@@ -5,11 +5,12 @@ import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
-import { enforcePostCap, enforceReplyCap } from '../limits.js';
+import { enforcePostCap, enforceReplyCap, enforceReactionCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
+const REACTION_KINDS = ['like', 'thanks', 'laugh'];
 
 r.get(
   '/',
@@ -36,8 +37,38 @@ r.get(
     if (before) q = q.lt('created_at', before);
     const { data, error } = await q;
     if (error) throw error;
-    const nextCursor = data && data.length === limit ? data[data.length - 1].created_at : null;
-    res.json({ posts: data, nextCursor });
+
+    const postIds = (data || []).map((p) => p.id);
+    const reactionsMap = {};
+    const myReactionsMap = {};
+    if (postIds.length > 0) {
+      const { data: rxData } = await db
+        .from('post_reactions')
+        .select('post_id,user_id,kind')
+        .in('post_id', postIds);
+      if (rxData) {
+        for (const rx of rxData) {
+          if (!reactionsMap[rx.post_id]) {
+            reactionsMap[rx.post_id] = { like: 0, thanks: 0, laugh: 0 };
+          }
+          if (reactionsMap[rx.post_id][rx.kind] !== undefined) {
+            reactionsMap[rx.post_id][rx.kind]++;
+          }
+          if (rx.user_id === req.user.id) {
+            myReactionsMap[rx.post_id] = rx.kind;
+          }
+        }
+      }
+    }
+
+    const posts = (data || []).map((p) => ({
+      ...p,
+      reactions: reactionsMap[p.id] || { like: 0, thanks: 0, laugh: 0 },
+      myReaction: myReactionsMap[p.id] || null
+    }));
+
+    const nextCursor = posts.length === limit ? posts[posts.length - 1].created_at : null;
+    res.json({ posts, nextCursor });
   })
 );
 
@@ -141,16 +172,80 @@ r.get(
       .order('created_at', { ascending: true });
     if (error) throw error;
 
+    const { data: rxData } = await db
+      .from('post_reactions')
+      .select('user_id,kind')
+      .eq('post_id', id);
+
+    const reactions = { like: 0, thanks: 0, laugh: 0 };
+    let myReaction = null;
+    if (rxData) {
+      for (const rx of rxData) {
+        if (reactions[rx.kind] !== undefined) reactions[rx.kind]++;
+        if (rx.user_id === req.user.id) myReaction = rx.kind;
+      }
+    }
+
     res.json({
       post: {
         id: p.id,
         category: p.category,
         body: p.body,
         created_at: p.created_at,
-        author: author || null
+        author: author || null,
+        reactions,
+        myReaction
       },
       replies: replies || []
     });
+  })
+);
+
+r.post(
+  '/:id/reactions',
+  requireNotMuted,
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const post = await loadInCommunity('posts', id, req, 'id,community_id,status');
+    if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
+
+    const { kind } = parse(
+      z.object({
+        kind: z.enum(REACTION_KINDS)
+      }),
+      req.body
+    );
+
+    const { data: existing } = await db
+      .from('post_reactions')
+      .select('kind')
+      .eq('post_id', id)
+      .eq('user_id', req.user.id)
+      .maybeSingle();
+
+    if (existing && existing.kind === kind) {
+      // Toggle off: remove existing reaction
+      await db.from('post_reactions').delete().eq('post_id', id).eq('user_id', req.user.id);
+      return res.json({ reacted: false, kind: null });
+    }
+
+    await enforceReactionCap(req, res);
+
+    if (existing) {
+      // Switch reaction kind
+      await db.from('post_reactions').update({ kind }).eq('post_id', id).eq('user_id', req.user.id);
+      return res.json({ reacted: true, kind });
+    }
+
+    const { error } = await db.from('post_reactions').insert({
+      post_id: id,
+      user_id: req.user.id,
+      community_id: req.user.community_id,
+      kind
+    });
+    if (error) throw error;
+
+    res.status(200).json({ reacted: true, kind });
   })
 );
 
