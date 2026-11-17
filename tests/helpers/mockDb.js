@@ -188,7 +188,11 @@ export function createMockDb(initialData = {}) {
       token_version: 0
     },
     ...(initialData.users || [])
-  ];
+  ].map((u) => ({
+    accepted_terms_at: '2026-11-16T00:00:00Z',
+    terms_version: 1,
+    ...u
+  }));
 
   const posts = [
     {

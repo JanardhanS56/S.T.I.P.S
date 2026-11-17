@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { createMockDb } from '../helpers/mockDb.js';
 import { config } from '../../server/config.js';
 
@@ -420,6 +421,73 @@ describe('Auth API Integration Tests (AUTH-01..AUTH-06, AUTH-10..AUTH-12)', () =
       const afterRes = await request(app).get('/api/auth/me').set('Cookie', studentCookie);
       expect(afterRes.status).toBe(401);
       expect(afterRes.body.error).toBe('Session revoked. Please sign in again.');
+    });
+  });
+
+  describe('AUTH-13: Terms of use and privacy policy consent gate', () => {
+    it('returns termsVersion and acceptedTermsAt in /api/auth/me', async () => {
+      const login = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+      const cookie = extractCookie(login);
+
+      const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
+      expect(me.status).toBe(200);
+      expect(me.body.user.termsVersion).toBe(1);
+      expect(me.body.user.acceptedTermsAt).toBeDefined();
+    });
+
+    it('blocks app content routes with 403 when terms_version < 1 and succeeds once accepted', async () => {
+      const unconsentedId = '00000000-0000-0000-0001-000000000099';
+      mockDb = createMockDb({
+        users: [
+          {
+            id: unconsentedId,
+            community_id: '00000000-0000-0000-0000-000000000001',
+            username: 'new_student',
+            display_name: 'New Student',
+            role: 'student',
+            password_hash: await bcrypt.hash('TestPassword123!', 10),
+            must_change_password: false,
+            bio: '',
+            department: 'Science',
+            status: 'active',
+            failed_attempts: 0,
+            locked_until: null,
+            token_version: 0,
+            accepted_terms_at: null,
+            terms_version: 0
+          }
+        ]
+      });
+
+      const login = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'new_student', password: 'TestPassword123!' });
+      expect(login.status).toBe(200);
+      const cookie = extractCookie(login);
+
+      // Attempting to access posts feed without accepted terms returns 403
+      const feedRes = await request(app).get('/api/posts').set('Cookie', cookie);
+      expect(feedRes.status).toBe(403);
+      expect(feedRes.body.error).toContain('terms and privacy policy');
+
+      // Post consent
+      const consentRes = await request(app)
+        .post('/api/auth/consent')
+        .set('Cookie', cookie)
+        .set('Content-Type', 'application/json')
+        .send({});
+      expect(consentRes.status).toBe(200);
+      expect(consentRes.body.ok).toBe(true);
+      expect(consentRes.body.user.termsVersion).toBe(1);
+      expect(consentRes.body.user.acceptedTermsAt).toBeDefined();
+
+      // Now feed request succeeds
+      const feedAfter = await request(app).get('/api/posts').set('Cookie', cookie);
+      expect(feedAfter.status).toBe(200);
     });
   });
 });
