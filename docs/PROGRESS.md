@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 4, Phase B Complete (Accessibility and Performance: D4-05..D4-08 merged into main)
+- Day: 4, Phase C Complete (Observability, Runbooks, and Production Readiness: D4-09..D4-12 merged into main)
 - Branch: main
-- Last green check: npm run lint, npm test, npm run build (187 unit/API tests passing across 17 suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), Autocannon smoke benchmark (222 req/s, 0 errors)
-- First task for next session / phase: Day 4, Phase C: Observability and Production Setup (Tasks D4-09..D4-12)
+- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s)
+- First task for next session / phase: Day 4, Phase D: Security Sign-off, Documentation, Launch Checklist, and v0.1.0 Release (Tasks D4-13..D4-16)
 
 ## Blocked / needs owner
 
@@ -15,16 +15,24 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Self-Hosted Fonts & Zero-Leak CSP: Woff2 font subsets for Schibsted Grotesk and IBM Plex Mono are packaged directly in `public/fonts/` with `font-display: swap`. Content Security Policy strictly enforces `font-src 'self'`, eliminating third-party calls to Google Fonts/Gstatic.
-- Code Splitting: Admin dashboard (`Admin.jsx`) is lazy-loaded with React `lazy` and `Suspense`, shaving ~15 kB off the initial bundle payload.
-- Query Review & Index Optimization: Migration `20261117000009_query_indexes.sql` introduces compound and partial indexes for high-frequency queries (pinned feed browsing, unread message scanning, thread participant lookups, and report resolution), cutting execution times to under 4ms.
-- High-Concurrency Resilience: Autocannon load smoke benchmarking confirms 220+ requests/sec with 0 errors and zero process instability, properly enforcing IP rate limits.
+- Zero-PII Error Tracking: Integrated Sentry (`@sentry/node` & `@sentry/react`) with strict client/server event scrubbing (`scrubSentryEvent`). Strips auth tokens, cookies, email addresses, usernames, display names, and request bodies before transmission. Gracefully no-ops in development when `SENTRY_DSN` is unset.
+- Multi-Tier Runbooks & Health Probe: Standardized operational health contract (`GET /api/health`) returning uptime, database connectivity, and timestamp. Documented Sev 1/2/3 incident response paths and backup restoration procedures in `docs/OPERATIONS.md`.
+- Automated Smoke Verification: Created `scripts/smoke-test.js` (`npm run test:smoke`) executing blackbox verification against running production builds (health, landing, legal endpoints, auth barriers).
+- Pre-Flight Backup Validation: Implemented `scripts/backup-drill.js` (`npm run test:backup`) confirming live schema integrity across all 13 PostgreSQL tables, 28 foreign keys, and 11 applied migrations.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 15 - Day 4 Phase C (Observability and Production Operations: D4-09..D4-12)
+
+- Task D4-09: Installed `@sentry/node` and `@sentry/react`. Implemented `server/lib/sentry.js` with comprehensive `scrubSentryEvent` sanitizer stripping authorization headers, cookie tokens, usernames, emails, display names, and request bodies. Added unit tests in `tests/unit/sentry.test.js` (3 passing). Created client Sentry wrapper `src/sentry.js` with matching PII scrub filters and wired into `src/main.jsx` and `src/components/ErrorBoundary.jsx`.
+- Task D4-10: Defined uptime monitoring runbooks and Sev 1/2/3 incident escalation procedures in `docs/OPERATIONS.md`. Detailed health probe expectations (`GET /api/health`), database connection failure scenarios, and recovery playbooks.
+- Task D4-11: Documented production infrastructure setup, environment variables, Supabase hosting, Node.js deployment, reverse proxy headers, and TLS in `docs/OPERATIONS.md`. Implemented `scripts/smoke-test.js` (`npm run test:smoke`) validating health check, static asset serving, legal routes, and unauthenticated 401 barriers.
+- Task D4-12: Created `scripts/backup-drill.js` (`npm run test:backup`). Executed pre-launch drill against live Supabase PostgreSQL instance: verified all 13 tables, 28 foreign key constraints, 11 applied migrations, and dry-run export/restore capability in 8.85s. Documented step-by-step restoration procedures in `docs/OPERATIONS.md`.
+- Full verification passed (lint, 190 Vitest unit/API tests, 48 Playwright E2E/A11Y tests, production build, smoke tests). Merged `feat/d4-ops-deploy` into `main` without squash and pushed to `origin`.
 
 ### Session 14 - Day 4 Phase B (Accessibility and Performance: D4-05..D4-08)
 
