@@ -11,7 +11,7 @@ import { loginRateLimiter } from '../rateLimit.js';
 
 const r = Router();
 const FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version';
+  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version,accepted_terms_at,terms_version';
 
 r.post(
   '/login',
@@ -165,6 +165,26 @@ r.patch(
       .select()
       .single();
     res.json({ user: publicUser(data) });
+  })
+);
+
+r.post(
+  '/consent',
+  requireAuth,
+  h(async (req, res) => {
+    const CURRENT_TERMS_VERSION = 1;
+    const now = new Date().toISOString();
+    const { data: updated, error } = await db
+      .from('users')
+      .update({
+        accepted_terms_at: now,
+        terms_version: CURRENT_TERMS_VERSION
+      })
+      .eq('id', req.user.id)
+      .select(FIELDS)
+      .single();
+    if (error || !updated) throw new HttpError(500, 'Could not save terms consent.');
+    res.json({ ok: true, user: publicUser(updated) });
   })
 );
 

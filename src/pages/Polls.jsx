@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 import {
   Badge,
+  Button,
   Card,
   Banner,
   EmptyState,
@@ -10,7 +12,22 @@ import {
   RateLimitNotice
 } from '../components/ui/index.js';
 
+function formatRemaining(closesAt, isClosed) {
+  if (isClosed) return 'Closed';
+  const diffMs = new Date(closesAt).getTime() - Date.now();
+  if (diffMs <= 0) return 'Closed';
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays > 1) return `Closes in ${diffDays} days`;
+  if (diffDays === 1) return 'Closes in 1 day';
+  if (diffHours > 1) return `Closes in ${diffHours} hours`;
+  if (diffHours === 1) return 'Closes in 1 hour';
+  const diffMins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+  return `Closes in ${diffMins} min`;
+}
+
 export default function Polls() {
+  const { user } = useAuth();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -52,20 +69,47 @@ export default function Polls() {
     }
   }
 
+  async function closePoll(pollId) {
+    const confirmed = window.confirm(
+      'Are you sure you want to close this poll early? No more votes will be accepted.'
+    );
+    if (!confirmed) return;
+    setErr('');
+    setRateLimitErr(null);
+    try {
+      await api.post(`/polls/${pollId}/close`, {});
+      await load();
+    } catch (e) {
+      if (e.status === 429) {
+        setRateLimitErr(e);
+      } else {
+        setErr(e.message);
+      }
+    }
+  }
+
   const open = polls.filter((p) => !p.closed);
   const closed = polls.filter((p) => p.closed);
 
   const Poll = ({ p }) => {
     const showBars = p.total !== null;
+    const canClose = !p.closed && (user?.role === 'admin' || user?.username === p.author?.username);
+
     return (
       <Card as="article" variant={p.closed ? 'default' : 'strong'}>
-        <div className="row meta">
-          <b>{p.author.username}</b>
-          <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
-          <span className="muted small">
-            {p.closed ? 'Closed' : `Closes ${new Date(p.closes_at).toLocaleDateString()}`} · One
-            vote per person
-          </span>
+        <div className="row meta between" style={{ alignItems: 'center' }}>
+          <div className="row" style={{ alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <b>{p.author.username}</b>
+            <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
+            <span className="muted small">
+              {formatRemaining(p.closes_at, p.closed)} · One vote per person
+            </span>
+          </div>
+          {canClose && (
+            <Button variant="outline" className="small" onClick={() => closePoll(p.id)}>
+              Close poll
+            </Button>
+          )}
         </div>
         <h3 className="q">{p.question}</h3>
         <div className="stack tight">
@@ -78,10 +122,37 @@ export default function Polls() {
                 className={`opt ${mine ? 'mine' : ''}`}
                 disabled={p.closed || !!p.myVote}
                 onClick={() => vote(p.id, o.id)}
+                role={showBars ? 'progressbar' : undefined}
+                aria-valuenow={showBars ? pct : undefined}
+                aria-valuemin={showBars ? 0 : undefined}
+                aria-valuemax={showBars ? 100 : undefined}
+                aria-label={
+                  showBars
+                    ? `${o.label}: ${pct}%, ${o.count} vote${o.count === 1 ? '' : 's'}${mine ? ' (your vote)' : ''}`
+                    : o.label
+                }
               >
                 <span className="bar" style={{ width: `${pct}%` }} />
-                <span className="opt-l">{o.label}</span>
-                {showBars && <span className="mono small">{pct}%</span>}
+                <span className="opt-l">
+                  {o.label}
+                  {mine && (
+                    <span
+                      className="mono small"
+                      style={{
+                        marginLeft: '8px',
+                        fontWeight: 700,
+                        color: 'var(--green)'
+                      }}
+                    >
+                      ✓ Your vote
+                    </span>
+                  )}
+                </span>
+                {showBars && (
+                  <span className="mono small">
+                    {pct}% ({o.count})
+                  </span>
+                )}
               </button>
             );
           })}

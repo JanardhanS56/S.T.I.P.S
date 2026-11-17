@@ -33,8 +33,10 @@ describe('Security Headers and Payload API Tests (SEC-01, SEC-02, SEC-09)', () =
       const csp = res.headers['content-security-policy'];
       expect(csp).toBeDefined();
       expect(csp).toContain("default-src 'self'");
-      expect(csp).toContain('https://fonts.googleapis.com');
-      expect(csp).toContain('https://fonts.gstatic.com');
+      expect(csp).toContain("font-src 'self'");
+      expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+      expect(csp).not.toContain('https://fonts.googleapis.com');
+      expect(csp).not.toContain('https://fonts.gstatic.com');
       expect(csp).toContain("script-src 'self'");
       expect(csp).toContain("frame-ancestors 'none'");
       expect(csp).toContain("base-uri 'self'");

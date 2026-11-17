@@ -1,19 +1,22 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
+import ConsentModal from './components/ConsentModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
-import { OfflineBanner } from './components/ui/index.js';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
 import Feed from './pages/Feed.jsx';
+import Thread from './pages/Thread.jsx';
 import Polls from './pages/Polls.jsx';
 import Messages from './pages/Messages.jsx';
 import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
 import NotFound from './pages/NotFound.jsx';
-import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
+import { Privacy, Terms, Cookies, Guidelines, Accessibility, Contact } from './pages/Legal.jsx';
+
+const Admin = lazy(() => import('./pages/Admin.jsx'));
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -26,13 +29,17 @@ function RouteFocusAndTitle() {
       '/': 'The Closed Campus Network',
       '/signin': 'Sign In',
       '/privacy': 'Privacy Policy',
+      '/terms': 'Terms of Use',
       '/guidelines': 'Community Guidelines',
       '/cookies': 'Cookie Notice',
+      '/accessibility': 'Accessibility Statement',
+      '/contact': 'Contact & Grievance',
       '/app/feed': 'Community Feed',
       '/app/polls': 'Polls & Votes',
       '/app/messages': 'Messages',
       '/app/profile': 'Profile',
-      '/app/create': 'Create'
+      '/app/create': 'Create',
+      '/app/admin': 'Admin Dashboard'
     };
 
     const path = location.pathname;
@@ -82,26 +89,50 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <OfflineBanner />
       <AuthCtx.Provider value={{ ...state, refresh, logout }}>
         <RouteFocusAndTitle />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/signin" element={<Auth />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/guidelines" element={<Guidelines />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
             <Route index element={<Navigate to="feed" replace />} />
             <Route path="feed" element={<Feed />} />
+            <Route path="feed/:id" element={<Thread />} />
             <Route path="polls" element={<Polls />} />
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="create" element={<Create />} />
+            <Route
+              path="admin"
+              element={
+                ready && state.user.role === 'admin' ? (
+                  <Suspense
+                    fallback={
+                      <div className="page loading-state">
+                        <p className="muted">Loading administrative console...</p>
+                      </div>
+                    }
+                  >
+                    <Admin />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/app/feed" replace />
+                )
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
+          <ConsentModal onAccepted={refresh} />
+        )}
         <CookieNotice />
       </AuthCtx.Provider>
     </ErrorBoundary>

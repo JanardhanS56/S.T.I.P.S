@@ -47,10 +47,10 @@
 
 ## Day 4 exit checklist
 
-- [ ] Legal pages live; consent screen, export, deletion work
-- [ ] axe clean; performance recorded; fonts self-hosted
-- [ ] Error tracking + monitoring active; restore drill done
-- [ ] Production deployed; first admin created; smoke test passes
-- [ ] Security checklist complete; no secrets in history
-- [ ] `v0.1.0` tagged; LAUNCH_CHECKLIST reviewed; open items documented
-- [ ] 4 PRs merged without squash; 30+ meaningful commits
+- [x] Legal pages live; consent screen, export, deletion work
+- [x] axe clean; performance recorded; fonts self-hosted
+- [x] Error tracking + monitoring active; restore drill done
+- [x] Production deployed; first admin created; smoke test passes
+- [x] Security checklist complete; no secrets in history
+- [x] `v0.1.0` tagged; LAUNCH_CHECKLIST reviewed; open items documented
+- [x] 4 PRs merged without squash; 30+ meaningful commits

@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 import {
   Button,
   Chip,
@@ -8,7 +10,8 @@ import {
   Banner,
   EmptyState,
   Skeleton,
-  RateLimitNotice
+  RateLimitNotice,
+  ReactionGroup
 } from '../components/ui/index.js';
 
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
@@ -25,11 +28,15 @@ const ago = (iso) => {
 };
 
 export default function Feed() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [text, setText] = useState('');
   const [cat, setCat] = useState('Notice');
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
 
@@ -40,6 +47,7 @@ export default function Feed() {
       const q = filter === 'All' ? '' : `?category=${filter}`;
       const res = await api.get(`/posts${q}`);
       setPosts(res.posts);
+      setNextCursor(res.nextCursor);
     } catch (e) {
       if (e.status === 429) {
         setRateLimitErr(e);
@@ -51,6 +59,26 @@ export default function Feed() {
     }
   }, [filter]);
 
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const q =
+        filter === 'All' ? `?before=${nextCursor}` : `?category=${filter}&before=${nextCursor}`;
+      const res = await api.get(`/posts${q}`);
+      setPosts((prev) => [...prev, ...res.posts]);
+      setNextCursor(res.nextCursor);
+    } catch (e) {
+      if (e.status === 429) {
+        setRateLimitErr(e);
+      } else {
+        alert(e.message);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   useEffect(() => {
     load();
   }, [load]);
@@ -60,8 +88,13 @@ export default function Feed() {
     setErr('');
     setRateLimitErr(null);
     try {
-      await api.post('/posts', { body: text, category: cat });
+      await api.post('/posts', {
+        body: text,
+        category: cat,
+        ...(user?.role === 'admin' && isOfficial ? { is_official: true } : {})
+      });
       setText('');
+      setIsOfficial(false);
       await load();
     } catch (e2) {
       if (e2.status === 429) {
@@ -69,6 +102,24 @@ export default function Feed() {
       } else {
         setErr(e2.message);
       }
+    }
+  }
+
+  async function togglePin(postId, pin) {
+    try {
+      await api.post(`/posts/${postId}/pin`, { pinned: pin });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
+    }
+  }
+
+  async function toggleOfficial(postId, official) {
+    try {
+      await api.post(`/posts/${postId}/official`, { official });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
     }
   }
 
@@ -81,6 +132,37 @@ export default function Feed() {
       } catch (e2) {
         alert(e2.message);
       }
+  }
+
+  async function toggleReaction(postId, kind) {
+    try {
+      const res = await api.post(`/posts/${postId}/reactions`, { kind });
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const oldKind = p.myReaction;
+          const newKind = res.kind;
+          const reactions = { ...(p.reactions || { like: 0, thanks: 0, laugh: 0 }) };
+          if (oldKind && reactions[oldKind] !== undefined) {
+            reactions[oldKind] = Math.max(0, reactions[oldKind] - 1);
+          }
+          if (newKind && reactions[newKind] !== undefined) {
+            reactions[newKind] = (reactions[newKind] || 0) + 1;
+          }
+          return {
+            ...p,
+            reactions,
+            myReaction: newKind
+          };
+        })
+      );
+    } catch (e2) {
+      if (e2.status === 429) {
+        setRateLimitErr(e2);
+      } else {
+        alert(e2.message);
+      }
+    }
   }
 
   const left = MAX - text.length;
@@ -104,7 +186,26 @@ export default function Feed() {
               </Chip>
             ))}
           </div>
-          <div className="row">
+          <div className="row" style={{ alignItems: 'center', gap: '12px' }}>
+            {user?.role === 'admin' && (
+              <label
+                className="row"
+                style={{
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  userSelect: 'none'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isOfficial}
+                  onChange={(e) => setIsOfficial(e.target.checked)}
+                />
+                <span>Official</span>
+              </label>
+            )}
             <span className={`mono small ${left < 30 ? 'warn' : ''}`}>{left} left</span>
             <Button type="submit" variant="dark" disabled={!text.trim()}>
               Post
@@ -145,8 +246,10 @@ export default function Feed() {
           </div>
         ) : posts.length > 0 ? (
           posts.map((p) => (
-            <Card as="article" key={p.id}>
-              <div className="row meta">
+            <Card as="article" key={p.id} className={p.pinned_at ? 'card-pinned' : ''}>
+              <div className="row meta" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                {p.pinned_at && <span className="pinned-badge">📌 PINNED</span>}
+                {p.is_official && <Badge variant="official">OFFICIAL</Badge>}
                 <b>{p.author.username}</b>
                 <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
                 <span className="muted small">{ago(p.created_at)}</span>
@@ -155,9 +258,50 @@ export default function Feed() {
                 </Badge>
               </div>
               <p className="post-body">{p.body}</p>
-              <Button variant="link" className="muted small" onClick={() => report(p.id)}>
-                Report
-              </Button>
+              <div
+                className="row between"
+                style={{
+                  marginTop: '12px',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                <ReactionGroup
+                  reactions={p.reactions}
+                  myReaction={p.myReaction}
+                  onReact={(kind) => toggleReaction(p.id, kind)}
+                />
+                <div
+                  className="row"
+                  style={{ gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
+                >
+                  {user?.role === 'admin' && (
+                    <>
+                      <Button
+                        variant="link"
+                        className="muted small"
+                        onClick={() => togglePin(p.id, !p.pinned_at)}
+                      >
+                        {p.pinned_at ? 'Unpin' : 'Pin'}
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="muted small"
+                        onClick={() => toggleOfficial(p.id, !p.is_official)}
+                      >
+                        {p.is_official ? 'Demote' : 'Make official'}
+                      </Button>
+                    </>
+                  )}
+                  <Link to={`/app/feed/${p.id}`} className="link-btn small">
+                    Replies
+                  </Link>
+                  <Button variant="link" className="muted small" onClick={() => report(p.id)}>
+                    Report
+                  </Button>
+                </div>
+              </div>
             </Card>
           ))
         ) : filter !== 'All' ? (
@@ -170,6 +314,18 @@ export default function Feed() {
             title="Nothing here yet"
             description="Be the first to post something for your campus."
           />
+        )}
+        {nextCursor && (
+          <div className="row center" style={{ justifyContent: 'center', marginTop: '16px' }}>
+            <Button
+              variant="outline"
+              loading={loadingMore}
+              onClick={loadMore}
+              style={{ minWidth: '160px' }}
+            >
+              Load more
+            </Button>
+          </div>
         )}
       </div>
     </div>

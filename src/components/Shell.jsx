@@ -1,12 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
+import { api } from '../api.js';
 
 export default function Shell() {
   const { user, community, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadTotal, setUnreadTotal] = useState(0);
 
   const closeMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchUnread = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      api
+        .get('/messages/unread')
+        .then((res) => {
+          if (mounted && typeof res.total === 'number') {
+            setUnreadTotal(res.total);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 8000);
+
+    const onVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchUnread();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+  }, []);
 
   return (
     <div className="shell">
@@ -44,12 +81,31 @@ export default function Shell() {
           <NavLink to="/app/polls" onClick={closeMenu}>
             Polls &amp; votes
           </NavLink>
-          <NavLink to="/app/messages" onClick={closeMenu}>
-            Messages
+          <NavLink
+            to="/app/messages"
+            onClick={closeMenu}
+            className="row between"
+            style={{ width: '100%', alignItems: 'center' }}
+          >
+            <span>Messages</span>
+            {unreadTotal > 0 && (
+              <span
+                className="unread-badge"
+                aria-live="polite"
+                aria-label={`${unreadTotal} unread messages`}
+              >
+                {unreadTotal}
+              </span>
+            )}
           </NavLink>
           <NavLink to="/app/profile" onClick={closeMenu}>
             Profile
           </NavLink>
+          {user.role === 'admin' && (
+            <NavLink to="/app/admin" onClick={closeMenu}>
+              Admin dashboard
+            </NavLink>
+          )}
         </nav>
         <Link to="/app/create" className="btn btn-green" onClick={closeMenu}>
           + Create

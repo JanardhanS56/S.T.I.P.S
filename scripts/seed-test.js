@@ -169,7 +169,12 @@ export async function runSeed() {
   ];
 
   for (const u of users) {
-    const { error } = await db.from('users').upsert(u, { onConflict: 'id' });
+    const userToSeed = {
+      ...u,
+      terms_version: 1,
+      accepted_terms_at: '2026-11-17T00:00:00Z'
+    };
+    const { error } = await db.from('users').upsert(userToSeed, { onConflict: 'id' });
     if (error) throw new Error(`Failed to seed user ${u.username}: ${error.message}`);
   }
 

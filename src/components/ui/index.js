@@ -10,3 +10,4 @@ export * from './Modal.jsx';
 export * from './Toast.jsx';
 export * from './RateLimitNotice.jsx';
 export * from './OfflineBanner.jsx';
+export * from './ReactionGroup.jsx';

@@ -188,7 +188,11 @@ export function createMockDb(initialData = {}) {
       token_version: 0
     },
     ...(initialData.users || [])
-  ];
+  ].map((u) => ({
+    accepted_terms_at: '2026-11-16T00:00:00Z',
+    terms_version: 1,
+    ...u
+  }));
 
   const posts = [
     {
@@ -198,6 +202,8 @@ export function createMockDb(initialData = {}) {
       category: 'Notice',
       body: 'Welcome to the semester at Alpha Institute!',
       status: 'visible',
+      pinned_at: null,
+      is_official: false,
       created_at: new Date(Date.now() - 3600000).toISOString()
     },
     {
@@ -207,6 +213,8 @@ export function createMockDb(initialData = {}) {
       category: 'Notice',
       body: 'Welcome to Beta College community.',
       status: 'visible',
+      pinned_at: null,
+      is_official: false,
       created_at: new Date(Date.now() - 3600000).toISOString()
     },
     ...(initialData.posts || [])
@@ -262,6 +270,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0001-000000000002',
       recipient_id: '00000000-0000-0000-0001-000000000003',
       body: 'Hello Student A1 from Teacher A1',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     {
@@ -270,6 +279,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0002-000000000002',
       recipient_id: '00000000-0000-0000-0002-000000000003',
       body: 'Hello Beta Student from Beta Teacher',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     ...(initialData.messages || [])
@@ -299,15 +309,30 @@ export function createMockDb(initialData = {}) {
     ...(initialData.reports || [])
   ];
 
+  const post_replies = [...(initialData.post_replies || initialData.replies || [])];
+  const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
+  const user_blocks = [...(initialData.user_blocks || initialData.blocks || [])];
+  const audit_log = [...(initialData.audit_log || [])];
+  const account_deletion_requests = [...(initialData.account_deletion_requests || [])];
+
   const tables = {
     communities,
     users,
     posts,
+    post_replies,
+    replies: post_replies,
+    post_reactions,
+    reactions: post_reactions,
+    user_blocks,
+    blocks: user_blocks,
     polls,
     poll_options,
     poll_votes,
     messages,
-    reports
+    reports,
+    audit_log,
+    account_deletion_requests,
+    deletion_requests: account_deletion_requests
   };
 
   return {
@@ -317,9 +342,9 @@ export function createMockDb(initialData = {}) {
       const filters = [];
       let updates = null;
       let insertedRecord = null;
+      let isDelete = false;
       let isCountHead = false;
-      let orderByCol = null;
-      let orderAscending = true;
+      const orderRules = [];
       let limitCount = null;
 
       const executeUpdates = () => {
@@ -331,10 +356,29 @@ export function createMockDb(initialData = {}) {
         }
       };
 
+      const executeDelete = () => {
+        if (!isDelete) return;
+        for (let i = collection.length - 1; i >= 0; i--) {
+          if (filters.every((fn) => fn(collection[i]))) {
+            collection.splice(i, 1);
+          }
+        }
+      };
+
+      const executeMutations = () => {
+        executeUpdates();
+        executeDelete();
+      };
+
       const resolveItem = (item) => {
         if (!item) return null;
         const copy = { ...item };
         if (tableName === 'posts') {
+          const author = users.find((u) => u.id === copy.author_id);
+          copy.author = author
+            ? { username: author.username, display_name: author.display_name, role: author.role }
+            : null;
+        } else if (tableName === 'post_replies' || tableName === 'replies') {
           const author = users.find((u) => u.id === copy.author_id);
           copy.author = author
             ? { username: author.username, display_name: author.display_name, role: author.role }
@@ -369,18 +413,43 @@ export function createMockDb(initialData = {}) {
         } else if (tableName === 'reports') {
           const reporter = users.find((u) => u.id === copy.reporter_id);
           copy.reporter = reporter ? { username: reporter.username } : null;
+        } else if (tableName === 'audit_log') {
+          const actor = users.find((u) => u.id === copy.actor_id);
+          copy.actor = actor
+            ? {
+                id: actor.id,
+                username: actor.username,
+                display_name: actor.display_name,
+                role: actor.role
+              }
+            : null;
+        } else if (tableName === 'account_deletion_requests') {
+          const user = users.find((u) => u.id === copy.user_id);
+          copy.user = user
+            ? {
+                id: user.id,
+                username: user.username,
+                display_name: user.display_name,
+                role: user.role
+              }
+            : null;
         }
         return copy;
       };
 
       const getFilteredData = () => {
         let list = collection.filter((item) => filters.every((fn) => fn(item)));
-        if (orderByCol) {
+        if (orderRules.length > 0) {
           list = [...list].sort((a, b) => {
-            const av = a[orderByCol];
-            const bv = b[orderByCol];
-            if (av < bv) return orderAscending ? -1 : 1;
-            if (av > bv) return orderAscending ? 1 : -1;
+            for (const { col, ascending, nullsFirst } of orderRules) {
+              const av = a[col];
+              const bv = b[col];
+              if (av === bv) continue;
+              if (av === null || av === undefined) return nullsFirst ? -1 : 1;
+              if (bv === null || bv === undefined) return nullsFirst ? 1 : -1;
+              if (av < bv) return ascending ? -1 : 1;
+              if (av > bv) return ascending ? 1 : -1;
+            }
             return 0;
           });
         }
@@ -402,8 +471,11 @@ export function createMockDb(initialData = {}) {
           return queryBuilder;
         },
         order(col, opts = { ascending: true }) {
-          orderByCol = col;
-          orderAscending = opts.ascending !== false;
+          orderRules.push({
+            col,
+            ascending: opts.ascending !== false,
+            nullsFirst: opts.nullsFirst === true
+          });
           return queryBuilder;
         },
         eq(col, val) {
@@ -412,6 +484,12 @@ export function createMockDb(initialData = {}) {
         },
         neq(col, val) {
           filters.push((item) => item[col] !== val);
+          return queryBuilder;
+        },
+        is(col, val) {
+          filters.push((item) =>
+            val === null ? item[col] === null || item[col] === undefined : item[col] === val
+          );
           return queryBuilder;
         },
         in(col, vals) {
@@ -449,14 +527,12 @@ export function createMockDb(initialData = {}) {
                 });
               });
             }
-            if (expression.includes('sender_id.eq') && expression.includes('recipient_id.eq')) {
-              const matches = expression.match(/[a-z_]+\.eq\.([0-9a-f-]+)/g);
-              if (matches) {
-                return matches.some((m) => {
-                  const [k, v] = m.split('.eq.');
-                  return item[k] === v;
-                });
-              }
+            const matches = expression.match(/[a-z_]+\.eq\.[^,]+/g);
+            if (matches) {
+              return matches.some((m) => {
+                const [k, v] = m.split('.eq.');
+                return item[k] === v;
+              });
             }
             return true;
           });
@@ -484,13 +560,43 @@ export function createMockDb(initialData = {}) {
                 };
               }
             }
+            if (tableName === 'post_reactions' || tableName === 'reactions') {
+              const existingIdx = post_reactions.findIndex(
+                (r) => r.post_id === item.post_id && r.user_id === item.user_id
+              );
+              if (existingIdx !== -1) {
+                post_reactions[existingIdx] = { ...post_reactions[existingIdx], ...item };
+                insertedRecord = post_reactions[existingIdx];
+                continue;
+              }
+            }
+            if (tableName === 'user_blocks' || tableName === 'blocks') {
+              const existingIdx = user_blocks.findIndex(
+                (b) => b.blocker_id === item.blocker_id && b.blocked_id === item.blocked_id
+              );
+              if (existingIdx !== -1) {
+                user_blocks[existingIdx] = { ...user_blocks[existingIdx], ...item };
+                insertedRecord = user_blocks[existingIdx];
+                continue;
+              }
+            }
             const record = {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
-              ...(tableName === 'posts' || tableName === 'polls' ? { status: 'visible' } : {}),
+              ...(tableName === 'posts'
+                ? { status: 'visible', pinned_at: null, is_official: false }
+                : {}),
+              ...(tableName === 'polls' || tableName === 'post_replies' || tableName === 'replies'
+                ? { status: 'visible' }
+                : {}),
               ...(tableName === 'reports' ? { status: 'open' } : {}),
+              ...(tableName === 'messages' ? { read_at: null } : {}),
               ...item
             };
+            if (tableName === 'post_replies' || tableName === 'replies') {
+              if (record.parent_id && !record.post_id) record.post_id = record.parent_id;
+              if (record.post_id && !record.parent_id) record.parent_id = record.post_id;
+            }
             collection.push(record);
             insertedRecord = record;
           }
@@ -500,13 +606,17 @@ export function createMockDb(initialData = {}) {
           updates = fields;
           return queryBuilder;
         },
+        delete() {
+          isDelete = true;
+          return queryBuilder;
+        },
         async maybeSingle() {
-          executeUpdates();
+          executeMutations();
           const list = getFilteredData();
           return { data: list.length ? list[0] : null, error: null };
         },
         async single() {
-          executeUpdates();
+          executeMutations();
           if (insertedRecord) {
             return { data: resolveItem(insertedRecord), error: null };
           }
@@ -516,7 +626,7 @@ export function createMockDb(initialData = {}) {
             : { data: null, error: new Error('Record not found') };
         },
         then(onFulfilled, onRejected) {
-          executeUpdates();
+          executeMutations();
           if (isCountHead) {
             const count = collection.filter((item) => filters.every((fn) => fn(item))).length;
             return Promise.resolve({ count, data: null, error: null }).then(
