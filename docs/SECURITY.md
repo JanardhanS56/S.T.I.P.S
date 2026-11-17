@@ -55,7 +55,7 @@ Trust boundaries: browser (untrusted) | Express API (trusted) | Supabase (truste
 
 ## 6. HTTP hardening
 
-- helmet defaults plus a **Content-Security-Policy** tailored to the app: `default-src 'self'`; `style-src 'self' https://fonts.googleapis.com`; `font-src https://fonts.gstatic.com`; `script-src 'self'`; `img-src 'self' data:`; `connect-src 'self'`; `frame-ancestors 'none'`; `base-uri 'self'`; `form-action 'self'`. Verify the Vite production build works under it.
+- helmet defaults plus a **Content-Security-Policy** tailored to the app: `default-src 'self'`; `style-src 'self' 'unsafe-inline'`; `font-src 'self'`; `script-src 'self'`; `img-src 'self' data:`; `connect-src 'self'`; `frame-ancestors 'none'`; `base-uri 'self'`; `form-action 'self'`. Verify the Vite production build works under it.
 - `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` minimal.
 - No CORS (same-origin). If ever needed, explicit allowlist.
 - Generic 404/500 bodies; never reveal stack traces or table names.
