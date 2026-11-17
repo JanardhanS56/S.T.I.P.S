@@ -542,4 +542,133 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(longRes.status).toBe(400);
     });
   });
+
+  describe('POST-12: Post Reactions', () => {
+    it('POST-12: toggling adds reaction, repeats remove it, changing kind updates it', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Create a post
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for reactions test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // 1. student_a1 reacts 'like' -> 200 { reacted: true, kind: 'like' }
+      const rx1 = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(rx1.status).toBe(200);
+      expect(rx1.body).toEqual({ reacted: true, kind: 'like' });
+
+      // GET /api/posts/:id shows like count 1, myReaction 'like'
+      const getPost1 = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+      expect(getPost1.status).toBe(200);
+      expect(getPost1.body.post.reactions.like).toBe(1);
+      expect(getPost1.body.post.reactions.thanks).toBe(0);
+      expect(getPost1.body.post.myReaction).toBe('like');
+
+      // 2. student_a1 toggles same kind 'like' -> removed { reacted: false, kind: null }
+      const rxToggle = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(rxToggle.status).toBe(200);
+      expect(rxToggle.body).toEqual({ reacted: false, kind: null });
+
+      const getPostToggle = await request(app)
+        .get(`/api/posts/${postId}`)
+        .set('Cookie', studentCookie);
+      expect(getPostToggle.body.post.reactions.like).toBe(0);
+      expect(getPostToggle.body.post.myReaction).toBeNull();
+
+      // 3. student_a1 reacts 'thanks'
+      const rxThanks = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'thanks' });
+      expect(rxThanks.status).toBe(200);
+      expect(rxThanks.body).toEqual({ reacted: true, kind: 'thanks' });
+
+      // 4. student_a1 switches reaction to 'laugh' -> updates to 'laugh'
+      const rxLaugh = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'laugh' });
+      expect(rxLaugh.status).toBe(200);
+      expect(rxLaugh.body).toEqual({ reacted: true, kind: 'laugh' });
+
+      // 5. teacher_a1 reacts 'like'
+      const rxTeacher = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', teacherCookie)
+        .send({ kind: 'like' });
+      expect(rxTeacher.status).toBe(200);
+      expect(rxTeacher.body).toEqual({ reacted: true, kind: 'like' });
+
+      // Verify feed aggregation
+      const feedRes = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      expect(feedRes.status).toBe(200);
+      const postInFeed = feedRes.body.posts.find((p) => p.id === postId);
+      expect(postInFeed).toBeDefined();
+      expect(postInFeed.reactions).toEqual({ like: 1, thanks: 0, laugh: 1 });
+      expect(postInFeed.myReaction).toBe('laugh');
+    });
+
+    it('POST-12: rejects invalid reaction kind with 400', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for invalid kind test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      const badRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'angry' });
+      expect(badRes.status).toBe(400);
+    });
+
+    it("POST-12: rejects reaction to another community's post with 404", async () => {
+      const studentA = await loginAs('student_a1');
+      const studentB = await loginAs('student_b1');
+
+      // Post in community B
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentB)
+        .send({ body: 'Community B post', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Student from community A attempts to react
+      const crossRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentA)
+        .send({ kind: 'like' });
+      expect(crossRes.status).toBe(404);
+    });
+
+    it('POST-12: muted user cannot react (403)', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Post for muted test', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Mute student_a1
+      const studentUser = mockDb.users.find((u) => u.username === 'student_a1');
+      studentUser.status = 'muted';
+
+      const reactRes = await request(app)
+        .post(`/api/posts/${postId}/reactions`)
+        .set('Cookie', studentCookie)
+        .send({ kind: 'like' });
+      expect(reactRes.status).toBe(403);
+      expect(reactRes.body.error).toContain('muted');
+    });
+  });
 });
