@@ -404,4 +404,142 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(resLow.status).toBe(400);
     });
   });
+
+  describe('POST-10: Post Replies', () => {
+    it('POST-10: reply to a post in same community works; appears on GET /api/posts/:id', async () => {
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Create a post in community A
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', teacherCookie)
+        .send({ body: 'Discussion topic for class', category: 'Notice' });
+      expect(postRes.status).toBe(201);
+      const postId = postRes.body.id;
+
+      // Student replies to the post
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', studentCookie)
+        .send({ body: 'Here is my thoughtful reply to the discussion.' });
+
+      expect(replyRes.status).toBe(201);
+      expect(replyRes.body.id).toBeDefined();
+
+      // Thread view GET /api/posts/:id returns post and replies
+      const threadRes = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+
+      expect(threadRes.status).toBe(200);
+      expect(threadRes.body.post.id).toBe(postId);
+      expect(threadRes.body.post.body).toBe('Discussion topic for class');
+      expect(threadRes.body.post.author.username).toBe('teacher_a1');
+
+      expect(threadRes.body.replies).toHaveLength(1);
+      const reply = threadRes.body.replies[0];
+      expect(reply.id).toBe(replyRes.body.id);
+      expect(reply.body).toBe('Here is my thoughtful reply to the discussion.');
+      expect(reply.author.username).toBe('student_a1');
+      expect(reply.author.role).toBe('student');
+    });
+
+    it("POST-10: reply to another community's post returns 404", async () => {
+      const studentA = await loginAs('student_a1');
+      const studentB = await loginAs('student_b1');
+
+      // Create a post in Community B
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentB)
+        .send({ body: 'Beta exclusive post', category: 'Notice' });
+      expect(postRes.status).toBe(201);
+      const postBId = postRes.body.id;
+
+      // Student A (Community A) attempts to reply to post in Community B
+      const replyRes = await request(app)
+        .post(`/api/posts/${postBId}/replies`)
+        .set('Cookie', studentA)
+        .send({ body: 'Attempting cross-community reply' });
+      expect(replyRes.status).toBe(404);
+
+      // Student A attempts to read thread of Community B post
+      const readRes = await request(app).get(`/api/posts/${postBId}`).set('Cookie', studentA);
+      expect(readRes.status).toBe(404);
+    });
+
+    it('POST-10: reply depth is strictly limited to 1 level (cannot reply to a reply)', async () => {
+      const cookie = await loginAs('student_a1');
+
+      // Create a top-level post
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Top level post for depth testing', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Create depth 1 reply
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'First level reply' });
+      expect(replyRes.status).toBe(201);
+      const replyId = replyRes.body.id;
+
+      // Attempting to reply to a reply ID (depth 2) fails with 404 because reply is not in posts table
+      const nestedRes = await request(app)
+        .post(`/api/posts/${replyId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'Attempted nested reply (depth 2)' });
+      expect(nestedRes.status).toBe(404);
+    });
+
+    it('POST-10: rejects replies violating content moderation with 422', async () => {
+      const cookie = await loginAs('student_a1');
+
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Post to test reply moderation', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Send reply with contact info
+      const replyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'Call me at 9876543210 for answers' });
+
+      expect(replyRes.status).toBe(422);
+    });
+
+    it('POST-10: rejects empty, whitespace, and over 280-char replies with 400', async () => {
+      const cookie = await loginAs('student_a1');
+
+      const postRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', cookie)
+        .send({ body: 'Post to test length validation', category: 'Notice' });
+      const postId = postRes.body.id;
+
+      // Empty
+      const emptyRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: '' });
+      expect(emptyRes.status).toBe(400);
+
+      // Whitespace
+      const whiteRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: '    ' });
+      expect(whiteRes.status).toBe(400);
+
+      // 281 characters
+      const longRes = await request(app)
+        .post(`/api/posts/${postId}/replies`)
+        .set('Cookie', cookie)
+        .send({ body: 'a'.repeat(281) });
+      expect(longRes.status).toBe(400);
+    });
+  });
 });
