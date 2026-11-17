@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
-import { requireCommunity, requireNotMuted } from '../session.js';
+import { requireCommunity, requireNotMuted, requireAdmin } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
 import { enforcePostCap, enforceReplyCap, enforceReactionCap } from '../limits.js';
 
@@ -28,9 +28,12 @@ r.get(
     );
     let q = db
       .from('posts')
-      .select('id,category,body,created_at,author:users!author_id(username,display_name,role)')
+      .select(
+        'id,category,body,created_at,pinned_at,is_official,author:users!author_id(username,display_name,role)'
+      )
       .eq('community_id', req.user.community_id)
       .eq('status', 'visible')
+      .order('pinned_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(limit);
     if (category) q = q.eq('category', category);
@@ -76,17 +79,22 @@ r.post(
   '/',
   requireNotMuted,
   h(async (req, res) => {
-    const { body, category } = parse(
+    const { body, category, is_official } = parse(
       z.object({
         body: z
           .string()
           .trim()
           .min(1, 'Write something first.')
           .max(config.postMaxChars, `Max ${config.postMaxChars} characters.`),
-        category: z.enum(CATS)
+        category: z.enum(CATS),
+        is_official: z.boolean().optional()
       }),
       req.body
     );
+
+    if (is_official && req.user.role !== 'admin') {
+      throw new HttpError(403, 'Only admins can create official posts.');
+    }
 
     await enforcePostCap(req, res);
 
@@ -134,7 +142,9 @@ r.post(
         author_id: req.user.id,
         category,
         body,
-        status: 'visible'
+        status: 'visible',
+        is_official: Boolean(is_official),
+        pinned_at: null
       })
       .select('id')
       .single();
@@ -151,7 +161,7 @@ r.get(
       'posts',
       id,
       req,
-      'id,category,body,created_at,status,author_id,community_id'
+      'id,category,body,created_at,status,author_id,community_id,pinned_at,is_official'
     );
     if (p.status !== 'visible') throw new HttpError(404, 'Post not found.');
 
@@ -192,6 +202,8 @@ r.get(
         category: p.category,
         body: p.body,
         created_at: p.created_at,
+        pinned_at: p.pinned_at || null,
+        is_official: Boolean(p.is_official),
         author: author || null,
         reactions,
         myReaction
@@ -291,6 +303,47 @@ r.post(
     if (error) throw error;
 
     res.status(201).json({ id: data.id });
+  })
+);
+
+// Pin/unpin post (admin only)
+r.post(
+  '/:id/pin',
+  requireAdmin,
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { pinned } = parse(
+      z.object({
+        pinned: z.boolean().default(true)
+      }),
+      req.body || {}
+    );
+    const post = await loadInCommunity('posts', id, req, 'id,community_id,status,pinned_at');
+    if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
+
+    const pinned_at = pinned ? new Date().toISOString() : null;
+    await db.from('posts').update({ pinned_at }).eq('id', id);
+    res.json({ id, pinned: Boolean(pinned_at), pinned_at });
+  })
+);
+
+// Official flag (admin only)
+r.post(
+  '/:id/official',
+  requireAdmin,
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { official } = parse(
+      z.object({
+        official: z.boolean().default(true)
+      }),
+      req.body || {}
+    );
+    const post = await loadInCommunity('posts', id, req, 'id,community_id,status,is_official');
+    if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
+
+    await db.from('posts').update({ is_official: official }).eq('id', id);
+    res.json({ id, is_official: official });
   })
 );
 
