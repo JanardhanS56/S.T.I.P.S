@@ -299,10 +299,14 @@ export function createMockDb(initialData = {}) {
     ...(initialData.reports || [])
   ];
 
+  const post_replies = [...(initialData.post_replies || initialData.replies || [])];
+
   const tables = {
     communities,
     users,
     posts,
+    post_replies,
+    replies: post_replies,
     polls,
     poll_options,
     poll_votes,
@@ -335,6 +339,11 @@ export function createMockDb(initialData = {}) {
         if (!item) return null;
         const copy = { ...item };
         if (tableName === 'posts') {
+          const author = users.find((u) => u.id === copy.author_id);
+          copy.author = author
+            ? { username: author.username, display_name: author.display_name, role: author.role }
+            : null;
+        } else if (tableName === 'post_replies' || tableName === 'replies') {
           const author = users.find((u) => u.id === copy.author_id);
           copy.author = author
             ? { username: author.username, display_name: author.display_name, role: author.role }
@@ -487,10 +496,19 @@ export function createMockDb(initialData = {}) {
             const record = {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
-              ...(tableName === 'posts' || tableName === 'polls' ? { status: 'visible' } : {}),
+              ...(tableName === 'posts' ||
+              tableName === 'polls' ||
+              tableName === 'post_replies' ||
+              tableName === 'replies'
+                ? { status: 'visible' }
+                : {}),
               ...(tableName === 'reports' ? { status: 'open' } : {}),
               ...item
             };
+            if (tableName === 'post_replies' || tableName === 'replies') {
+              if (record.parent_id && !record.post_id) record.post_id = record.parent_id;
+              if (record.post_id && !record.parent_id) record.parent_id = record.post_id;
+            }
             collection.push(record);
             insertedRecord = record;
           }
