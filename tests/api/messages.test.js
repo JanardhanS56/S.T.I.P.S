@@ -398,4 +398,83 @@ describe('Messages API (MSG-01..MSG-10)', () => {
       expect(foreignRes.status).toBe(404);
     });
   });
+
+  describe('MSG-09: Unread Message Counts and Read Receipts', () => {
+    it('MSG-09: unread counts update when recipient opens thread', async () => {
+      const teacherCookie = await loginAs('teacher_a1');
+      const studentCookie = await loginAs('student_a1');
+
+      // Clear existing messages for this pair in mockDb to start clean
+      mockDb.messages = mockDb.messages.filter(
+        (m) =>
+          !(
+            (m.sender_id === teacherA1Id && m.recipient_id === studentA1Id) ||
+            (m.sender_id === studentA1Id && m.recipient_id === teacherA1Id)
+          )
+      );
+
+      // Verify student has 0 unread initially
+      const unread0 = await request(app).get('/api/messages/unread').set('Cookie', studentCookie);
+      expect(unread0.status).toBe(200);
+      expect(unread0.body.total).toBe(0);
+
+      // Teacher sends 2 messages to student
+      await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Message 1' });
+
+      await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Message 2' });
+
+      // Student checks unread: total 2, bySender[teacherA1Id] === 2
+      const unreadStudent = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', studentCookie);
+      expect(unreadStudent.status).toBe(200);
+      expect(unreadStudent.body.total).toBe(2);
+      expect(unreadStudent.body.bySender[teacherA1Id]).toBe(2);
+
+      // Teacher checks unread: 0 (sender has no unread messages)
+      const unreadTeacher = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', teacherCookie);
+      expect(unreadTeacher.status).toBe(200);
+      expect(unreadTeacher.body.total).toBe(0);
+
+      // Student checks threads list: thread shows unreadCount === 2
+      const threadsStudent = await request(app)
+        .get('/api/messages/threads')
+        .set('Cookie', studentCookie);
+      expect(threadsStudent.status).toBe(200);
+      const teacherThread = threadsStudent.body.threads.find((t) => t.with.id === teacherA1Id);
+      expect(teacherThread).toBeDefined();
+      expect(teacherThread.unreadCount).toBe(2);
+
+      // Student opens the thread with teacher
+      const openRes = await request(app)
+        .get(`/api/messages/with/${teacherA1Id}`)
+        .set('Cookie', studentCookie);
+      expect(openRes.status).toBe(200);
+      expect(openRes.body.messages).toHaveLength(2);
+
+      // Student checks unread after opening: total is now 0
+      const unreadAfterOpen = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', studentCookie);
+      expect(unreadAfterOpen.status).toBe(200);
+      expect(unreadAfterOpen.body.total).toBe(0);
+
+      // Student checks threads list after opening: unreadCount is now 0
+      const threadsAfterOpen = await request(app)
+        .get('/api/messages/threads')
+        .set('Cookie', studentCookie);
+      const teacherThreadAfter = threadsAfterOpen.body.threads.find(
+        (t) => t.with.id === teacherA1Id
+      );
+      expect(teacherThreadAfter.unreadCount).toBe(0);
+    });
+  });
 });
