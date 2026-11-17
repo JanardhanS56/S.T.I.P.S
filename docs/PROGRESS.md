@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 3 (Phase C Complete)
-- Branch: main (Phase C merged, ready for feat/d3-admin-e2e)
-- Last green check: npm run lint, npm test, npm run build (172 tests passing across 15 test suites)
-- First task for next session / phase: Day 3 Phase D, tasks D3-13..D3-17 (Admin dashboard, member management, report resolution, audit log export, and Playwright E2E suite)
+- Day: 3 Complete (Phases A, B, C, D merged into main)
+- Branch: main
+- Last green check: npm run lint, npm test, npm run build (181 unit/API tests passing across 16 suites), Playwright E2E (12/12 passing across Desktop & Mobile)
+- First task for next session / phase: Day 4, Task D4-01 (Accessibility audit & screen reader testing)
 
 ## Blocked / needs owner
 
@@ -15,16 +15,23 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- User blocks: migration `20261117000004_user_blocks.sql` stores `(blocker_id, blocked_id)` with RLS. Enforced symmetrically on sending direct messages (403 if either participant has blocked the other) and in `/api/messages/people` recipient picker (both parties hidden from each other). UI toggle button in thread header allows blocking/unblocking with confirmation, disabling message composer with a polite notice.
-- Message read receipts and unread counts: migration `20261117000005_message_read_at.sql` adds nullable `read_at timestamptz`. Reading a thread automatically marks incoming messages read with `read_at = now()`. `GET /api/messages/unread` aggregates total and per-sender unread messages. Thread list returns `unreadCount`. UI unread badges display in app navigation (`Shell.jsx`) and thread list (`Messages.jsx`).
-- Messaging UX: Auto-scroll to latest message via `useRef.scrollIntoView({ behavior: 'smooth' })`, accessible message timestamps with `<time>` elements, real-time 500-character counter, send-in-progress state disabling the send button, and Page Visibility API integration pausing 8-second polling while the tab is hidden.
-- Poll UX: Accessible progress bars with `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"` and detailed descriptive labels. Closes-in countdown timer ("Closes in X days/hours/min" or "Closed"). Early close button for poll author and admin calling `POST /api/polls/:id/close`. Clear "✓ Your vote" indicator for options voted on by current user. Poll creator allows adding and removing options dynamically between 2 and 6.
+- Admin Audit Logging: Migration `20261117000006_audit_log.sql` tracks administrative actions with actor, community, action name, target type/id, and metadata. Helper `server/lib/audit.js` standardizes logging across routes. Endpoint `GET /api/admin/audit` allows admins to inspect history.
+- Admin Dashboard UI: Built unified `/app/admin` dashboard (`Admin.jsx`) containing Member management, Reports queue, Audit log view, and Bulk member provisioning. All state changes require accessible confirmation dialogs, and one-time credentials are shown with a copy control and safety notice.
+- E2E Testing with System Chrome: To accommodate low host disk space (~0.8 GB free on C:), Playwright is configured to leverage system Chrome locally (`channel: 'chrome'`) and fallback to standard Chromium in CI environments. Helper `clickNavLink` transparently handles mobile drawer opening on narrow viewports.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 12 - Day 3 Phase D (Admin, Audit, and E2E: D3-13..D3-17)
+
+- Task D3-13: Created migration `20261117000006_audit_log.sql`. Built audit helper `server/lib/audit.js` with support in `mockDb.js`. Wired audit logging into member provisioning, status updates (active, muted, suspended), password resets, report resolutions (hide, dismiss), post pin/unpin, and official post marking. Built endpoint `GET /api/admin/audit` with action filtering.
+- Task D3-14: Created `src/pages/Admin.jsx` with tabs (Members, Reports Queue, Audit Log, Add Members), search/role filter, confirmation modals for member status changes, password reset modal displaying one-time passwords once, report hide/dismiss with admin notes, and audit log history. Added `GET /api/admin/members` endpoint. Wired route `/app/admin` in `App.jsx` and nav item in `Shell.jsx`.
+- Task D3-15: Verified ADM-01..ADM-07 in `tests/api/admin.test.js` (9 tests passing covering reporting limits, report queues, bulk member creation, password reset, status enforcement, and audit trail).
+- Task D3-16: Installed `@playwright/test` and `pg`. Configured `playwright.config.js` with webServer dev harness and dual project targets (Desktop Chrome and Pixel 5 Mobile Chrome). Created migration runner `scripts/migrate.js` and applied all Day 3 migrations to live Supabase DB. Built `tests/e2e/e2e.spec.js` covering journeys E2E-01 through E2E-06. All 12 tests passing. Excluded E2E tests from `vitest.config.js`.
+- Task D3-17: Added Playwright E2E job to `.github/workflows/ci.yml`. Documented all Day 3 endpoints in `docs/API.md`. Full verification passed (lint, 181 Vitest unit/API tests, 12 Playwright tests, production build). Merged `feat/d3-admin-e2e` into `main` without squash and pushed to `origin`.
 
 ### Session 11 - Day 3 Phase C (Messaging and Polls: D3-09..D3-12)
 
