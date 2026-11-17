@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import {
   Button,
@@ -155,9 +156,14 @@ export default function Feed() {
                 </Badge>
               </div>
               <p className="post-body">{p.body}</p>
-              <Button variant="link" className="muted small" onClick={() => report(p.id)}>
-                Report
-              </Button>
+              <div className="row between">
+                <Link to={`/app/feed/${p.id}`} className="link-btn small">
+                  Replies
+                </Link>
+                <Button variant="link" className="muted small" onClick={() => report(p.id)}>
+                  Report
+                </Button>
+              </div>
             </Card>
           ))
         ) : filter !== 'All' ? (
