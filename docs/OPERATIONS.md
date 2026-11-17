@@ -22,9 +22,23 @@
 - Database: migrations are forward-only; ship a corrective migration. For data loss, restore from backup (below).
 - Secrets: rotate and redeploy.
 
-## Monitoring & Error Tracking
+## Monitoring & Alert Setup (D4-10)
 
-- **Uptime Monitoring:** External monitor polling `GET /api/health` every 5 minutes (checks Express listener and live database reachability via cheap ping query).
+- **Uptime Monitoring:**
+  - **Endpoint:** `GET /api/health`
+  - **Tool:** Better Uptime / UptimeRobot / GitHub Actions scheduled workflow polling every 5 minutes.
+  - **Expected Response:** HTTP 200 with JSON payload `{"ok":true,"db":true}` within 5000ms.
+  - **Failure Condition:** HTTP status != 200 or response timeout > 5s indicates either Node.js process crash or live Supabase PostgreSQL disconnection.
+- **Alert Routing & Escalation:**
+  - **Sev 1 (Site Down / Database Unreachable):** Immediate notification dispatched to Primary On-Call Engineer via SMS/Phone and urgent `#alerts-critical` Slack/Telegram webhook. Automatic email sent to Institute Technical Lead within 15 minutes.
+  - **Sev 2 (Degraded Performance / Elevated 5xx):** Notification to `#alerts-ops` channel. Triage within 1 hour.
+  - **Sev 3 (Rate-limit or login failure spikes):** Daily digest review by security administrator.
+- **Runbook on `/api/health` Alert:**
+  1. Check Vercel function logs for runtime crashes or uncaught exceptions.
+  2. Check Supabase Status dashboard (`status.supabase.com`) and project database metrics for connection exhaustion.
+  3. If DB is unresponsive, toggle `MAINTENANCE_MODE=1` in Vercel to preserve state and prevent data corruption.
+  4. If bad code deployment, instantly promote previous deployment in Vercel > Deployments.
+
 - **Error Tracking (Sentry):**
   - Server: Initialized in `server/lib/sentry.js` and wired into Express in `server/app.js` using `SENTRY_DSN`.
   - Client: Initialized in `src/sentry.js` and integrated with `ErrorBoundary.jsx` using `VITE_SENTRY_DSN`.
