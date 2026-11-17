@@ -11,3 +11,7 @@ export * from './Toast.jsx';
 export * from './RateLimitNotice.jsx';
 export * from './OfflineBanner.jsx';
 export * from './ReactionGroup.jsx';
+export { default as CopyButton } from './CopyButton.jsx';
+export { default as LoadingSpinner } from './LoadingSpinner.jsx';
+export { default as PasswordInput } from './PasswordInput.jsx';
+export { default as ConfirmDialog } from './ConfirmDialog.jsx';

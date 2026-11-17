@@ -46,6 +46,71 @@
   --font: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
+
+[data-theme='dark'] {
+  --ink: #f0f2ed;
+  --paper: #121411;
+  --line: #293026;
+  --mute: #9aa196;
+  --wash: #1b1e19;
+  --green: #48a873;
+  --fern: #5db683;
+  --leaf: #78c998;
+  --mint: #1a2f22;
+  --alert: #e06042;
+}
+
+[data-theme='dark'] .card {
+  background: #171a15;
+  border-color: #2b3228;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  background: #191c17;
+  color: #f0f2ed;
+  border-color: #2f362c;
+}
+
+[data-theme='dark'] .side {
+  background: #0d0f0c;
+  border-color: #1e221b;
+}
+
+[data-theme='dark'] .mobile-bar {
+  background: #0d0f0c;
+}
+
+[data-theme='dark'] .btn-ghost {
+  border-color: #2b3228;
+  color: #f0f2ed;
+}
+
+[data-theme='dark'] .btn-ghost:hover {
+  background: #1f241d;
+}
+
+[data-theme='dark'] .tab:not(.active) {
+  border-color: #2b3228;
+  color: #9aa196;
+}
+
+[data-theme='dark'] .tab.active {
+  background: #254030;
+  border-color: var(--green);
+  color: #f0f2ed;
+}
+
+[data-theme='dark'] .modal-backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme='dark'] .modal-box {
+  background: #171a15;
+  border-color: #2b3228;
+  color: #f0f2ed;
+}
 * {
   box-sizing: border-box;
 }
@@ -1005,5 +1070,375 @@ fieldset input {
   }
   .wrap {
     padding: 0 20px;
+  }
+}
+
+/* ==========================================================================
+   Interactive Enhancements (20 Front-end Features)
+   ========================================================================== */
+
+/* 1. Theme Toggle */
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 6px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  min-height: 44px;
+  min-width: 44px;
+}
+.theme-toggle-btn:hover {
+  background: var(--wash);
+  border-color: var(--leaf);
+}
+
+/* 6. Loading Animation */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 7. Hover States & Micro-interactions */
+.btn {
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.card {
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.card:hover {
+  border-color: var(--leaf);
+}
+
+/* 8. Scroll Progress Bar */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--green);
+  z-index: 10000;
+  transition: width 0.1s ease-out;
+}
+
+/* 11. Sticky Headers */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  backdrop-filter: blur(8px);
+}
+[data-theme='dark'] .sticky-top {
+  background: #121411;
+}
+
+/* 4. Back To Top Button */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 900;
+  width: 44px;
+  height: 44px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.back-to-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.back-to-top-btn:hover {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+
+/* 20. Floating Contact Button */
+.floating-contact-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 76px;
+  z-index: 900;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.floating-contact-btn:hover {
+  background: var(--wash);
+  border-color: var(--leaf);
+  color: var(--green);
+  transform: translateY(-1px);
+}
+
+/* 13. Password Visibility Toggle */
+.password-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.password-field-wrap input {
+  width: 100%;
+  padding-right: 48px;
+}
+.password-toggle-btn {
+  position: absolute;
+  right: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--mute);
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  border-radius: 2px;
+}
+.password-toggle-btn:hover {
+  color: var(--ink);
+}
+
+/* 9. Copy Button */
+.copy-btn {
+  background: var(--wash);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  min-height: 32px;
+}
+.copy-btn:hover {
+  background: var(--mint);
+  border-color: var(--leaf);
+}
+.copy-btn.copied {
+  background: var(--mint);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+/* 3. Site Search */
+.site-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+}
+.site-search-input {
+  width: 100%;
+  padding: 8px 36px 8px 36px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+.site-search-input:focus {
+  border-color: var(--leaf);
+  outline: none;
+}
+.site-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mute);
+  pointer-events: none;
+  font-size: 14px;
+}
+.site-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--mute);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 19. Expandable FAQ Accordion */
+.faq-accordion {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  margin-bottom: 12px;
+  border-radius: 2px;
+}
+.faq-details {
+  border-bottom: 1px solid var(--line);
+}
+.faq-details:last-child {
+  border-bottom: none;
+}
+.faq-summary {
+  padding: 16px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  user-select: none;
+  min-height: 48px;
+}
+.faq-summary::-webkit-details-marker {
+  display: none;
+}
+.faq-summary:hover {
+  background: var(--wash);
+}
+.faq-summary:after {
+  content: '+';
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--mute);
+  transition: transform 0.2s ease;
+}
+.faq-details[open] > .faq-summary:after {
+  content: '−';
+}
+.faq-body {
+  padding: 0 20px 18px;
+  color: var(--mute);
+  line-height: 1.6;
+}
+
+/* 15 & 16. Form States */
+.form-success-banner {
+  padding: 12px 16px;
+  background: var(--mint);
+  border: 1px solid var(--leaf);
+  color: var(--green);
+  border-radius: 2px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.form-error-banner {
+  padding: 12px 16px;
+  background: #fdf2ef;
+  border: 1px solid #f2c2b6;
+  color: var(--alert);
+  border-radius: 2px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.field-error-text {
+  color: var(--alert);
+  font-size: 13px;
+  margin-top: 4px;
+}
+input[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--alert) !important;
+}
+
+/* 10. Print Stylesheet */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .side,
+  .mobile-bar,
+  .back-to-top-btn,
+  .floating-contact-btn,
+  .theme-toggle-btn,
+  .cookie,
+  .skip-link,
+  .btn,
+  button,
+  .nav-tabs,
+  .actions {
+    display: none !important;
+  }
+  .page,
+  .shell,
+  .wrap {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  .card {
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+  a {
+    color: #000 !important;
+    text-decoration: underline !important;
   }
 }
