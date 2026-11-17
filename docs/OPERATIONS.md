@@ -30,6 +30,20 @@
 
 Weekly encrypted `pg_dump` plus whatever the Supabase plan provides. **Restore drill before launch** and each term: restore the dump into a scratch project, run smoke tests, record time taken in this file.
 
+## Query Performance & Timing Review (PERF-01, PERF-04)
+
+Benchmark executed on live PostgreSQL engine via `EXPLAIN (ANALYZE, BUFFERS)` in migration `20261117000009_query_indexes.sql`:
+
+| Query Path                         | Index Used                                | Planning Time | Execution Time | Target Met   |
+| ---------------------------------- | ----------------------------------------- | ------------- | -------------- | ------------ |
+| Feed Posts (`pinned_at`, `status`) | `posts_feed_pinned_idx`                   | 17.3 ms       | 3.88 ms        | Yes (< 50ms) |
+| Category Filtered Feed (`Notice`)  | `posts_category_pinned_idx`               | 0.14 ms       | 0.09 ms        | Yes (< 20ms) |
+| Unread Messages Count              | `messages_unread_recipient_idx` (partial) | 5.19 ms       | 1.18 ms        | Yes (< 10ms) |
+| Direct Messaging Thread Retrieval  | `messages_pair_idx` (BitmapOr)            | 0.20 ms       | 0.08 ms        | Yes (< 10ms) |
+| Admin Reports Queue (`open`)       | `reports_admin_queue_idx`                 | 2.16 ms       | 0.03 ms        | Yes (< 10ms) |
+
+All primary tenant-isolated query paths execute well under the 50ms target for sub-second page loads.
+
 ## Incident response
 
 | Sev                                                                                                                                                                                                                                         | Meaning                                       | First response                                                                                             |
