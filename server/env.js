@@ -11,7 +11,8 @@ const envSchema = z.object({
   LLM_MODEL: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().url('UPSTASH_REDIS_REST_URL must be a valid URL').optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-  MAINTENANCE_MODE: z.string().optional()
+  MAINTENANCE_MODE: z.string().optional(),
+  SENTRY_DSN: z.string().optional()
 });
 
 const raw = {
@@ -25,7 +26,8 @@ const raw = {
   LLM_MODEL: process.env.LLM_MODEL || undefined,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || undefined,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
-  MAINTENANCE_MODE: process.env.MAINTENANCE_MODE || undefined
+  MAINTENANCE_MODE: process.env.MAINTENANCE_MODE || undefined,
+  SENTRY_DSN: process.env.SENTRY_DSN || undefined
 };
 
 const result = envSchema.safeParse(raw);
