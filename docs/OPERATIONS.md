@@ -30,6 +30,34 @@
 
 Weekly encrypted `pg_dump` plus whatever the Supabase plan provides. **Restore drill before launch** and each term: restore the dump into a scratch project, run smoke tests, record time taken in this file.
 
+## Query Performance & Timing Review (PERF-01, PERF-04)
+
+Benchmark executed on live PostgreSQL engine via `EXPLAIN (ANALYZE, BUFFERS)` in migration `20261117000009_query_indexes.sql`:
+
+| Query Path                         | Index Used                                | Planning Time | Execution Time | Target Met   |
+| ---------------------------------- | ----------------------------------------- | ------------- | -------------- | ------------ |
+| Feed Posts (`pinned_at`, `status`) | `posts_feed_pinned_idx`                   | 17.3 ms       | 3.88 ms        | Yes (< 50ms) |
+| Category Filtered Feed (`Notice`)  | `posts_category_pinned_idx`               | 0.14 ms       | 0.09 ms        | Yes (< 20ms) |
+| Unread Messages Count              | `messages_unread_recipient_idx` (partial) | 5.19 ms       | 1.18 ms        | Yes (< 10ms) |
+| Direct Messaging Thread Retrieval  | `messages_pair_idx` (BitmapOr)            | 0.20 ms       | 0.08 ms        | Yes (< 10ms) |
+| Admin Reports Queue (`open`)       | `reports_admin_queue_idx`                 | 2.16 ms       | 0.03 ms        | Yes (< 10ms) |
+
+All primary tenant-isolated query paths execute well under the 50ms target for sub-second page loads.
+
+## Load Smoke Test Benchmark (PERF-02, PERF-03)
+
+Load smoke tests executed using `autocannon` (`npm run test:load`) over HTTP keep-alive connections:
+
+- **Target Route:** `/api/health`
+- **Concurrency:** 10 connections
+- **Duration:** 5 seconds
+- **Throughput:** ~222 requests/second
+- **Average Latency:** 44.7 ms
+- **p50 Latency:** 6.0 ms
+- **Errors / Timeouts:** 0 / 0
+- **Rate Limit Resilience:** Rate limiting correctly triggers HTTP 429 when single-IP thresholds (300 requests / 15 min) are exceeded.
+- **Outage Handling (PERF-03):** Total database disconnection returns graceful HTTP 503 (`{ ok: false, db: false }`) with complete security headers preserved without terminating the application process.
+
 ## Incident response
 
 | Sev                                                                                                                                                                                                                                         | Meaning                                       | First response                                                                                             |

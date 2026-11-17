@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
@@ -13,9 +13,10 @@ import Polls from './pages/Polls.jsx';
 import Messages from './pages/Messages.jsx';
 import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
-import Admin from './pages/Admin.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { Privacy, Terms, Cookies, Guidelines, Accessibility, Contact } from './pages/Legal.jsx';
+
+const Admin = lazy(() => import('./pages/Admin.jsx'));
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -111,7 +112,15 @@ export default function App() {
               path="admin"
               element={
                 ready && state.user.role === 'admin' ? (
-                  <Admin />
+                  <Suspense
+                    fallback={
+                      <div className="page loading-state">
+                        <p className="muted">Loading administrative console...</p>
+                      </div>
+                    }
+                  >
+                    <Admin />
+                  </Suspense>
                 ) : (
                   <Navigate to="/app/feed" replace />
                 )
