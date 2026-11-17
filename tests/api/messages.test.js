@@ -299,4 +299,182 @@ describe('Messages API (MSG-01..MSG-10)', () => {
       expect(tRes.body.people.some((u) => u.id === teacherA1Id)).toBe(false); // not self
     });
   });
+
+  describe('MSG-08: User Blocking', () => {
+    it('MSG-08: block and unblock work; message send rejected with 403; people picker hides blockers', async () => {
+      const teacherCookie = await loginAs('teacher_a1');
+      const studentCookie = await loginAs('student_a1');
+
+      // 1. Initial state: teacher sees student in people picker
+      const initialPeople = await request(app)
+        .get('/api/messages/people')
+        .set('Cookie', teacherCookie);
+      expect(initialPeople.body.people.some((p) => p.id === studentA1Id)).toBe(true);
+
+      // 2. Teacher blocks student_a1
+      const blockRes = await request(app)
+        .post(`/api/messages/blocks/${studentA1Id}`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(blockRes.status).toBe(200);
+      expect(blockRes.body).toEqual({ ok: true, blocked: true });
+
+      // List blocks
+      const listRes = await request(app).get('/api/messages/blocks').set('Cookie', teacherCookie);
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.blocked).toContain(studentA1Id);
+
+      // 3. People picker hides student from teacher and teacher from student
+      const teacherPeople = await request(app)
+        .get('/api/messages/people')
+        .set('Cookie', teacherCookie);
+      expect(teacherPeople.body.people.some((p) => p.id === studentA1Id)).toBe(false);
+
+      const studentPeople = await request(app)
+        .get('/api/messages/people')
+        .set('Cookie', studentCookie);
+      expect(studentPeople.body.people.some((p) => p.id === teacherA1Id)).toBe(false);
+
+      // 4. Message send rejected in both directions (403)
+      const sendFromTeacher = await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Hello student' });
+      expect(sendFromTeacher.status).toBe(403);
+      expect(sendFromTeacher.body.error).toContain('Cannot message this user');
+
+      const sendFromStudent = await request(app)
+        .post('/api/messages')
+        .set('Cookie', studentCookie)
+        .send({ toUserId: teacherA1Id, body: 'Hello teacher' });
+      expect(sendFromStudent.status).toBe(403);
+      expect(sendFromStudent.body.error).toContain('Cannot message this user');
+
+      // 5. Thread endpoint reflects block status
+      const threadRes = await request(app)
+        .get(`/api/messages/with/${studentA1Id}`)
+        .set('Cookie', teacherCookie);
+      expect(threadRes.status).toBe(200);
+      expect(threadRes.body.isBlocked).toBe(true);
+
+      // 6. Teacher unblocks student_a1
+      const unblockRes = await request(app)
+        .delete(`/api/messages/blocks/${studentA1Id}`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(unblockRes.status).toBe(200);
+      expect(unblockRes.body).toEqual({ ok: true, blocked: false });
+
+      // Verify unblocked: people picker shows student again
+      const teacherPeopleAfter = await request(app)
+        .get('/api/messages/people')
+        .set('Cookie', teacherCookie);
+      expect(teacherPeopleAfter.body.people.some((p) => p.id === studentA1Id)).toBe(true);
+
+      // Messaging succeeds again
+      const sendAfterUnblock = await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Hello again student' });
+      expect(sendAfterUnblock.status).toBe(201);
+    });
+
+    it('MSG-08: rejects blocking self (400) and foreign community user (404)', async () => {
+      const teacherCookie = await loginAs('teacher_a1');
+      const foreignUserId = '00000000-0000-0000-0002-000000000002'; // Teacher in community B
+
+      // Self
+      const selfRes = await request(app)
+        .post(`/api/messages/blocks/${teacherA1Id}`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(selfRes.status).toBe(400);
+
+      // Foreign
+      const foreignRes = await request(app)
+        .post(`/api/messages/blocks/${foreignUserId}`)
+        .set('Cookie', teacherCookie)
+        .send({});
+      expect(foreignRes.status).toBe(404);
+    });
+  });
+
+  describe('MSG-09: Unread Message Counts and Read Receipts', () => {
+    it('MSG-09: unread counts update when recipient opens thread', async () => {
+      const teacherCookie = await loginAs('teacher_a1');
+      const studentCookie = await loginAs('student_a1');
+
+      // Clear existing messages for this pair in mockDb to start clean
+      mockDb.messages = mockDb.messages.filter(
+        (m) =>
+          !(
+            (m.sender_id === teacherA1Id && m.recipient_id === studentA1Id) ||
+            (m.sender_id === studentA1Id && m.recipient_id === teacherA1Id)
+          )
+      );
+
+      // Verify student has 0 unread initially
+      const unread0 = await request(app).get('/api/messages/unread').set('Cookie', studentCookie);
+      expect(unread0.status).toBe(200);
+      expect(unread0.body.total).toBe(0);
+
+      // Teacher sends 2 messages to student
+      await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Message 1' });
+
+      await request(app)
+        .post('/api/messages')
+        .set('Cookie', teacherCookie)
+        .send({ toUserId: studentA1Id, body: 'Message 2' });
+
+      // Student checks unread: total 2, bySender[teacherA1Id] === 2
+      const unreadStudent = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', studentCookie);
+      expect(unreadStudent.status).toBe(200);
+      expect(unreadStudent.body.total).toBe(2);
+      expect(unreadStudent.body.bySender[teacherA1Id]).toBe(2);
+
+      // Teacher checks unread: 0 (sender has no unread messages)
+      const unreadTeacher = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', teacherCookie);
+      expect(unreadTeacher.status).toBe(200);
+      expect(unreadTeacher.body.total).toBe(0);
+
+      // Student checks threads list: thread shows unreadCount === 2
+      const threadsStudent = await request(app)
+        .get('/api/messages/threads')
+        .set('Cookie', studentCookie);
+      expect(threadsStudent.status).toBe(200);
+      const teacherThread = threadsStudent.body.threads.find((t) => t.with.id === teacherA1Id);
+      expect(teacherThread).toBeDefined();
+      expect(teacherThread.unreadCount).toBe(2);
+
+      // Student opens the thread with teacher
+      const openRes = await request(app)
+        .get(`/api/messages/with/${teacherA1Id}`)
+        .set('Cookie', studentCookie);
+      expect(openRes.status).toBe(200);
+      expect(openRes.body.messages).toHaveLength(2);
+
+      // Student checks unread after opening: total is now 0
+      const unreadAfterOpen = await request(app)
+        .get('/api/messages/unread')
+        .set('Cookie', studentCookie);
+      expect(unreadAfterOpen.status).toBe(200);
+      expect(unreadAfterOpen.body.total).toBe(0);
+
+      // Student checks threads list after opening: unreadCount is now 0
+      const threadsAfterOpen = await request(app)
+        .get('/api/messages/threads')
+        .set('Cookie', studentCookie);
+      const teacherThreadAfter = threadsAfterOpen.body.threads.find(
+        (t) => t.with.id === teacherA1Id
+      );
+      expect(teacherThreadAfter.unreadCount).toBe(0);
+    });
+  });
 });

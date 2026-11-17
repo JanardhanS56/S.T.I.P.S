@@ -266,6 +266,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0001-000000000002',
       recipient_id: '00000000-0000-0000-0001-000000000003',
       body: 'Hello Student A1 from Teacher A1',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     {
@@ -274,6 +275,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0002-000000000002',
       recipient_id: '00000000-0000-0000-0002-000000000003',
       body: 'Hello Beta Student from Beta Teacher',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     ...(initialData.messages || [])
@@ -305,6 +307,7 @@ export function createMockDb(initialData = {}) {
 
   const post_replies = [...(initialData.post_replies || initialData.replies || [])];
   const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
+  const user_blocks = [...(initialData.user_blocks || initialData.blocks || [])];
 
   const tables = {
     communities,
@@ -314,6 +317,8 @@ export function createMockDb(initialData = {}) {
     replies: post_replies,
     post_reactions,
     reactions: post_reactions,
+    user_blocks,
+    blocks: user_blocks,
     polls,
     poll_options,
     poll_votes,
@@ -452,6 +457,12 @@ export function createMockDb(initialData = {}) {
           filters.push((item) => item[col] !== val);
           return queryBuilder;
         },
+        is(col, val) {
+          filters.push((item) =>
+            val === null ? item[col] === null || item[col] === undefined : item[col] === val
+          );
+          return queryBuilder;
+        },
         in(col, vals) {
           filters.push((item) => vals.includes(item[col]));
           return queryBuilder;
@@ -487,14 +498,12 @@ export function createMockDb(initialData = {}) {
                 });
               });
             }
-            if (expression.includes('sender_id.eq') && expression.includes('recipient_id.eq')) {
-              const matches = expression.match(/[a-z_]+\.eq\.([0-9a-f-]+)/g);
-              if (matches) {
-                return matches.some((m) => {
-                  const [k, v] = m.split('.eq.');
-                  return item[k] === v;
-                });
-              }
+            const matches = expression.match(/[a-z_]+\.eq\.[^,]+/g);
+            if (matches) {
+              return matches.some((m) => {
+                const [k, v] = m.split('.eq.');
+                return item[k] === v;
+              });
             }
             return true;
           });
@@ -532,6 +541,16 @@ export function createMockDb(initialData = {}) {
                 continue;
               }
             }
+            if (tableName === 'user_blocks' || tableName === 'blocks') {
+              const existingIdx = user_blocks.findIndex(
+                (b) => b.blocker_id === item.blocker_id && b.blocked_id === item.blocked_id
+              );
+              if (existingIdx !== -1) {
+                user_blocks[existingIdx] = { ...user_blocks[existingIdx], ...item };
+                insertedRecord = user_blocks[existingIdx];
+                continue;
+              }
+            }
             const record = {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
@@ -542,6 +561,7 @@ export function createMockDb(initialData = {}) {
                 ? { status: 'visible' }
                 : {}),
               ...(tableName === 'reports' ? { status: 'open' } : {}),
+              ...(tableName === 'messages' ? { read_at: null } : {}),
               ...item
             };
             if (tableName === 'post_replies' || tableName === 'replies') {
