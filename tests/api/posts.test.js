@@ -671,4 +671,113 @@ describe('Posts API (POST-01..POST-09)', () => {
       expect(reactRes.body.error).toContain('muted');
     });
   });
+
+  describe('POST-11: Official and Pinned Posts', () => {
+    it('POST-11: admin can create official post, while student/teacher get 403', async () => {
+      const adminCookie = await loginAs('admin_a');
+      const studentCookie = await loginAs('student_a1');
+      const teacherCookie = await loginAs('teacher_a1');
+
+      // Student attempt
+      const studentRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Student trying official', category: 'Notice', is_official: true });
+      expect(studentRes.status).toBe(403);
+
+      // Teacher attempt
+      const teacherRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', teacherCookie)
+        .send({ body: 'Teacher trying official', category: 'Notice', is_official: true });
+      expect(teacherRes.status).toBe(403);
+
+      // Admin succeeds
+      const adminRes = await request(app)
+        .post('/api/posts')
+        .set('Cookie', adminCookie)
+        .send({ body: 'Official campus announcement', category: 'Notice', is_official: true });
+      expect(adminRes.status).toBe(201);
+      const postId = adminRes.body.id;
+
+      // GET /api/posts/:id verifies is_official is true
+      const getPost = await request(app).get(`/api/posts/${postId}`).set('Cookie', studentCookie);
+      expect(getPost.status).toBe(200);
+      expect(getPost.body.post.is_official).toBe(true);
+    });
+
+    it('POST-11: only admin can pin/unpin and mark official on existing posts; pinned shown first', async () => {
+      const adminCookie = await loginAs('admin_a');
+      const studentCookie = await loginAs('student_a1');
+
+      // Create an older post
+      const p1 = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Older post to be pinned', category: 'Notice' });
+      const p1Id = p1.body.id;
+
+      // Backdate p1 created_at in mockDb so p2 is newer
+      const dbPost1 = mockDb.posts.find((p) => p.id === p1Id);
+      dbPost1.created_at = new Date(Date.now() - 60000).toISOString();
+
+      // Create a newer regular post
+      const p2 = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Newer regular post', category: 'Notice' });
+      const p2Id = p2.body.id;
+
+      // Student cannot pin (403)
+      const studentPin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', studentCookie)
+        .send({ pinned: true });
+      expect(studentPin.status).toBe(403);
+
+      // Student cannot mark official (403)
+      const studentOff = await request(app)
+        .post(`/api/posts/${p1Id}/official`)
+        .set('Cookie', studentCookie)
+        .send({ official: true });
+      expect(studentOff.status).toBe(403);
+
+      // Admin pins older post
+      const adminPin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', adminCookie)
+        .send({ pinned: true });
+      expect(adminPin.status).toBe(200);
+      expect(adminPin.body.pinned).toBe(true);
+      expect(adminPin.body.pinned_at).toBeTruthy();
+
+      // Admin marks it official
+      const adminOff = await request(app)
+        .post(`/api/posts/${p1Id}/official`)
+        .set('Cookie', adminCookie)
+        .send({ official: true });
+      expect(adminOff.status).toBe(200);
+      expect(adminOff.body.is_official).toBe(true);
+
+      // Feed check: pinned post (p1) appears FIRST, ahead of newer post (p2)
+      const feedRes = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      expect(feedRes.status).toBe(200);
+      const postIndices = feedRes.body.posts.map((p) => p.id);
+      expect(postIndices.indexOf(p1Id)).toBeLessThan(postIndices.indexOf(p2Id));
+
+      // Admin unpins
+      const adminUnpin = await request(app)
+        .post(`/api/posts/${p1Id}/pin`)
+        .set('Cookie', adminCookie)
+        .send({ pinned: false });
+      expect(adminUnpin.status).toBe(200);
+      expect(adminUnpin.body.pinned).toBe(false);
+      expect(adminUnpin.body.pinned_at).toBeNull();
+
+      // Feed check after unpin: newer post (p2) is now ahead of older post (p1)
+      const feedRes2 = await request(app).get('/api/posts').set('Cookie', studentCookie);
+      const postIndices2 = feedRes2.body.posts.map((p) => p.id);
+      expect(postIndices2.indexOf(p2Id)).toBeLessThan(postIndices2.indexOf(p1Id));
+    });
+  });
 });
