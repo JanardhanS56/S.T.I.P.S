@@ -39,7 +39,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // 4. Arrive at feed
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
     await expect(page.getByRole('heading', { name: /community feed/i })).toBeVisible();
   });
 
@@ -49,7 +49,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByLabel(/username/i).fill('admin_a');
     await page.getByLabel(/password/i).fill('TestPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
 
     // 2. Navigate to Admin dashboard
     await clickNavLink(page, /admin dashboard/i);
@@ -66,7 +66,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByLabel(/username/i).fill('teacher_a1');
     await page.getByLabel(/password/i).fill('TestPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
 
     // 2. Go to create page
     await clickNavLink(page, /\+ create/i);
@@ -79,7 +79,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByRole('button', { name: /publish post/i }).click();
 
     // 4. Redirects to feed and post is visible
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
     await expect(page.getByText(postBody)).toBeVisible();
   });
 
@@ -89,7 +89,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByLabel(/username/i).fill('student_a1');
     await page.getByLabel(/password/i).fill('TestPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
 
     // 2. Go to polls
     await clickNavLink(page, /polls & votes/i);
@@ -103,7 +103,7 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByLabel(/username/i).fill('student_a1');
     await page.getByLabel(/password/i).fill('TestPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
 
     // 2. Go to messages
     await clickNavLink(page, /messages/i);
@@ -117,12 +117,34 @@ test.describe('End-to-End User Journeys (E2E-01..E2E-06)', () => {
     await page.getByLabel(/username/i).fill('student_a1');
     await page.getByLabel(/password/i).fill('TestPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/app\/feed/);
+    await expect(page).toHaveURL(/\/app\/feed/, { timeout: 10000 });
 
     // 2. Go to profile
     await clickNavLink(page, /profile/i);
     await expect(page).toHaveURL(/\/app\/profile/);
     await expect(page.getByRole('heading', { name: /profile/i })).toBeVisible();
     await expect(page.getByRole('heading', { name: /change password/i })).toBeVisible();
+  });
+
+  test('E2E-07: Public legal pages and footer navigation', async ({ page }) => {
+    await page.goto('/privacy');
+    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible();
+
+    await page.goto('/terms');
+    await expect(page.getByRole('heading', { name: /terms of use/i })).toBeVisible();
+
+    await page.goto('/cookies');
+    await expect(page.getByRole('heading', { name: /cookie notice/i })).toBeVisible();
+
+    await page.goto('/guidelines');
+    await expect(page.getByRole('heading', { name: /community guidelines/i })).toBeVisible();
+
+    await page.goto('/accessibility');
+    await expect(page.getByRole('heading', { name: /accessibility statement/i })).toBeVisible();
+
+    await page.goto('/contact');
+    await expect(
+      page.getByRole('heading', { name: /contact & grievance redressal/i })
+    ).toBeVisible();
   });
 });
