@@ -269,4 +269,132 @@ r.get(
   })
 );
 
+// List deletion requests for community
+r.get(
+  '/deletion-requests',
+  h(async (req, res) => {
+    const { data: requests, error } = await db
+      .from('account_deletion_requests')
+      .select(
+        'id,user_id,community_id,status,reason,created_at,reviewed_at,user:users!user_id(id,username,display_name,role)'
+      )
+      .eq('community_id', req.user.community_id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ requests: requests || [] });
+  })
+);
+
+// Confirm deletion request and anonymize user
+r.post(
+  '/deletion-requests/:id/confirm',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { data: request, error: reqErr } = await db
+      .from('account_deletion_requests')
+      .select('id,user_id,community_id,status,reason')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (reqErr || !request || request.community_id !== req.user.community_id) {
+      throw new HttpError(404, 'Deletion request not found.');
+    }
+    if (request.status !== 'pending') {
+      throw new HttpError(400, 'Deletion request has already been reviewed.');
+    }
+
+    const { data: targetUser } = await db
+      .from('users')
+      .select('id,username,role,token_version')
+      .eq('id', request.user_id)
+      .maybeSingle();
+
+    if (!targetUser) throw new HttpError(404, 'User not found.');
+    if (targetUser.role === 'admin')
+      throw new HttpError(403, 'Admin accounts cannot be deleted here.');
+
+    const anonymizedUsername = `deleted-${targetUser.id.slice(0, 8)}`;
+    const now = new Date().toISOString();
+
+    // Anonymize user record
+    await db
+      .from('users')
+      .update({
+        username: anonymizedUsername,
+        display_name: 'Deleted user',
+        bio: '',
+        department: '',
+        status: 'suspended',
+        password_hash: '$2a$10$disabledaccountdisabledaccountdisabledaccountdisab',
+        token_version: (targetUser.token_version ?? 0) + 1
+      })
+      .eq('id', targetUser.id);
+
+    // Update request
+    await db
+      .from('account_deletion_requests')
+      .update({
+        status: 'confirmed',
+        reviewed_at: now,
+        reviewed_by: req.user.id
+      })
+      .eq('id', id);
+
+    await audit(
+      req,
+      'account_deletion_confirm',
+      { type: 'user', id: targetUser.id },
+      {
+        requestId: id,
+        previousUsername: targetUser.username,
+        reason: request.reason || null
+      }
+    );
+
+    res.json({ ok: true, anonymizedUsername });
+  })
+);
+
+// Reject deletion request
+r.post(
+  '/deletion-requests/:id/reject',
+  h(async (req, res) => {
+    const id = parse(uuid, req.params.id);
+    const { data: request } = await db
+      .from('account_deletion_requests')
+      .select('id,user_id,community_id,status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!request || request.community_id !== req.user.community_id) {
+      throw new HttpError(404, 'Deletion request not found.');
+    }
+    if (request.status !== 'pending') {
+      throw new HttpError(400, 'Deletion request has already been reviewed.');
+    }
+
+    const now = new Date().toISOString();
+    await db
+      .from('account_deletion_requests')
+      .update({
+        status: 'rejected',
+        reviewed_at: now,
+        reviewed_by: req.user.id
+      })
+      .eq('id', id);
+
+    await audit(
+      req,
+      'account_deletion_reject',
+      { type: 'user', id: request.user_id },
+      {
+        requestId: id
+      }
+    );
+
+    res.json({ ok: true });
+  })
+);
+
 export default r;
