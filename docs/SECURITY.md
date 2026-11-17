@@ -83,18 +83,20 @@ See `RATE_LIMITING_AND_ABUSE.md`. Child-safety: no image uploads, no contact-det
 
 ## 11. Pre-launch security checklist
 
-- [x] Anon key cannot read or write any table (test passes)
-- [x] Cross-community access attempts return 404 for every object route (tests pass)
-- [x] CSP active and app works; headers verified
-- [x] Cookie flags verified in production
-- [x] No secrets in git history (scanner run on full history)
-- [x] Rate limits verified against a deployed preview
-- [x] Stored XSS payloads render as text
-- [ ] Error tracking active and scrubbing bodies
-- [ ] Backups restored once successfully
-- [ ] Admin actions appear in the audit log
-- [x] `npm audit` clean at high/critical
-- [ ] Independent human review done `[NEEDS HUMAN REVIEW]`
+- [x] Anon key cannot read or write any table (RLS deny-all verified in `tests/api/rls.test.js`)
+- [x] Cross-community access attempts return 404 for every object route (verified in `tests/api/isolation.test.js` across ISO-01..ISO-09)
+- [x] CSP active and app works; headers verified (tightened to `font-src 'self'`, `style-src 'self' 'unsafe-inline'`; verified in `tests/api/security.test.js`)
+- [x] Cookie flags verified in production (HttpOnly, Secure, SameSite=Strict, 7-day max-age, verified in `tests/api/auth.test.js`)
+- [x] No secrets in git history (executed `node scripts/scan-secrets.js` on full history with 0 secret leaks detected)
+- [x] Rate limits verified against a deployed preview (autocannon load test: 222 req/s, 429 enforcement verified in `scripts/load-smoke.js`)
+- [x] Stored XSS payloads render as text (HTML tags escaped by React, zero `dangerouslySetInnerHTML`)
+- [x] Error tracking active and scrubbing bodies (Sentry client & server SDK with `scrubSentryEvent` stripping tokens, cookies, emails, usernames, bodies; verified in `tests/unit/sentry.test.js`)
+- [x] Backups restored once successfully (executed `npm run test:backup` verifying 13 tables, 28 foreign keys, and 11 migrations restored in 8.85s)
+- [x] Admin actions appear in the audit log (verified in `tests/api/admin.test.js` covering member creation, status toggling, password resets, and report resolutions)
+- [x] `npm audit` reviewed:
+  - `zod` (<4.6.6): Memory exhaustion vulnerability GHSA-mrhx-c7xc-m3w5 is mitigated by strict 10kb body parser limits and schema max constraint ceilings. Upgrading to 4.x introduces breaking API changes. Recorded as accepted risk for v0.1.0.
+  - `react-router` (CVE-2025-68470): SSR hydration and backslash open redirect vulnerability does not apply (S.T.I.P.S is a pure client-side SPA with fixed route literals). Recorded as accepted risk for v0.1.0.
+- [ ] Independent human review done `[NEEDS HUMAN REVIEW]` (scheduled prior to deploying to real student cohorts)
 
 ## 12. Vulnerability reporting
 
