@@ -12,6 +12,7 @@ import Polls from './pages/Polls.jsx';
 import Messages from './pages/Messages.jsx';
 import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
+import Admin from './pages/Admin.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { Privacy, Guidelines, Cookies } from './pages/Legal.jsx';
 
@@ -32,7 +33,8 @@ function RouteFocusAndTitle() {
       '/app/polls': 'Polls & Votes',
       '/app/messages': 'Messages',
       '/app/profile': 'Profile',
-      '/app/create': 'Create'
+      '/app/create': 'Create',
+      '/app/admin': 'Admin Dashboard'
     };
 
     const path = location.pathname;
@@ -98,6 +100,16 @@ export default function App() {
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="create" element={<Create />} />
+            <Route
+              path="admin"
+              element={
+                ready && state.user.role === 'admin' ? (
+                  <Admin />
+                ) : (
+                  <Navigate to="/app/feed" replace />
+                )
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Route>
           <Route path="*" element={<NotFound />} />

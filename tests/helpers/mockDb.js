@@ -308,6 +308,7 @@ export function createMockDb(initialData = {}) {
   const post_replies = [...(initialData.post_replies || initialData.replies || [])];
   const post_reactions = [...(initialData.post_reactions || initialData.reactions || [])];
   const user_blocks = [...(initialData.user_blocks || initialData.blocks || [])];
+  const audit_log = [...(initialData.audit_log || [])];
 
   const tables = {
     communities,
@@ -323,7 +324,8 @@ export function createMockDb(initialData = {}) {
     poll_options,
     poll_votes,
     messages,
-    reports
+    reports,
+    audit_log
   };
 
   return {
@@ -404,6 +406,16 @@ export function createMockDb(initialData = {}) {
         } else if (tableName === 'reports') {
           const reporter = users.find((u) => u.id === copy.reporter_id);
           copy.reporter = reporter ? { username: reporter.username } : null;
+        } else if (tableName === 'audit_log') {
+          const actor = users.find((u) => u.id === copy.actor_id);
+          copy.actor = actor
+            ? {
+                id: actor.id,
+                username: actor.username,
+                display_name: actor.display_name,
+                role: actor.role
+              }
+            : null;
         }
         return copy;
       };
