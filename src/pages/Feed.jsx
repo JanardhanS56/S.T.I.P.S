@@ -35,6 +35,8 @@ export default function Feed() {
   const [text, setText] = useState('');
   const [cat, setCat] = useState('Notice');
   const [isOfficial, setIsOfficial] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
 
@@ -45,6 +47,7 @@ export default function Feed() {
       const q = filter === 'All' ? '' : `?category=${filter}`;
       const res = await api.get(`/posts${q}`);
       setPosts(res.posts);
+      setNextCursor(res.nextCursor);
     } catch (e) {
       if (e.status === 429) {
         setRateLimitErr(e);
@@ -55,6 +58,26 @@ export default function Feed() {
       setLoading(false);
     }
   }, [filter]);
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const q =
+        filter === 'All' ? `?before=${nextCursor}` : `?category=${filter}&before=${nextCursor}`;
+      const res = await api.get(`/posts${q}`);
+      setPosts((prev) => [...prev, ...res.posts]);
+      setNextCursor(res.nextCursor);
+    } catch (e) {
+      if (e.status === 429) {
+        setRateLimitErr(e);
+      } else {
+        alert(e.message);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     load();
@@ -291,6 +314,18 @@ export default function Feed() {
             title="Nothing here yet"
             description="Be the first to post something for your campus."
           />
+        )}
+        {nextCursor && (
+          <div className="row center" style={{ justifyContent: 'center', marginTop: '16px' }}>
+            <Button
+              variant="outline"
+              loading={loadingMore}
+              onClick={loadMore}
+              style={{ minWidth: '160px' }}
+            >
+              Load more
+            </Button>
+          </div>
         )}
       </div>
     </div>
