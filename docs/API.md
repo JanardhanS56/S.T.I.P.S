@@ -14,23 +14,34 @@ All endpoints are under `/api`. Writes need `Content-Type: application/json`. Er
 | POST   | /auth/change-password           | yes            | `current, next`                       | next is at least 10 characters                              |
 | PATCH  | /auth/profile                   | yes, not muted | `displayName, bio`                    | screened                                                    |
 | GET    | /posts                          | yes            | `?category=&before=&limit=`           | cursor-paginated visible posts (limit <= 50, nextCursor)    |
+| GET    | /posts/:id                      | yes            |                                       | thread view: post with depth-1 replies and reaction counts  |
 | POST   | /posts                          | yes, not muted | `body (<=280), category`              | 10/hr, min 3s gap, no duplicates in 10m, screened           |
+| POST   | /posts/:id/replies              | yes, not muted | `body (<=280)`                        | depth-1 reply; same moderation and gap limits apply         |
+| POST   | /posts/:id/reactions            | yes, not muted | `kind: like, thanks, laugh`           | toggle reaction; repeat un-reacts, new kind switches        |
+| POST   | /posts/:id/pin                  | admin          | `isPinned: boolean`                   | pins/unpins post to top of community feed                   |
+| POST   | /posts/:id/official             | admin          | `isOfficial: boolean`                 | marks post with official community badge                    |
 | DELETE | /posts/:id                      | yes            |                                       | author or admin; hides the post                             |
 | GET    | /polls                          | yes            |                                       | results shown only after you vote, after close, or to admin |
 | POST   | /polls                          | yes, not muted | `question, options[2..6], days[1..7]` | 5 per day, screened                                         |
 | POST   | /polls/:id/vote                 | yes, not muted | `optionId`                            | one vote each (409 if repeated or closed)                   |
 | POST   | /polls/:id/close                | yes            |                                       | author or admin closes active poll early                    |
-| GET    | /messages/people                | yes            |                                       | people you may message                                      |
+| GET    | /messages/people                | yes            |                                       | people you may message (excludes blockers)                  |
 | GET    | /messages/threads               | yes            |                                       | one entry per conversation                                  |
-| GET    | /messages/with/:userId          | yes            |                                       | up to 200 messages                                          |
+| GET    | /messages/unread                | yes            |                                       | unread message counts per sender and total unread           |
+| GET    | /messages/blocks                | yes            |                                       | list of user IDs blocked by current user                    |
+| POST   | /messages/blocks                | yes            | `targetUserId`                        | blocks target user from sending messages                    |
+| DELETE | /messages/blocks/:targetUserId  | yes            |                                       | unblocks target user                                        |
+| GET    | /messages/with/:userId          | yes            |                                       | up to 200 messages; marks thread read for reader            |
 | POST   | /messages                       | yes, not muted | `toUserId, body (<=500)`              | 60 per hour, screened, contact info blocked                 |
 | POST   | /reports                        | yes            | `targetType, targetId, reason`        | 20 per day                                                  |
 | GET    | /admin/community                | admin          |                                       | name and code                                               |
+| GET    | /admin/members                  | admin          | `?role=&status=&search=`              | list community members                                      |
 | POST   | /admin/members                  | admin          | `members[{name, role}]` up to 200     | returns usernames and one-time passwords once               |
 | GET    | /admin/reports                  | admin          |                                       | open reports                                                |
 | POST   | /admin/reports/:id/resolve      | admin          | `action: hide or dismiss`             |                                                             |
 | POST   | /admin/users/:id/status         | admin          | `status: active, muted, suspended`    | cannot target admins                                        |
 | POST   | /admin/users/:id/reset-password | admin          |                                       | returns a new one-time password                             |
+| GET    | /admin/audit                    | admin          | `?action=&limit=`                     | audit log for community admin actions                       |
 
 Status codes you will see:
 
