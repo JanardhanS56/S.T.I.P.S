@@ -10,6 +10,8 @@ export default function Profile() {
   const [pw, setPw] = useState({ current: '', next: '' });
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportMsg, setExportMsg] = useState('');
   const initials = user.displayName
     .split(/\s+/)
     .map((w) => w[0])
@@ -29,6 +31,7 @@ export default function Profile() {
       setErr(e2.message);
     }
   }
+
   async function changePw(e) {
     e.preventDefault();
     setErr('');
@@ -39,6 +42,30 @@ export default function Profile() {
       setMsg('Password changed.');
     } catch (e2) {
       setErr(e2.message);
+    }
+  }
+
+  async function handleExport() {
+    setErr('');
+    setMsg('');
+    setExportMsg('');
+    setExporting(true);
+    try {
+      const data = await api.get('/me/export');
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stips-data-export-${user.username}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setExportMsg('Export complete! Your download should begin automatically.');
+    } catch (e2) {
+      setErr(e2.message || 'Export failed.');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -103,6 +130,32 @@ export default function Profile() {
           Your name, username, role and bio, only to people in your community. Your password is
           never shown. There is no phone number or email field on S.T.I.P.S.
         </p>
+      </section>
+
+      <section
+        className="narrow"
+        style={{
+          marginTop: '32px',
+          paddingTop: '24px',
+          borderTop: '1px solid var(--line)'
+        }}
+      >
+        <h3>Your Data &amp; Privacy</h3>
+        <p className="small muted">
+          In compliance with digital data protection principles, you may download a complete,
+          machine-readable archive of your personal account data, authored posts, replies, poll
+          votes, and direct messages.
+        </p>
+        <div style={{ marginTop: '16px' }}>
+          <Button type="button" variant="outline" loading={exporting} onClick={handleExport}>
+            Export my data (JSON)
+          </Button>
+        </div>
+        {exportMsg && (
+          <Banner variant="success" style={{ marginTop: '12px' }}>
+            {exportMsg}
+          </Banner>
+        )}
       </section>
     </div>
   );
