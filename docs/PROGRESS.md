@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 3 (Phase B Complete)
-- Branch: main (Phase B merged, ready for feat/d3-messages-polls)
-- Last green check: npm run lint, npm test, npm run build (169 tests passing across 15 test suites)
-- First task for next session / phase: Day 3 Phase C, task D3-09 (Blocks: migration `blocks`, endpoints block/unblock/list, tests MSG-08, thread UI)
+- Day: 3 (Phase C Complete)
+- Branch: main (Phase C merged, ready for feat/d3-admin-e2e)
+- Last green check: npm run lint, npm test, npm run build (172 tests passing across 15 test suites)
+- First task for next session / phase: Day 3 Phase D, tasks D3-13..D3-17 (Admin dashboard, member management, report resolution, audit log export, and Playwright E2E suite)
 
 ## Blocked / needs owner
 
@@ -15,18 +15,24 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Post replies: migration `20261117000001_post_replies.sql` creates `post_replies` (`parent_id`, `post_id`, `author_id`, `body`, `status`, RLS enabled). Replies are limited to strict depth 1 by having `loadInCommunity` enforce that replies can only target parent posts in the `posts` table (replying to a reply returns 404).
-- Dedicated thread page (`src/pages/Thread.jsx`) mounted at `/app/feed/:id` with skeleton loader, empty state, reply composer with 280-char counter, and reply list with report action.
-- Post reactions: migration `20261117000002_post_reactions.sql` creates `post_reactions` with compound primary key `(post_id, user_id)` and checked enum kinds (`like`, `thanks`, `laugh`). Toggle endpoint `POST /api/posts/:id/reactions` removes identical reaction, switches kind when different, enforces hourly reaction cap (120/hr), and blocks muted users (403). Aggregated counts and user's reaction returned in `GET /api/posts` and `GET /api/posts/:id`.
-- Reaction UI: accessible `<button type="button" aria-pressed={...}>` with min-height 44px, no pill buttons or floating emojis, with descriptive accessible labels.
-- Official & Pinned posts: migration `20261117000003_pinned_official_posts.sql` adds `pinned_at timestamptz` and `is_official boolean` to `posts`. Only admin can set official or pin posts (`POST /api/posts/:id/pin` and `POST /api/posts/:id/official` or creating with `is_official: true`). Feed sorts `pinned_at desc nulls last, created_at desc` so pinned posts stay at top. Visual indicators include `📌 PINNED` badge, 3px left border on card, and `OFFICIAL` badge.
-- Feed cursor pagination: "Load more" button fetches `GET /api/posts?before=${nextCursor}` and appends to existing feed without disruptive infinite scrolling, ensuring keyboard and screen-reader accessibility.
+- User blocks: migration `20261117000004_user_blocks.sql` stores `(blocker_id, blocked_id)` with RLS. Enforced symmetrically on sending direct messages (403 if either participant has blocked the other) and in `/api/messages/people` recipient picker (both parties hidden from each other). UI toggle button in thread header allows blocking/unblocking with confirmation, disabling message composer with a polite notice.
+- Message read receipts and unread counts: migration `20261117000005_message_read_at.sql` adds nullable `read_at timestamptz`. Reading a thread automatically marks incoming messages read with `read_at = now()`. `GET /api/messages/unread` aggregates total and per-sender unread messages. Thread list returns `unreadCount`. UI unread badges display in app navigation (`Shell.jsx`) and thread list (`Messages.jsx`).
+- Messaging UX: Auto-scroll to latest message via `useRef.scrollIntoView({ behavior: 'smooth' })`, accessible message timestamps with `<time>` elements, real-time 500-character counter, send-in-progress state disabling the send button, and Page Visibility API integration pausing 8-second polling while the tab is hidden.
+- Poll UX: Accessible progress bars with `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"` and detailed descriptive labels. Closes-in countdown timer ("Closes in X days/hours/min" or "Closed"). Early close button for poll author and admin calling `POST /api/polls/:id/close`. Clear "✓ Your vote" indicator for options voted on by current user. Poll creator allows adding and removing options dynamically between 2 and 6.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 11 - Day 3 Phase C (Messaging and Polls: D3-09..D3-12)
+
+- Task D3-09: Created migration `20261117000004_user_blocks.sql`. Added block/unblock endpoints `POST /api/messages/blocks/:userId`, `DELETE /api/messages/blocks/:userId`, `GET /api/messages/blocks`. Updated `mockDb.js` to support `user_blocks`. Enforced symmetric blocking on message sending (403) and filtered people picker. Added MSG-08 integration tests in `tests/api/messages.test.js`. Added block/unblock control and disabled composer notice in `Messages.jsx`.
+- Task D3-10: Created migration `20261117000005_message_read_at.sql`. Added automatic read mark on thread retrieval and explicit `POST /api/messages/with/:userId/read`. Added `GET /api/messages/unread` endpoint returning `{ total, bySender }` and `unreadCount` to `/threads`. Added MSG-09 integration tests in `tests/api/messages.test.js`. Added unread count badges in `Shell.jsx` nav and `Messages.jsx` thread list.
+- Task D3-11: Implemented smooth auto-scroll to newest message with `useRef`, accessible timestamps with `<time>` elements in message bubbles, live 500-character counter, `isSending` button disabling, and Page Visibility API pausing of 8s polling in `Messages.jsx` and `Shell.jsx`.
+- Task D3-12: Added accessible `role="progressbar"` attributes and percentage labels to poll results. Added remaining time countdown ("Closes in X days/hours/min" or "Closed"). Added "Close poll" early button for author and admin. Added "✓ Your vote" indicator. Updated poll creation form in `Create.jsx` to dynamically add and remove options between 2 and 6.
+- Verified lint, 172 tests, and production build. Merged `feat/d3-messages-polls` into `main` without squash and pushed to `origin`.
 
 ### Session 10 - Day 3 Phase B (Social Features: D3-05..D3-08)
 
