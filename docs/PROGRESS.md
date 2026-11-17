@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 3 Complete (Phases A, B, C, D merged into main)
+- Day: 4, Phase A Complete (Legal Pages and User Rights: D4-01..D4-04 merged into main)
 - Branch: main
-- Last green check: npm run lint, npm test, npm run build (181 unit/API tests passing across 16 suites), Playwright E2E (12/12 passing across Desktop & Mobile)
-- First task for next session / phase: Day 4, Task D4-01 (Accessibility audit & screen reader testing)
+- Last green check: npm run lint, npm test, npm run build (186 unit/API tests passing across 17 suites), Playwright E2E (14/14 passing across Desktop & Mobile Chrome)
+- First task for next session / phase: Day 4, Phase B: Quality, Accessibility, and Performance (Tasks D4-05..D4-08)
 
 ## Blocked / needs owner
 
@@ -15,15 +15,24 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Admin Audit Logging: Migration `20261117000006_audit_log.sql` tracks administrative actions with actor, community, action name, target type/id, and metadata. Helper `server/lib/audit.js` standardizes logging across routes. Endpoint `GET /api/admin/audit` allows admins to inspect history.
-- Admin Dashboard UI: Built unified `/app/admin` dashboard (`Admin.jsx`) containing Member management, Reports queue, Audit log view, and Bulk member provisioning. All state changes require accessible confirmation dialogs, and one-time credentials are shown with a copy control and safety notice.
-- E2E Testing with System Chrome: To accommodate low host disk space (~0.8 GB free on C:), Playwright is configured to leverage system Chrome locally (`channel: 'chrome'`) and fallback to standard Chromium in CI environments. Helper `clickNavLink` transparently handles mobile drawer opening on narrow viewports.
+- First-Login Consent Gate: Migration `20261117000007_terms_acceptance.sql` tracks `accepted_terms_at` and `terms_version` on `users`. `requireTerms` middleware denies app content actions until terms acceptance (`POST /api/auth/consent`). Frontend renders un-dismissible `ConsentModal` on first login until terms are agreed.
+- Data Subject Portability (ADM-08): Endpoint `GET /api/me/export` bundled with `enforceExportCap` (1 export/day) generates complete JSON archive of personal data, authored posts, replies, poll votes, and direct messages.
+- Account Erasure & Anonymization (ADM-08): Users request deletion via `POST /api/me/delete-request`. Admins review requests in `/app/admin` and confirm via `POST /api/admin/deletion-requests/:id/confirm`, which replaces user identity with `deleted-<id>` / "Deleted user", clears bio/email, invalidates credentials, revokes sessions, and records audit entry.
+- Public Legal Documentation: Full compliance suite under `/privacy`, `/terms`, `/cookies`, `/guidelines`, `/accessibility`, and `/contact` with unified `PublicFooter` on unauthenticated views.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 13 - Day 4 Phase A (Legal Pages and User Rights: D4-01..D4-04)
+
+- Task D4-01: Built `PublicFooter.jsx` with responsive grid of legal, institutional, and support links; wired into `Landing.jsx` and `Auth.jsx`. Rewrote `Legal.jsx` providing comprehensive compliance documents (`/privacy`, `/terms`, `/cookies`, `/guidelines`, `/accessibility`, `/contact`) with active cookie disclosures and institutional redressal contacts. Added source tracking annotations.
+- Task D4-02: Created Supabase migration `20261117000007_terms_acceptance.sql` adding `accepted_terms_at` and `terms_version` on `users`. Implemented `requireTerms` middleware in `server/session.js` safeguarding all app endpoints. Added `POST /api/auth/consent` in `server/routes/auth.js`. Built accessible `ConsentModal.jsx` and wired into `src/App.jsx`. Added AUTH-13 unit/integration tests in `tests/api/auth.test.js`.
+- Task D4-03: Implemented user data export (`GET /api/me/export`) with rate limit (1/day) in `server/routes/me.js` and `server/limits.js`. Packages user profile, authored posts, replies, poll votes, reactions, and direct messages in structured JSON. Added download trigger in `src/pages/Profile.jsx`. Added ADM-08 export tests in `tests/api/privacy.test.js`.
+- Task D4-04: Created Supabase migration `20261117000008_account_deletion_requests.sql`. Added `POST /api/me/delete-request` and `GET /api/me/delete-request`. Added admin endpoints `GET /api/admin/deletion-requests`, `POST /api/admin/deletion-requests/:id/confirm` (anonymizing username to `deleted-<id>`, display name to "Deleted user", revoking active sessions, invalidating credentials), and `POST /api/admin/deletion-requests/:id/reject`. Built Deletion Requests tab in `src/pages/Admin.jsx` with confirmation modal and deletion request trigger/status banner in `src/pages/Profile.jsx`. Added anonymization flow tests in `tests/api/privacy.test.js`.
+- Verified lint, all 186 unit/API tests, 14 Playwright E2E tests, and production build. Merged `feat/d4-legal-rights` into `main` without squash and pushed to `origin`.
 
 ### Session 12 - Day 3 Phase D (Admin, Audit, and E2E: D3-13..D3-17)
 
