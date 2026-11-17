@@ -9,7 +9,8 @@ import {
   Banner,
   EmptyState,
   Skeleton,
-  RateLimitNotice
+  RateLimitNotice,
+  ReactionGroup
 } from '../components/ui/index.js';
 
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
@@ -84,6 +85,37 @@ export default function Feed() {
       }
   }
 
+  async function toggleReaction(postId, kind) {
+    try {
+      const res = await api.post(`/posts/${postId}/reactions`, { kind });
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const oldKind = p.myReaction;
+          const newKind = res.kind;
+          const reactions = { ...(p.reactions || { like: 0, thanks: 0, laugh: 0 }) };
+          if (oldKind && reactions[oldKind] !== undefined) {
+            reactions[oldKind] = Math.max(0, reactions[oldKind] - 1);
+          }
+          if (newKind && reactions[newKind] !== undefined) {
+            reactions[newKind] = (reactions[newKind] || 0) + 1;
+          }
+          return {
+            ...p,
+            reactions,
+            myReaction: newKind
+          };
+        })
+      );
+    } catch (e2) {
+      if (e2.status === 429) {
+        setRateLimitErr(e2);
+      } else {
+        alert(e2.message);
+      }
+    }
+  }
+
   const left = MAX - text.length;
   return (
     <div className="page">
@@ -156,13 +188,28 @@ export default function Feed() {
                 </Badge>
               </div>
               <p className="post-body">{p.body}</p>
-              <div className="row between">
-                <Link to={`/app/feed/${p.id}`} className="link-btn small">
-                  Replies
-                </Link>
-                <Button variant="link" className="muted small" onClick={() => report(p.id)}>
-                  Report
-                </Button>
+              <div
+                className="row between"
+                style={{
+                  marginTop: '12px',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                <ReactionGroup
+                  reactions={p.reactions}
+                  myReaction={p.myReaction}
+                  onReact={(kind) => toggleReaction(p.id, kind)}
+                />
+                <div className="row" style={{ gap: '16px', alignItems: 'center' }}>
+                  <Link to={`/app/feed/${p.id}`} className="link-btn small">
+                    Replies
+                  </Link>
+                  <Button variant="link" className="muted small" onClick={() => report(p.id)}>
+                    Report
+                  </Button>
+                </div>
               </div>
             </Card>
           ))

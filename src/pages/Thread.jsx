@@ -8,7 +8,8 @@ import {
   Banner,
   EmptyState,
   Skeleton,
-  RateLimitNotice
+  RateLimitNotice,
+  ReactionGroup
 } from '../components/ui/index.js';
 
 const MAX = 280;
@@ -85,6 +86,35 @@ export default function Thread() {
     }
   }
 
+  async function toggleReaction(postId, kind) {
+    try {
+      const res = await api.post(`/posts/${postId}/reactions`, { kind });
+      setPost((prev) => {
+        if (!prev) return prev;
+        const oldKind = prev.myReaction;
+        const newKind = res.kind;
+        const reactions = { ...(prev.reactions || { like: 0, thanks: 0, laugh: 0 }) };
+        if (oldKind && reactions[oldKind] !== undefined) {
+          reactions[oldKind] = Math.max(0, reactions[oldKind] - 1);
+        }
+        if (newKind && reactions[newKind] !== undefined) {
+          reactions[newKind] = (reactions[newKind] || 0) + 1;
+        }
+        return {
+          ...prev,
+          reactions,
+          myReaction: newKind
+        };
+      });
+    } catch (e2) {
+      if (e2.status === 429) {
+        setRateLimitErr(e2);
+      } else {
+        alert(e2.message);
+      }
+    }
+  }
+
   const left = MAX - replyText.length;
 
   if (loading) {
@@ -145,7 +175,20 @@ export default function Thread() {
         <p className="post-body" style={{ fontSize: '18px', lineHeight: 1.5 }}>
           {post.body}
         </p>
-        <div className="row between" style={{ marginTop: '12px' }}>
+        <div
+          className="row between"
+          style={{
+            marginTop: '14px',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}
+        >
+          <ReactionGroup
+            reactions={post.reactions}
+            myReaction={post.myReaction}
+            onReact={(kind) => toggleReaction(post.id, kind)}
+          />
           <Button variant="link" className="muted small" onClick={() => report(post.id, 'post')}>
             Report
           </Button>
