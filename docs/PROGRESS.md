@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 3 (Phase A Complete)
-- Branch: main (Phase A merged, ready for feat/d3-social)
-- Last green check: npm run lint, npm test, npm run build (158 tests passing across 15 test suites)
-- First task for next session / phase: Day 3 Phase B, task D3-05 (Replies: migration, endpoints, tests, thread UI)
+- Day: 3 (Phase B Complete)
+- Branch: main (Phase B merged, ready for feat/d3-messages-polls)
+- Last green check: npm run lint, npm test, npm run build (169 tests passing across 15 test suites)
+- First task for next session / phase: Day 3 Phase C, task D3-09 (Blocks: migration `blocks`, endpoints block/unblock/list, tests MSG-08, thread UI)
 
 ## Blocked / needs owner
 
@@ -15,23 +15,26 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Shared design system component primitives extracted to `src/components/ui/` (`Button`, `Chip`, `Badge`, `Card`, `Field`, `Banner`, `Toast`, `EmptyState`, `Skeleton`, `Modal`, `RateLimitNotice`, `OfflineBanner`), strictly following `docs/DESIGN.md` (no gradients, 2px border radius, no drop shadows, 44px min touch targets).
-- Accessible `Modal` implemented with proper ARIA dialog semantics, backdrop dismiss, Esc key handler, focus trap (cycling Tab/Shift+Tab across focusable elements), and focus restoration to the trigger element on unmount.
-- Accessible `Field` wires visible label, hint text, and error alert using `aria-describedby` and `aria-invalid`.
-- Mobile navigation: below 760px, app shell displays a top bar with community branding and a 44x44px menu toggle button (`aria-expanded`, `aria-controls`), smoothly revealing navigation without visual degradation at 320px viewport.
-- Skip-to-content link (`<a href="#main-content" className="skip-link">Skip to content</a>`) wired to `<main id="main-content" tabIndex="-1">`.
-- Focus and title management on route change (`RouteFocusAndTitle`) syncs `document.title` and programmatically sets focus to page `<h1>` for screen reader and keyboard accessibility.
-- Global Error Boundary (`ErrorBoundary`) catches render crashes with calm 500 error card and refresh/home recovery options.
-- Catch-all 404 page (`NotFound`) styled per design tokens.
-- Dynamic rate limit notice component (`RateLimitNotice`) uses server `Retry-After` header to count down remaining lock window and update copy politely.
-- Offline banner (`OfflineBanner`) detects network drops and provides clear indicator when connection is lost.
-- All pages (`Feed`, `Polls`, `Messages`, `Create`, `Auth`, `Profile`) refactored to use shared components, loading skeletons, and empty states.
+- Post replies: migration `20261117000001_post_replies.sql` creates `post_replies` (`parent_id`, `post_id`, `author_id`, `body`, `status`, RLS enabled). Replies are limited to strict depth 1 by having `loadInCommunity` enforce that replies can only target parent posts in the `posts` table (replying to a reply returns 404).
+- Dedicated thread page (`src/pages/Thread.jsx`) mounted at `/app/feed/:id` with skeleton loader, empty state, reply composer with 280-char counter, and reply list with report action.
+- Post reactions: migration `20261117000002_post_reactions.sql` creates `post_reactions` with compound primary key `(post_id, user_id)` and checked enum kinds (`like`, `thanks`, `laugh`). Toggle endpoint `POST /api/posts/:id/reactions` removes identical reaction, switches kind when different, enforces hourly reaction cap (120/hr), and blocks muted users (403). Aggregated counts and user's reaction returned in `GET /api/posts` and `GET /api/posts/:id`.
+- Reaction UI: accessible `<button type="button" aria-pressed={...}>` with min-height 44px, no pill buttons or floating emojis, with descriptive accessible labels.
+- Official & Pinned posts: migration `20261117000003_pinned_official_posts.sql` adds `pinned_at timestamptz` and `is_official boolean` to `posts`. Only admin can set official or pin posts (`POST /api/posts/:id/pin` and `POST /api/posts/:id/official` or creating with `is_official: true`). Feed sorts `pinned_at desc nulls last, created_at desc` so pinned posts stay at top. Visual indicators include `📌 PINNED` badge, 3px left border on card, and `OFFICIAL` badge.
+- Feed cursor pagination: "Load more" button fetches `GET /api/posts?before=${nextCursor}` and appends to existing feed without disruptive infinite scrolling, ensuring keyboard and screen-reader accessibility.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 10 - Day 3 Phase B (Social Features: D3-05..D3-08)
+
+- Task D3-05: Created migration `post_replies`, API `POST /api/posts/:id/replies`, `GET /api/posts/:id` with replies, depth 1 enforcement, reply cap (30/hr), moderation screening. Added 5 POST-10 tests in `tests/api/posts.test.js`. Built thread page `src/pages/Thread.jsx` and reply composer.
+- Task D3-06: Created migration `post_reactions`, toggle endpoint `POST /api/posts/:id/reactions`, feed and thread post reaction aggregation. Added POST-12 integration tests. Built accessible `ReactionGroup` component with `<button aria-pressed>` and wired in `Feed.jsx` and `Thread.jsx`.
+- Task D3-07: Created migration `pinned_official_posts` adding `pinned_at` and `is_official` columns. Implemented admin pin/unpin and mark official endpoints in `server/routes/admin.js` and `server/routes/posts.js`. Updated feed query to order by `pinned_at desc nulls last, created_at desc`. Added POST-11 integration tests. Added official badge, pinned badge, 3px left border, and admin pin/official controls in `Feed.jsx` and `Thread.jsx`.
+- Task D3-08: Added accessible "Load more" cursor pagination button in `Feed.jsx` using `nextCursor` from `/api/posts`.
+- Verified lint, 169 tests, and production build. Merged `feat/d3-social` into `main` without squash and pushed to `origin`.
 
 ### Session 9 - Day 3 Phase A (UI Foundation: D3-01..D3-04)
 
