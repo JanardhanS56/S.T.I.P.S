@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
-import { requireCommunity, requireNotMuted, requireAdmin } from '../session.js';
+import { requireCommunity, requireNotMuted, requireAdmin, requireTerms } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
 import { enforcePostCap, enforceReplyCap, enforceReactionCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
+r.use(requireTerms);
 const CATS = ['Notice', 'Event', 'Meme', 'Moment'];
 const REACTION_KINDS = ['like', 'thanks', 'laugh'];
 

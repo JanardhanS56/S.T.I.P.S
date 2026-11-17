@@ -3,10 +3,11 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError } from '../http.js';
-import { requireCommunity } from '../session.js';
+import { requireCommunity, requireTerms } from '../session.js';
 
 const r = Router();
 r.use(requireCommunity);
+r.use(requireTerms);
 
 r.post(
   '/',

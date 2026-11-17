@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError } from '../http.js';
-import { requireCommunity, requireNotMuted } from '../session.js';
+import { requireCommunity, requireNotMuted, requireTerms } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
 import { enforceMessageCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
+r.use(requireTerms);
 
 // Block management
 r.get(
