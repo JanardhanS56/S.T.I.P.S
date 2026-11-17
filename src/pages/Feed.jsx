@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 import {
   Button,
   Chip,
@@ -27,11 +28,13 @@ const ago = (iso) => {
 };
 
 export default function Feed() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [text, setText] = useState('');
   const [cat, setCat] = useState('Notice');
+  const [isOfficial, setIsOfficial] = useState(false);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
 
@@ -62,8 +65,13 @@ export default function Feed() {
     setErr('');
     setRateLimitErr(null);
     try {
-      await api.post('/posts', { body: text, category: cat });
+      await api.post('/posts', {
+        body: text,
+        category: cat,
+        ...(user?.role === 'admin' && isOfficial ? { is_official: true } : {})
+      });
       setText('');
+      setIsOfficial(false);
       await load();
     } catch (e2) {
       if (e2.status === 429) {
@@ -71,6 +79,24 @@ export default function Feed() {
       } else {
         setErr(e2.message);
       }
+    }
+  }
+
+  async function togglePin(postId, pin) {
+    try {
+      await api.post(`/posts/${postId}/pin`, { pinned: pin });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
+    }
+  }
+
+  async function toggleOfficial(postId, official) {
+    try {
+      await api.post(`/posts/${postId}/official`, { official });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
     }
   }
 
@@ -137,7 +163,26 @@ export default function Feed() {
               </Chip>
             ))}
           </div>
-          <div className="row">
+          <div className="row" style={{ alignItems: 'center', gap: '12px' }}>
+            {user?.role === 'admin' && (
+              <label
+                className="row"
+                style={{
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  userSelect: 'none'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isOfficial}
+                  onChange={(e) => setIsOfficial(e.target.checked)}
+                />
+                <span>Official</span>
+              </label>
+            )}
             <span className={`mono small ${left < 30 ? 'warn' : ''}`}>{left} left</span>
             <Button type="submit" variant="dark" disabled={!text.trim()}>
               Post
@@ -178,8 +223,10 @@ export default function Feed() {
           </div>
         ) : posts.length > 0 ? (
           posts.map((p) => (
-            <Card as="article" key={p.id}>
-              <div className="row meta">
+            <Card as="article" key={p.id} className={p.pinned_at ? 'card-pinned' : ''}>
+              <div className="row meta" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                {p.pinned_at && <span className="pinned-badge">📌 PINNED</span>}
+                {p.is_official && <Badge variant="official">OFFICIAL</Badge>}
                 <b>{p.author.username}</b>
                 <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
                 <span className="muted small">{ago(p.created_at)}</span>
@@ -202,7 +249,28 @@ export default function Feed() {
                   myReaction={p.myReaction}
                   onReact={(kind) => toggleReaction(p.id, kind)}
                 />
-                <div className="row" style={{ gap: '16px', alignItems: 'center' }}>
+                <div
+                  className="row"
+                  style={{ gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
+                >
+                  {user?.role === 'admin' && (
+                    <>
+                      <Button
+                        variant="link"
+                        className="muted small"
+                        onClick={() => togglePin(p.id, !p.pinned_at)}
+                      >
+                        {p.pinned_at ? 'Unpin' : 'Pin'}
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="muted small"
+                        onClick={() => toggleOfficial(p.id, !p.is_official)}
+                      >
+                        {p.is_official ? 'Demote' : 'Make official'}
+                      </Button>
+                    </>
+                  )}
                   <Link to={`/app/feed/${p.id}`} className="link-btn small">
                     Replies
                   </Link>

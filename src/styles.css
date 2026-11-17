@@ -612,6 +612,22 @@ fieldset input {
   font-family: var(--mono);
   font-size: 13px;
 }
+.pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.card-pinned {
+  border-left: 3px solid var(--ink);
+}
 .role {
   font-family: var(--mono);
   font-size: 11px;

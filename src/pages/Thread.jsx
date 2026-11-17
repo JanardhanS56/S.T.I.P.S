@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 import {
   Button,
   Badge,
@@ -26,6 +27,7 @@ const ago = (iso) => {
 
 export default function Thread() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [post, setPost] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +117,24 @@ export default function Thread() {
     }
   }
 
+  async function togglePin(pin) {
+    try {
+      await api.post(`/posts/${id}/pin`, { pinned: pin });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
+    }
+  }
+
+  async function toggleOfficial(official) {
+    try {
+      await api.post(`/posts/${id}/official`, { official });
+      await load();
+    } catch (e2) {
+      alert(e2.message);
+    }
+  }
+
   const left = MAX - replyText.length;
 
   if (loading) {
@@ -159,8 +179,10 @@ export default function Thread() {
         ← Back to feed
       </Link>
 
-      <Card as="article" variant="strong">
-        <div className="row meta">
+      <Card as="article" variant="strong" className={post.pinned_at ? 'card-pinned' : ''}>
+        <div className="row meta" style={{ flexWrap: 'wrap', gap: '8px' }}>
+          {post.pinned_at && <span className="pinned-badge">📌 PINNED</span>}
+          {post.is_official && <Badge variant="official">OFFICIAL</Badge>}
           <b>{post.author?.username}</b>
           {post.author?.role && (
             <Badge variant={post.author.role}>{post.author.role.toUpperCase()}</Badge>
@@ -189,9 +211,29 @@ export default function Thread() {
             myReaction={post.myReaction}
             onReact={(kind) => toggleReaction(post.id, kind)}
           />
-          <Button variant="link" className="muted small" onClick={() => report(post.id, 'post')}>
-            Report
-          </Button>
+          <div className="row" style={{ gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {user?.role === 'admin' && (
+              <>
+                <Button
+                  variant="link"
+                  className="muted small"
+                  onClick={() => togglePin(!post.pinned_at)}
+                >
+                  {post.pinned_at ? 'Unpin' : 'Pin'}
+                </Button>
+                <Button
+                  variant="link"
+                  className="muted small"
+                  onClick={() => toggleOfficial(!post.is_official)}
+                >
+                  {post.is_official ? 'Demote' : 'Make official'}
+                </Button>
+              </>
+            )}
+            <Button variant="link" className="muted small" onClick={() => report(post.id, 'post')}>
+              Report
+            </Button>
+          </div>
         </div>
       </Card>
 
