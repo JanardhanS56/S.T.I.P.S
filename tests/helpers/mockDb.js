@@ -266,6 +266,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0001-000000000002',
       recipient_id: '00000000-0000-0000-0001-000000000003',
       body: 'Hello Student A1 from Teacher A1',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     {
@@ -274,6 +275,7 @@ export function createMockDb(initialData = {}) {
       sender_id: '00000000-0000-0000-0002-000000000002',
       recipient_id: '00000000-0000-0000-0002-000000000003',
       body: 'Hello Beta Student from Beta Teacher',
+      read_at: null,
       created_at: new Date(Date.now() - 10000).toISOString()
     },
     ...(initialData.messages || [])
@@ -455,6 +457,12 @@ export function createMockDb(initialData = {}) {
           filters.push((item) => item[col] !== val);
           return queryBuilder;
         },
+        is(col, val) {
+          filters.push((item) =>
+            val === null ? item[col] === null || item[col] === undefined : item[col] === val
+          );
+          return queryBuilder;
+        },
         in(col, vals) {
           filters.push((item) => vals.includes(item[col]));
           return queryBuilder;
@@ -553,6 +561,7 @@ export function createMockDb(initialData = {}) {
                 ? { status: 'visible' }
                 : {}),
               ...(tableName === 'reports' ? { status: 'open' } : {}),
+              ...(tableName === 'messages' ? { read_at: null } : {}),
               ...item
             };
             if (tableName === 'post_replies' || tableName === 'replies') {
