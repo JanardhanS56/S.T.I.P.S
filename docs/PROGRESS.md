@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 4, Phase A Complete (Legal Pages and User Rights: D4-01..D4-04 merged into main)
+- Day: 4, Phase B Complete (Accessibility and Performance: D4-05..D4-08 merged into main)
 - Branch: main
-- Last green check: npm run lint, npm test, npm run build (186 unit/API tests passing across 17 suites), Playwright E2E (14/14 passing across Desktop & Mobile Chrome)
-- First task for next session / phase: Day 4, Phase B: Quality, Accessibility, and Performance (Tasks D4-05..D4-08)
+- Last green check: npm run lint, npm test, npm run build (187 unit/API tests passing across 17 suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), Autocannon smoke benchmark (222 req/s, 0 errors)
+- First task for next session / phase: Day 4, Phase C: Observability and Production Setup (Tasks D4-09..D4-12)
 
 ## Blocked / needs owner
 
@@ -15,16 +15,24 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- First-Login Consent Gate: Migration `20261117000007_terms_acceptance.sql` tracks `accepted_terms_at` and `terms_version` on `users`. `requireTerms` middleware denies app content actions until terms acceptance (`POST /api/auth/consent`). Frontend renders un-dismissible `ConsentModal` on first login until terms are agreed.
-- Data Subject Portability (ADM-08): Endpoint `GET /api/me/export` bundled with `enforceExportCap` (1 export/day) generates complete JSON archive of personal data, authored posts, replies, poll votes, and direct messages.
-- Account Erasure & Anonymization (ADM-08): Users request deletion via `POST /api/me/delete-request`. Admins review requests in `/app/admin` and confirm via `POST /api/admin/deletion-requests/:id/confirm`, which replaces user identity with `deleted-<id>` / "Deleted user", clears bio/email, invalidates credentials, revokes sessions, and records audit entry.
-- Public Legal Documentation: Full compliance suite under `/privacy`, `/terms`, `/cookies`, `/guidelines`, `/accessibility`, and `/contact` with unified `PublicFooter` on unauthenticated views.
+- Self-Hosted Fonts & Zero-Leak CSP: Woff2 font subsets for Schibsted Grotesk and IBM Plex Mono are packaged directly in `public/fonts/` with `font-display: swap`. Content Security Policy strictly enforces `font-src 'self'`, eliminating third-party calls to Google Fonts/Gstatic.
+- Code Splitting: Admin dashboard (`Admin.jsx`) is lazy-loaded with React `lazy` and `Suspense`, shaving ~15 kB off the initial bundle payload.
+- Query Review & Index Optimization: Migration `20261117000009_query_indexes.sql` introduces compound and partial indexes for high-frequency queries (pinned feed browsing, unread message scanning, thread participant lookups, and report resolution), cutting execution times to under 4ms.
+- High-Concurrency Resilience: Autocannon load smoke benchmarking confirms 220+ requests/sec with 0 errors and zero process instability, properly enforcing IP rate limits.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 14 - Day 4 Phase B (Accessibility and Performance: D4-05..D4-08)
+
+- Task D4-05: Installed `@axe-core/playwright`. Created comprehensive accessibility test suite `tests/e2e/a11y.spec.js` auditing all public and authenticated routes across Desktop Chrome and Pixel 5 Mobile Chrome. Verified 0 critical or serious WCAG 2.1 AA violations. Added automated tests for skip-to-content links (A11Y-02), modal keyboard focus traps and escape key dismissal (A11Y-03, A11Y-04), and 320px viewport reflow without two-dimensional scroll overflow (A11Y-05). (34 a11y tests passing).
+- Task D4-06: Self-hosted `Schibsted Grotesk` (weights 400..800) and `IBM Plex Mono` (weights 400, 500) `.woff2` font files in `public/fonts/`. Added `@font-face` definitions with `font-display: swap` in `src/styles.css`. Removed external Google Fonts links from `index.html`. Tightened Content-Security-Policy in `server/app.js` to `font-src 'self'` and `style-src 'self' 'unsafe-inline'`. Updated security assertions in `tests/api/security.test.js` and `docs/SECURITY.md`.
+- Task D4-07: Code-split and lazy-loaded administrative routes (`src/pages/Admin.jsx`) with React `lazy` and `Suspense`, dropping core bundle size. Created migration `20261117000009_query_indexes.sql` creating indexes on `posts(community_id, status, pinned_at, created_at)`, `posts(community_id, category, status, ...)`, partial index on `messages(recipient_id) WHERE read_at IS NULL`, thread participant index on `messages`, and admin queue indexes on `reports` and `account_deletion_requests`. Built `scripts/seed-large.js` for load testing. Built `scripts/explain-queries.js` and confirmed all main query paths execute under 4ms. Recorded timings in `docs/OPERATIONS.md`.
+- Task D4-08: Installed `autocannon`. Built `scripts/load-smoke.js` (`npm run test:load`). Benchmarked `/api/health` under 10 concurrent connections achieving 222 req/s with 44.7ms average latency and 0 errors or timeouts. Added PERF-03 database outage test in `tests/api/health.test.js` confirming graceful 503 responses with preserved security headers. Documented benchmark results in `docs/OPERATIONS.md`.
+- Full verification passed (lint, 187 Vitest unit/API tests, 48 Playwright E2E/A11Y tests, production build). Merged `feat/d4-a11y-perf` into `main` without squash and pushed to `origin`.
 
 ### Session 13 - Day 4 Phase A (Legal Pages and User Rights: D4-01..D4-04)
 
