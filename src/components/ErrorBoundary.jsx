@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { Link } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import { Button } from './ui/Button.jsx';
 
 export class ErrorBoundary extends Component {
@@ -15,6 +16,11 @@ export class ErrorBoundary extends Component {
   componentDidCatch(error, errorInfo) {
     if (typeof console !== 'undefined' && console.error) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
+    try {
+      Sentry.captureException(error, { extra: errorInfo });
+    } catch {
+      // ignore sentry dispatch failure
     }
   }
 

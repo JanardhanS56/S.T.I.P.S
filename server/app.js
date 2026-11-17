@@ -17,11 +17,13 @@ import messages from './routes/messages.js';
 import admin from './routes/admin.js';
 import reports from './routes/reports.js';
 import me from './routes/me.js';
+import { initServerSentry } from './lib/sentry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(__dirname, '../dist');
 
 const app = express();
+initServerSentry(app);
 app.set('trust proxy', 1); // Vercel sits in front: use the real client IP for rate limits
 app.disable('x-powered-by');
 app.use(httpLogger);
