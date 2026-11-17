@@ -32,6 +32,13 @@ h1 {
   font-size: 36px;
   letter-spacing: -0.03em;
 }
+h1[tabindex='-1']:focus {
+  outline: none;
+}
+h1[tabindex='-1']:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 2px;
+}
 h2,
 h3 {
   letter-spacing: -0.02em;
@@ -411,7 +418,29 @@ fieldset input {
   border-width: 1px;
 }
 
+/* skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 16px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--leaf);
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 10000;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.skip-link:focus {
+  top: 16px;
+}
+
 /* app shell */
+.mobile-bar {
+  display: none;
+}
 .shell {
   display: flex;
   flex-wrap: wrap;
@@ -784,8 +813,55 @@ fieldset input {
 }
 
 @media (max-width: 760px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border-bottom: 1px solid #232721;
+    min-height: 56px;
+  }
+  .mobile-bar .wordmark {
+    font-size: 18px;
+    color: var(--paper);
+    text-decoration: none;
+  }
+  .mobile-community {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-menu-btn {
+    background: transparent;
+    border: 1px solid #333830;
+    color: var(--paper);
+    border-radius: 2px;
+    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .mobile-menu-btn:focus-visible {
+    outline: 3px solid var(--leaf);
+    outline-offset: 2px;
+  }
   .side {
+    display: none;
     flex-basis: 100%;
+    width: 100%;
+  }
+  .side.mobile-open {
+    display: flex;
   }
   .page {
     padding: 28px 20px;

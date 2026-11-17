@@ -13,20 +13,21 @@
 
 ## Limits table (single source: `server/config.js`; keep this table in sync)
 
-| Action                                                                                                                               | Limit                                     | Window           | Response             |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ---------------- | -------------------- |
-| Any `/api` request                                                                                                                   | 300                                       | 15 min per IP    | 429 + `Retry-After`  |
-| Login attempts                                                                                                                       | 10                                        | 15 min per IP    | 429                  |
-| Wrong passwords per account                                                                                                          | 5                                         | then lock 10 min | 429                  |
-| Posts                                                                                                                                | 10                                        | 1 h per user     | 429 friendly message |
-| Replies                                                                                                                              | 30                                        | 1 h per user     | 429                  |
-| Reactions                                                                                                                            | 120                                       | 1 h per user     | 429                  |
-| Polls                                                                                                                                | 5                                         | 24 h per user    | 429                  |
-| Votes                                                                                                                                | 1 per poll                                | forever          | 409                  |
-| Messages                                                                                                                             | 60                                        | 1 h per user     | 429                  |
-| Reports                                                                                                                              | 20                                        | 24 h per user    | 429                  |
-| Account creation (admin)                                                                                                             | 200 per request, 1000 / day per community |                  | 400 / 429            |
+| Action                                                                                                                               | Limit                                     | Window                     | Response             |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | -------------------------- | -------------------- |
+| Any `/api` request                                                                                                                   | 300                                       | 15 min per IP              | 429 + `Retry-After`  |
+| Login attempts                                                                                                                       | 10                                        | 15 min per IP and username | 429 + `Retry-After`  |
+| Wrong passwords per account                                                                                                          | 5                                         | then lock 10 min           | 429                  |
+| Posts                                                                                                                                | 10                                        | 1 h per user               | 429 friendly message |
+| Replies                                                                                                                              | 30                                        | 1 h per user               | 429                  |
+| Reactions                                                                                                                            | 120                                       | 1 h per user               | 429                  |
+| Polls                                                                                                                                | 5                                         | 24 h per user              | 429                  |
+| Votes                                                                                                                                | 1 per poll                                | forever                    | 409                  |
+| Messages                                                                                                                             | 60                                        | 1 h per user               | 429                  |
+| Reports                                                                                                                              | 20                                        | 24 h per user              | 429                  |
+| Account creation (admin)                                                                                                             | 200 per request, 1000 / day per community |                            | 400 / 429            |
 | Every 429 returns `Retry-After` (seconds) and a human sentence. The UI shows a calm "take a short break" message, never a raw error. |
+| Per-user caps are unified in `server/limits.js` querying exact DB counts against limits configured in `server/config.js`.            |
 
 ## Spam heuristics (cheap, no AI)
 
@@ -38,12 +39,12 @@
 
 ## Moderation pipeline for every user-generated text
 
-1. Normalize (lowercase, strip zero-width and look-alike characters).
-2. Word filter (`server/blocklist.txt`, per-community additions stored in DB on Day 3).
-3. Contact-info detector (phone numbers, emails, "dm me on", social handles patterns).
-4. Optional LLM check (Groq/OpenRouter/NVIDIA via env). Prompt treats text as data. Timeout 4 s. Fails open.
-5. Outcome: allow, reject with a gentle reason, or allow + flag for admin review (soft-flag for borderline).
-   Log the **decision and reason code only**, not the text.
+1. Normalize: lowercase, strip zero-width characters (`\u200B..\u200D`, `\uFEFF`, soft hyphens, directional marks), homoglyphs/look-alikes (NFKD decomposition, Cyrillic substitutions like `і`, `с`, `а`, `е`, `ѕ`, `о`), and collapse repeated characters (`collapseRepeats`). Single-letter spaced runs (`l o s e r`) are despaced while preserving standalone articles (`a`, `i`) to ensure Scunthorpe-safe whole-word matching.
+2. Word filter (`server/blocklist.txt`, per-community additions stored in DB on Day 3): starter blocklist matches whole word boundaries and repeat-collapsed tokens, preventing innocent substring false positives (e.g., `skill`, `skillet`, `shuttle`, `closer`).
+3. Spam heuristics (`server/lib/spam.js`): rejects 6+ consecutive identical characters, 4+ repeated words, >= 70% ALL CAPS (min 10 letters), and rejects all links/URLs in v1.
+4. Contact-info detector (`server/lib/detectors.js`): detects standard and international phone numbers (+91, spaced digits), standard emails, spelled-out email variants (`user [at] campus [dot] edu`, `(at)` / `at` / `dot`), and social handle patterns (`ig:`, `snap:`, `telegram:`, `dm me on`).
+5. Optional LLM check (`server/lib/llm.js`): Groq/OpenRouter/NVIDIA via env. Prompt treats text strictly as untrusted data within `<user_text>` tags without user metadata. Strict Zod schema validation. Timeout 4 s. Fails open on errors/timeouts.
+6. Auto-mute repeat offenders (`server/lib/rejections.js`): 5 moderation rejections in 1 hour automatically mutes the account in the database and creates an open system report for the office queue.
 
 ### LLM moderation rules
 

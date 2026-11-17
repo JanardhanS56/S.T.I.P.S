@@ -4,29 +4,28 @@
 
 ## Current status
 
-- Day: 2
-- Branch: main
-- Last green check: npm run lint, npm test, npm run build (Day 2 Phase B complete, 111 tests passing)
-- First task for next session / phase: Day 2 Phase C, task D2-07 (Normalization upgrade: strip zero-width/look-alike chars, collapse repeats, Scunthorpe-safe matching)
+- Day: 3 (Phase A Complete)
+- Branch: main (Phase A merged, ready for feat/d3-social)
+- Last green check: npm run lint, npm test, npm run build (158 tests passing across 15 test suites)
+- First task for next session / phase: Day 3 Phase B, task D3-05 (Replies: migration, endpoints, tests, thread UI)
 
 ## Blocked / needs owner
 
-- (none)
+- None
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Environment validation via Zod with fail-fast on startup.
-- Supabase migrations structure established; baseline schema versioned.
-- Production guard requires `APPROVED_TEST_SUPABASE_URL` to match `SUPABASE_URL` before allowing test seeding.
-- Token revocation enabled via `users.token_version` check in `requireAuth` and bumped on `POST /api/auth/logout-all` or password reset.
-- Structured logging with Pino & Pino-HTTP enforcing request ID propagation (`X-Request-Id`) and strict secret/body redaction.
-- Health endpoint verifies database connectivity (`{ ok: true, db: true }`), returning 503 on database unavailability.
-- Foreign object lookups across all community resources (`/api/messages/with/:id`, `POST /api/reports`, etc.) return 404 rather than leaking entity existence across tenant boundaries.
-- Central scoped loader `loadInCommunity(table, id, req, fields)` added to `server/http.js` and re-exported from `server/db.js` for uniform community isolation.
-- Cursor pagination on posts (`GET /api/posts?before=<iso>&limit<=50&category=<cat>`) returning `{ posts, nextCursor }`.
-- Duplicate post text rejection within 10 minutes (409) and 3s minimum posting interval guard (429 with `Retry-After`).
-- Polls anonymity guarantee: voter identities never exposed in poll listings or summaries. Early close supported for author and admin. Option percentages protected against divide-by-zero.
-- Messages enforce self-DM rejection (400), target community/status verification (404), and strict two-party thread isolation.
+- Shared design system component primitives extracted to `src/components/ui/` (`Button`, `Chip`, `Badge`, `Card`, `Field`, `Banner`, `Toast`, `EmptyState`, `Skeleton`, `Modal`, `RateLimitNotice`, `OfflineBanner`), strictly following `docs/DESIGN.md` (no gradients, 2px border radius, no drop shadows, 44px min touch targets).
+- Accessible `Modal` implemented with proper ARIA dialog semantics, backdrop dismiss, Esc key handler, focus trap (cycling Tab/Shift+Tab across focusable elements), and focus restoration to the trigger element on unmount.
+- Accessible `Field` wires visible label, hint text, and error alert using `aria-describedby` and `aria-invalid`.
+- Mobile navigation: below 760px, app shell displays a top bar with community branding and a 44x44px menu toggle button (`aria-expanded`, `aria-controls`), smoothly revealing navigation without visual degradation at 320px viewport.
+- Skip-to-content link (`<a href="#main-content" className="skip-link">Skip to content</a>`) wired to `<main id="main-content" tabIndex="-1">`.
+- Focus and title management on route change (`RouteFocusAndTitle`) syncs `document.title` and programmatically sets focus to page `<h1>` for screen reader and keyboard accessibility.
+- Global Error Boundary (`ErrorBoundary`) catches render crashes with calm 500 error card and refresh/home recovery options.
+- Catch-all 404 page (`NotFound`) styled per design tokens.
+- Dynamic rate limit notice component (`RateLimitNotice`) uses server `Retry-After` header to count down remaining lock window and update copy politely.
+- Offline banner (`OfflineBanner`) detects network drops and provides clear indicator when connection is lost.
+- All pages (`Feed`, `Polls`, `Messages`, `Create`, `Auth`, `Profile`) refactored to use shared components, loading skeletons, and empty states.
 
 ## Parked ideas (not in scope now)
 
@@ -34,7 +33,26 @@
 
 ## Session log
 
-### Session 6 - Day 2 Phase B (Posts, Polls, Messages Rules)
+### Session 9 - Day 3 Phase A (UI Foundation: D3-01..D3-04)
+
+- Task D3-01: Extracted and tested reusable components in `src/components/ui/`: `Button`, `Chip`, `Badge`, `Card`, `Field`, `Banner`, `Toast`, `EmptyState`, `Skeleton`, `Modal`. Refactored `Feed.jsx`, `Polls.jsx`, `Messages.jsx`, `Create.jsx`, `Auth.jsx`, and `Profile.jsx` to use shared components page-by-page with atomic commits.
+- Task D3-02: Upgraded app shell (`src/components/Shell.jsx` & `src/styles.css`): mobile top bar with menu button (< 760px), skip-to-content link, route-based page titles (`document.title`), and focus shifting to `<h1>` on route change (`RouteFocusAndTitle`).
+- Task D3-03: Created `ErrorBoundary.jsx` (500 crash screen with calm reload and home buttons), `NotFound.jsx` (404 page), `RateLimitNotice.jsx` (counting down `Retry-After` seconds politely), and `OfflineBanner.jsx` (detecting offline state). Enhanced `src/api.js` to throw `ApiError` with `status` and `retryAfter`.
+- Task D3-04: Wired skeleton loaders, empty states, and friendly rate limit banners into `Feed.jsx`, `Polls.jsx`, and `Messages.jsx`.
+- Verified lint, 158 tests, and production build. Merged `feat/d3-ui-foundation` into `main` without squash and pushed to `origin`.
+
+### Session 8 - Day 2 Phase D (Rate Limits & HTTP Hardening: D2-11..D2-15)
+
+- Task D2-11: Installed `@upstash/ratelimit` and `@upstash/redis`. Built `server/rateLimit.js` with Upstash sliding-window limiter, safe in-memory fallback store, standard headers, global IP limiter (300/15m), and login IP/username limiter (10/15m). Added `tests/api/rateLimit.test.js` covering RATE-01..RATE-04 (6 tests).
+- Task D2-12: Unified per-user caps into `server/limits.js`. Refactored `posts.js`, `polls.js`, and `messages.js` to use cap helpers. Added `repliesPerHour` (30) and `reactionsPerHour` (120) to `server/config.js` for Day 3. Synced `docs/RATE_LIMITING_AND_ABUSE.md`.
+- Task D2-13: Hardened HTTP headers with app-tailored CSP, HSTS in production, Referrer-Policy, Permissions-Policy, 413 oversized payload rejection, and 415 non-JSON rejection. Added maintenance mode switch (`MAINTENANCE_MODE=1` returns 503 on writes). Verified production bundle served locally under CSP headers. Added `tests/api/security.test.js` (8 tests) and `tests/api/maintenance.test.js` (3 tests) covering SEC-01, SEC-02, SEC-09, SEC-10.
+- Task D2-14: Created `tests/api/rls.test.js` proving anon Supabase key has no access to any table (SEC-05). Added `.gitleaks.toml` secret scanning configuration. Published RFC 9116 `public/.well-known/security.txt` and root `SECURITY.md`.
+- Task D2-15: Updated `docs/API.md`, `docs/CONTEXT.md`, `docs/SECURITY.md` checklist, and `docs/PROGRESS.md`. All 147 tests green across 13 suites.
+
+- Task D2-07: Split moderation into modular normalize and detectors. Added zero-width stripping, NFKD decomposition, Cyrillic look-alike homoglyph mapping, repeat collapsing, single-letter despace run handling, spelled-out emails, and social handle detectors. Updated `tests/unit/moderation.test.js` covering MOD-01, MOD-02, MOD-03 (16 unit tests).
+- Task D2-08: Added configurable spam heuristics in `server/config.js` (`spam` options) and `server/lib/spam.js` covering character/word repetition, ALL CAPS ratios, and link rejection in v1. Added unit tests for spam heuristics (11 tests).
+- Task D2-09: Isolated LLM client into `server/lib/llm.js` with strict Zod schema validation, injection-resistant `<user_text>` framing without usernames or IDs, 4s timeout, and fail-open resilience. Added unit tests with mocked fetch covering provider failures (MOD-04) and injection attacks (MOD-05).
+- Task D2-10: Implemented rejection counter in `server/lib/rejections.js` with 1-hour sliding window. Wired auto-mute into posts, polls, and messages routes to mute accounts at 5 rejections and insert a system report for the admin queue. Added integration test in `tests/api/posts.test.js` and unit tests covering MOD-06 (138 total tests passing).
 
 - Task D2-04: Implemented cursor pagination, duplicate-text rejection within 10 minutes, and 3s minimum posting interval guard in `server/routes/posts.js`. Added `tests/api/posts.test.js` covering POST-01..POST-09 (10 tests).
 - Task D2-05: Implemented early close endpoint `POST /api/polls/:id/close` for author and admin, divide-by-zero percentage guard in `server/routes/polls.js`. Added `tests/api/polls.test.js` covering validation, rate limits, concurrency double-vote guard, closed/foreign poll guards, and voter anonymity (POLL-01..POLL-09, 13 tests).

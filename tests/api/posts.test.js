@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import { createMockDb } from '../helpers/mockDb.js';
+import { clearRejections } from '../../server/lib/rejections.js';
 
 let mockDb;
 vi.mock('../../server/db.js', () => ({
@@ -36,6 +37,7 @@ async function loginAs(username, password = 'TestPassword123!') {
 describe('Posts API (POST-01..POST-09)', () => {
   beforeEach(() => {
     mockDb = createMockDb();
+    clearRejections();
   });
 
   describe('POST-01..POST-04: Creation and Rate Limits', () => {
@@ -255,6 +257,57 @@ describe('Posts API (POST-01..POST-09)', () => {
       // Verify post disappeared from feed
       const feedRes2 = await request(app).get('/api/posts').set('Cookie', studentCookie);
       expect(feedRes2.body.posts.find((p) => p.id === post2Id)).toBeUndefined();
+    });
+
+    it('MOD-06: 5 moderation rejections in 1 hour auto-mutes user and logs a system report', async () => {
+      const studentCookie = await loginAs('student_a2');
+      const adminCookie = await loginAs('admin_a');
+
+      // Submit 4 rejected posts
+      for (let i = 1; i <= 4; i++) {
+        const res = await request(app)
+          .post('/api/posts')
+          .set('Cookie', studentCookie)
+          .send({
+            body: `Spam attempt ${i} with phone 987654321${i}`,
+            category: 'Notice'
+          });
+        expect(res.status).toBe(422);
+      }
+
+      // Check user is still active before 5th rejection
+      const userBefore = mockDb.users.find((u) => u.username === 'student_a2');
+      expect(userBefore.status).toBe('active');
+
+      // 5th rejection triggers auto-mute
+      const res5 = await request(app).post('/api/posts').set('Cookie', studentCookie).send({
+        body: 'Final spam attempt 5 with phone 9876543215',
+        category: 'Notice'
+      });
+      expect(res5.status).toBe(422);
+
+      // Verify user is now muted in database
+      const userAfter = mockDb.users.find((u) => u.username === 'student_a2');
+      expect(userAfter.status).toBe('muted');
+
+      // Verify user cannot post clean content anymore (403 Muted)
+      const resClean = await request(app)
+        .post('/api/posts')
+        .set('Cookie', studentCookie)
+        .send({ body: 'Clean post after muting', category: 'Notice' });
+      expect(resClean.status).toBe(403);
+      expect(resClean.body.error).toContain('muted');
+
+      // Verify admin sees the auto-mute system report in the reports queue
+      const adminReportsRes = await request(app)
+        .get('/api/admin/reports')
+        .set('Cookie', adminCookie);
+      expect(adminReportsRes.status).toBe(200);
+      const autoReport = adminReportsRes.body.reports.find(
+        (r) => r.target_id === userAfter.id && r.reason.includes('Auto-muted')
+      );
+      expect(autoReport).toBeDefined();
+      expect(autoReport.status).toBe('open');
     });
   });
 

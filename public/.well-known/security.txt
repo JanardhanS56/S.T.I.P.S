@@ -1,0 +1,6 @@
+# S.T.I.P.S Security Policy (RFC 9116)
+Contact: mailto:security@example.edu
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://stips.example.edu/.well-known/security.txt
+Policy: https://github.com/sameer10237/S.T.I.P.S/blob/main/docs/SECURITY.md

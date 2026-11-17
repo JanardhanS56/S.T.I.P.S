@@ -4,7 +4,8 @@ import { db } from '../db.js';
 import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
-import { screen } from '../moderation.js';
+import { screen, handleRejection } from '../moderation.js';
+import { enforcePostCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -56,19 +57,7 @@ r.post(
       req.body
     );
 
-    const since = new Date(Date.now() - 3600 * 1000).toISOString();
-    const { count } = await db
-      .from('posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('author_id', req.user.id)
-      .gte('created_at', since);
-    if (count >= config.limits.postsPerHour) {
-      res.setHeader('Retry-After', 3600);
-      throw new HttpError(
-        429,
-        `You can post ${config.limits.postsPerHour} times an hour. Take a short break.`
-      );
-    }
+    await enforcePostCap(req, res);
 
     // Min gap 3s between posts by the same user
     const { data: latestPost } = await db
@@ -102,7 +91,10 @@ r.post(
     }
 
     const check = await screen(body);
-    if (!check.ok) throw new HttpError(422, check.reason);
+    if (!check.ok) {
+      await handleRejection(req.user, 'post');
+      throw new HttpError(422, check.reason);
+    }
 
     const { data, error } = await db
       .from('posts')

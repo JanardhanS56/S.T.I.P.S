@@ -83,17 +83,17 @@ See `RATE_LIMITING_AND_ABUSE.md`. Child-safety: no image uploads, no contact-det
 
 ## 11. Pre-launch security checklist
 
-- [ ] Anon key cannot read or write any table (test passes)
-- [ ] Cross-community access attempts return 404 for every object route (tests pass)
-- [ ] CSP active and app works; headers verified
-- [ ] Cookie flags verified in production
-- [ ] No secrets in git history (scanner run on full history)
-- [ ] Rate limits verified against a deployed preview
-- [ ] Stored XSS payloads render as text
+- [x] Anon key cannot read or write any table (test passes)
+- [x] Cross-community access attempts return 404 for every object route (tests pass)
+- [x] CSP active and app works; headers verified
+- [x] Cookie flags verified in production
+- [x] No secrets in git history (scanner run on full history)
+- [x] Rate limits verified against a deployed preview
+- [x] Stored XSS payloads render as text
 - [ ] Error tracking active and scrubbing bodies
 - [ ] Backups restored once successfully
 - [ ] Admin actions appear in the audit log
-- [ ] `npm audit` clean at high/critical
+- [x] `npm audit` clean at high/critical
 - [ ] Independent human review done `[NEEDS HUMAN REVIEW]`
 
 ## 12. Vulnerability reporting

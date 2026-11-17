@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
-import { config } from '../config.js';
 import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted } from '../session.js';
-import { screen } from '../moderation.js';
+import { screen, handleRejection } from '../moderation.js';
+import { enforcePollCap } from '../limits.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -73,17 +73,13 @@ r.post(
       req.body
     );
 
-    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { count } = await db
-      .from('polls')
-      .select('id', { count: 'exact', head: true })
-      .eq('author_id', req.user.id)
-      .gte('created_at', since);
-    if (count >= config.limits.pollsPerDay)
-      throw new HttpError(429, `You can start ${config.limits.pollsPerDay} polls a day.`);
+    await enforcePollCap(req, res);
 
     const check = await screen([question, ...options].join('\n'));
-    if (!check.ok) throw new HttpError(422, check.reason);
+    if (!check.ok) {
+      await handleRejection(req.user, 'poll');
+      throw new HttpError(422, check.reason);
+    }
 
     const closes = new Date(Date.now() + days * 86400000).toISOString();
     const { data: poll, error } = await db

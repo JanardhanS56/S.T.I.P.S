@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import { Button, Banner, Field } from '../components/ui/index.js';
 
 export default function Auth() {
   const { refresh } = useAuth();
@@ -73,65 +74,54 @@ export default function Auth() {
           {step === 'signin' && (
             <>
               <h1>Welcome back</h1>
-              <label>
-                Username
-                <input autoComplete="username" value={f.username} onChange={set('username')} />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={f.password}
-                  onChange={set('password')}
-                />
-              </label>
+              <Field
+                label="Username"
+                id="auth-username"
+                autoComplete="username"
+                value={f.username}
+                onChange={set('username')}
+              />
+              <Field
+                label="Password"
+                id="auth-password"
+                type="password"
+                autoComplete="current-password"
+                value={f.password}
+                onChange={set('password')}
+              />
             </>
           )}
           {step === 'password' && (
             <>
               <h1>Set your own password</h1>
               <p className="muted">First sign-in: choose a new password, at least 10 characters.</p>
-              <label>
-                New password
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={f.next}
-                  onChange={set('next')}
-                />
-              </label>
+              <Field
+                label="New password"
+                id="auth-next"
+                type="password"
+                autoComplete="new-password"
+                value={f.next}
+                onChange={set('next')}
+              />
             </>
           )}
           {step === 'join' && (
             <>
               <h1>Join your community</h1>
               <p className="muted">Enter the code your office shared.</p>
-              <label>
-                Community code
-                <input
-                  className="code"
-                  placeholder="XXXX-XXXX"
-                  value={f.code}
-                  onChange={set('code')}
-                />
-              </label>
+              <Field
+                label="Community code"
+                id="auth-code"
+                placeholder="XXXX-XXXX"
+                value={f.code}
+                onChange={set('code')}
+              />
             </>
           )}
-          {err && (
-            <div className="error" role="alert">
-              {err}
-            </div>
-          )}
-          <button className="btn btn-dark btn-lg" disabled={busy}>
-            {busy
-              ? 'Please wait…'
-              : step === 'signin'
-                ? 'Sign in'
-                : step === 'password'
-                  ? 'Save password'
-                  : 'Join'}
-          </button>
+          {err && <Banner variant="error">{err}</Banner>}
+          <Button type="submit" variant="dark" size="lg" loading={busy}>
+            {step === 'signin' ? 'Sign in' : step === 'password' ? 'Save password' : 'Join'}
+          </Button>
           <p className="small muted">
             Too many wrong attempts pause sign-in for a few minutes. Forgot your password? Ask your
             office to reset it. <Link to="/cookies">Cookie notice</Link>
