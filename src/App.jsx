@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
 import Shell from './components/Shell.jsx';
 import CookieNotice from './components/CookieNotice.jsx';
+import ConsentModal from './components/ConsentModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Landing from './pages/Landing.jsx';
 import Auth from './pages/Auth.jsx';
@@ -120,6 +121,9 @@ export default function App() {
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
+          <ConsentModal onAccepted={refresh} />
+        )}
         <CookieNotice />
       </AuthCtx.Provider>
     </ErrorBoundary>
