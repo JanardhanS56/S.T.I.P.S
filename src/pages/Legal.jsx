@@ -1,15 +1,21 @@
 import { Link } from 'react-router-dom';
 import PublicFooter from '../components/PublicFooter.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
+import FloatingContact from '../components/FloatingContact.jsx';
 
 function Doc({ title, children }) {
   return (
     <div className="legal">
-      <header>
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link to="/" className="wordmark dark" aria-label="S.T.I.P.S Home">
           S.T.I.P.S
         </Link>
+        <ThemeToggle />
       </header>
-      <main id="main-content">
+      <main id="main-content" tabIndex="-1">
         <h1>{title}</h1>
         {children}
         <div
@@ -23,12 +29,13 @@ function Doc({ title, children }) {
           }}
         >
           <p>
-            Last updated: November 2026. For questions or grievances, contact{' '}
+            Last updated: November 17, 2026. For questions or grievances, contact{' '}
             <a href="mailto:grievance@campus.edu">grievance@campus.edu</a>.
           </p>
         </div>
       </main>
       <PublicFooter />
+      <FloatingContact />
     </div>
   );
 }

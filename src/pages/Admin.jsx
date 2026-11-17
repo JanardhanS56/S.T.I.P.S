@@ -10,7 +10,8 @@ import {
   Field,
   EmptyState,
   Skeleton,
-  Modal
+  Modal,
+  CopyButton
 } from '../components/ui/index.js';
 
 export default function Admin() {
@@ -258,10 +259,16 @@ export default function Admin() {
           </p>
         </div>
         {community && (
-          <div className="codebox" style={{ padding: '8px 16px' }}>
+          <div
+            className="codebox"
+            style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}
+          >
             <span className="mono small green">JOIN CODE</span>
-            <div className="code-big" style={{ fontSize: '20px' }}>
-              {community.code}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="code-big" style={{ fontSize: '20px' }}>
+                {community.code}
+              </div>
+              <CopyButton text={community.code} label="Copy code" />
             </div>
           </div>
         )}
@@ -656,7 +663,10 @@ export default function Admin() {
                             <td>{c.role}</td>
                             <td className="mono">{c.username}</td>
                             <td className="mono" style={{ fontWeight: 700 }}>
-                              {c.password}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{c.password}</span>
+                                <CopyButton text={c.password} label="Copy pw" />
+                              </div>
                             </td>
                           </tr>
                         ))}
