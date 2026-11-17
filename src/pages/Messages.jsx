@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../api.js';
 import {
   Badge,
@@ -21,6 +21,8 @@ export default function Messages() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlockedBy, setIsBlockedBy] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const loadThreads = useCallback(async () => {
     try {
@@ -85,15 +87,37 @@ export default function Messages() {
 
   useEffect(() => {
     loadThread();
-    const t = setInterval(() => {
+    const poll = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       loadThread();
       loadThreads();
-    }, 8000); // simple polling, no websockets needed
-    return () => clearInterval(t);
+    };
+    const t = setInterval(poll, 8000);
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadThread();
+        loadThreads();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+    return () => {
+      clearInterval(t);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+    };
   }, [loadThread, loadThreads]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [msgs]);
 
   async function send(e) {
     e.preventDefault();
+    if (!text.trim() || isSending) return;
+    setIsSending(true);
     setErr('');
     setRateLimitErr(null);
     try {
@@ -107,6 +131,8 @@ export default function Messages() {
       } else {
         setErr(e2.message);
       }
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -146,7 +172,14 @@ export default function Messages() {
                 onClick={() => setActive(t.with)}
               >
                 <span className="row between">
-                  <b>{t.with.username}</b>
+                  <span className="row" style={{ alignItems: 'center', gap: '6px' }}>
+                    <b>{t.with.username}</b>
+                    {t.unreadCount > 0 && (
+                      <span className="unread-badge" aria-label={`${t.unreadCount} unread`}>
+                        {t.unreadCount}
+                      </span>
+                    )}
+                  </span>
                   <Badge variant={t.with.role}>{t.with.role.toUpperCase()}</Badge>
                 </span>
                 <span className="muted small">{t.last}</span>
@@ -182,11 +215,24 @@ export default function Messages() {
                   <Skeleton height="36px" width="50%" />
                 </div>
               ) : msgs.length > 0 ? (
-                msgs.map((m) => (
-                  <div key={m.id} className={`bubble ${m.mine ? 'mine' : ''}`}>
-                    {m.body}
-                  </div>
-                ))
+                <>
+                  {msgs.map((m) => (
+                    <div key={m.id} className={`bubble ${m.mine ? 'mine' : ''}`}>
+                      <div>{m.body}</div>
+                      {m.at && (
+                        <div className="bubble-meta">
+                          <time dateTime={m.at}>
+                            {new Date(m.at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </time>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
               ) : (
                 <EmptyState
                   className="pad"
@@ -204,7 +250,7 @@ export default function Messages() {
                 Cannot send messages to @{active.username}.
               </Banner>
             ) : (
-              <form className="dm-send" onSubmit={send}>
+              <form className="dm-send" onSubmit={send} style={{ alignItems: 'center' }}>
                 <label className="sr" htmlFor="msg">
                   Message
                 </label>
@@ -214,9 +260,17 @@ export default function Messages() {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Write a message"
+                  style={{ flex: 1 }}
                 />
-                <Button type="submit" variant="dark" disabled={!text.trim()}>
-                  Send
+                <span
+                  className="mono small muted"
+                  aria-live="polite"
+                  style={{ minWidth: '40px', textAlign: 'right' }}
+                >
+                  {500 - text.length}
+                </span>
+                <Button type="submit" variant="dark" disabled={!text.trim() || isSending}>
+                  {isSending ? 'Sending…' : 'Send'}
                 </Button>
               </form>
             )}
