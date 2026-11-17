@@ -146,6 +146,15 @@ r.get(
     const isBlocked = (blocks || []).some((b) => b.blocker_id === me && b.blocked_id === other);
     const isBlockedBy = (blocks || []).some((b) => b.blocker_id === other && b.blocked_id === me);
 
+    // Mark unread incoming messages as read
+    await db
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('community_id', req.user.community_id)
+      .eq('sender_id', other)
+      .eq('recipient_id', me)
+      .is('read_at', null);
+
     res.json({
       messages: data.map((m) => ({
         id: m.id,
@@ -156,6 +165,22 @@ r.get(
       isBlocked,
       isBlockedBy
     });
+  })
+);
+
+r.post(
+  '/with/:userId/read',
+  h(async (req, res) => {
+    const other = parse(uuid, req.params.userId);
+    const me = req.user.id;
+    await db
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('community_id', req.user.community_id)
+      .eq('sender_id', other)
+      .eq('recipient_id', me)
+      .is('read_at', null);
+    res.json({ ok: true });
   })
 );
 
