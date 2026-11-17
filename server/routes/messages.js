@@ -71,7 +71,21 @@ r.get(
     if (config.dmRule === 'teacher-student' && req.user.role === 'student')
       q = q.in('role', ['teacher', 'admin']);
     const { data } = await q;
-    res.json({ people: data });
+
+    // Filter out users who have blocked current user or whom current user has blocked
+    const { data: blocks } = await db
+      .from('user_blocks')
+      .select('blocker_id,blocked_id')
+      .or(`blocker_id.eq.${req.user.id},blocked_id.eq.${req.user.id}`);
+    const blockedIds = new Set();
+    if (blocks) {
+      for (const b of blocks) {
+        if (b.blocker_id === req.user.id) blockedIds.add(b.blocked_id);
+        if (b.blocked_id === req.user.id) blockedIds.add(b.blocker_id);
+      }
+    }
+    const people = (data || []).filter((p) => !blockedIds.has(p.id));
+    res.json({ people });
   })
 );
 
@@ -122,13 +136,25 @@ r.get(
       )
       .order('created_at', { ascending: true })
       .limit(200);
+
+    const { data: blocks } = await db
+      .from('user_blocks')
+      .select('blocker_id,blocked_id')
+      .or(
+        `and(blocker_id.eq.${me},blocked_id.eq.${other}),and(blocker_id.eq.${other},blocked_id.eq.${me})`
+      );
+    const isBlocked = (blocks || []).some((b) => b.blocker_id === me && b.blocked_id === other);
+    const isBlockedBy = (blocks || []).some((b) => b.blocker_id === other && b.blocked_id === me);
+
     res.json({
       messages: data.map((m) => ({
         id: m.id,
         body: m.body,
         at: m.created_at,
         mine: m.sender_id === me
-      }))
+      })),
+      isBlocked,
+      isBlockedBy
     });
   })
 );
@@ -153,6 +179,18 @@ r.post(
       throw new HttpError(404, 'Person not found.');
     if (config.dmRule === 'teacher-student' && req.user.role === 'student' && to.role === 'student')
       throw new HttpError(403, 'Students can message teachers and the office.');
+
+    // Enforce user block rules
+    const { data: block } = await db
+      .from('user_blocks')
+      .select('blocker_id')
+      .or(
+        `and(blocker_id.eq.${req.user.id},blocked_id.eq.${toUserId}),and(blocker_id.eq.${toUserId},blocked_id.eq.${req.user.id})`
+      )
+      .maybeSingle();
+    if (block) {
+      throw new HttpError(403, 'Cannot message this user.');
+    }
 
     await enforceMessageCap(req, res);
 
