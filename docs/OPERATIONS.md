@@ -12,6 +12,44 @@
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (verify exact names in the Upstash docs), `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `SENTRY_DSN`, `MAINTENANCE_MODE`, `NODE_ENV`. Rotate `JWT_SECRET` to log everyone out. Never share keys in chat or screenshots.
 
+## Production Setup Steps (D4-11)
+
+1. **Database Provisioning:**
+   - Create Supabase project in closest region.
+   - Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and direct `SUPABASE_CONNECTION_STRING`.
+   - Run database migrations: `npm run db:migrate`.
+   - Verify all migrations `20261116000001_baseline.sql` through `20261117000009_query_indexes.sql` report `[ok]`.
+
+2. **Vercel Project Setup:**
+   - Connect GitHub repository `sameer10237/S.T.I.P.S`.
+   - Framework preset: **Vite**.
+   - Build command: `npm run build`, Output directory: `dist`.
+   - Set Production Environment Variables:
+     - `NODE_ENV=production`
+     - `PORT=3001`
+     - `SUPABASE_URL`
+     - `SUPABASE_SERVICE_ROLE_KEY`
+     - `SUPABASE_CONNECTION_STRING`
+     - `JWT_SECRET` (generate with `openssl rand -hex 32`)
+     - `UPSTASH_REDIS_REST_URL` & `UPSTASH_REDIS_REST_TOKEN`
+     - `SENTRY_DSN` & `VITE_SENTRY_DSN`
+     - `MAINTENANCE_MODE=0`
+   - Trigger production deployment by pushing or merging to `main`.
+
+3. **First Campus Onboarding:**
+   - Run admin provisioning CLI:
+     ```bash
+     npm run create-admin -- "Alpha Institute" "Principal Alpha"
+     ```
+   - Record generated credentials and provide securely to campus leader.
+
+4. **Production Smoke Verification:**
+   - Execute production smoke test against live domain:
+     ```bash
+     SMOKE_URL="https://your-domain.vercel.app" npm run test:smoke
+     ```
+   - Confirms HTTP 200 on `/api/health`, `/`, `/privacy`, `/terms`, and 401 rejection on `/api/posts`.
+
 ## Release procedure
 
 1. CI green on the PR. 2. Merge (no squash). 3. Run new migrations on production (`supabase db push` or the dashboard; follow the migration notes). 4. Watch Vercel deployment + `/api/health`. 5. Smoke test: sign in, post, vote, message. 6. Tag and release notes.
