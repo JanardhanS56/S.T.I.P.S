@@ -22,9 +22,23 @@
 - Database: migrations are forward-only; ship a corrective migration. For data loss, restore from backup (below).
 - Secrets: rotate and redeploy.
 
-## Monitoring
+## Monitoring & Error Tracking
 
-`/api/health` (also checks DB reachability, cheap query), uptime monitor `[TOOL]` every 5 minutes, error tracking, Vercel logs, Supabase dashboard (DB size, connections), Upstash dashboard (requests). Alert on: 5xx rate, health failures, login-failure spikes, quota 80%.
+- **Uptime Monitoring:** External monitor polling `GET /api/health` every 5 minutes (checks Express listener and live database reachability via cheap ping query).
+- **Error Tracking (Sentry):**
+  - Server: Initialized in `server/lib/sentry.js` and wired into Express in `server/app.js` using `SENTRY_DSN`.
+  - Client: Initialized in `src/sentry.js` and integrated with `ErrorBoundary.jsx` using `VITE_SENTRY_DSN`.
+  - Release tagging: Hardened under release `stips@0.1.0`.
+- **Privacy & PII Scrubbing (D4-09):**
+  - All errors pass through custom `beforeSend` sanitization before transmission to Sentry.
+  - Request data: `cookie`, `authorization`, and session tokens are completely excised; request bodies (`data`) are overwritten with `[REDACTED]`.
+  - User identity: User identifiers (`username`, `display_name`, `email`, and `ip_address`) are permanently stripped.
+  - Breadcrumb URLs: Sensitive query parameters in URL crumbs are excised.
+- **Alert Thresholds:**
+  - Sustained 5xx error rate > 1%.
+  - `/api/health` 2 consecutive failures.
+  - Failed login spikes (> 20 failed attempts in 5 minutes).
+  - Database connection pool utilization > 80%.
 
 ## Backups and restore
 
