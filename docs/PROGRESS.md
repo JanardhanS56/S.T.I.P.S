@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 4, Phase C Complete (Observability, Runbooks, and Production Readiness: D4-09..D4-12 merged into main)
-- Branch: main
-- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s)
-- First task for next session / phase: Day 4, Phase D: Security Sign-off, Documentation, Launch Checklist, and v0.1.0 Release (Tasks D4-13..D4-16)
+- Day: 4, Phase D In Progress (Security Sign-Off, Docs Finalization, Launch Checklist Complete; Preparing for v0.1.0 Tag and Release: Task D4-16)
+- Branch: chore/d4-release
+- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s), secret scan (0 secrets in git history)
+- First task for next session / phase: Task D4-16: Finalize version bump and changelog date, merge chore/d4-release into main without squash, tag v0.1.0, and push.
 
 ## Blocked / needs owner
 
@@ -15,16 +15,22 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Zero-PII Error Tracking: Integrated Sentry (`@sentry/node` & `@sentry/react`) with strict client/server event scrubbing (`scrubSentryEvent`). Strips auth tokens, cookies, email addresses, usernames, display names, and request bodies before transmission. Gracefully no-ops in development when `SENTRY_DSN` is unset.
-- Multi-Tier Runbooks & Health Probe: Standardized operational health contract (`GET /api/health`) returning uptime, database connectivity, and timestamp. Documented Sev 1/2/3 incident response paths and backup restoration procedures in `docs/OPERATIONS.md`.
-- Automated Smoke Verification: Created `scripts/smoke-test.js` (`npm run test:smoke`) executing blackbox verification against running production builds (health, landing, legal endpoints, auth barriers).
-- Pre-Flight Backup Validation: Implemented `scripts/backup-drill.js` (`npm run test:backup`) confirming live schema integrity across all 13 PostgreSQL tables, 28 foreign keys, and 11 applied migrations.
+- Security Sign-off & Secret Scan: Executed git history scanner (`npm run security:scan`), verifying 0 private keys, service role tokens, or passwords across all commits. Evaluated npm audit findings (`zod` and `react-router`) as accepted risks mitigated by 10kb body parser limits and zero SSR hydration.
+- License Compliance: Generated `docs/THIRD_PARTY.md` documenting all 156 production dependency licenses (MIT, Apache-2.0, BlueOak-1.0.0, BSD-3-Clause, ISC, 0BSD) with automated generation script (`npm run licenses`).
+- Documentation Finalization: Finalized comprehensive root `README.md`, `CHANGELOG.md` (Keep a Changelog format for 0.1.0), `SECURITY.md` (vulnerability disclosure policy), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and updated `docs/API.md` and `docs/CONTEXT.md`.
+- Launch Review (Go / No-Go): Completed `docs/LAUNCH_CHECKLIST.md` review. All core safety, security, and compliance criteria are satisfied. Three items recorded as accepted risks: (1) physical iOS Safari/Firefox testing scheduled for campus pilot, (2) institutional grievance officer contact flagged `[NEEDS HUMAN REVIEW]` for campus leadership assignment prior to student onboarding, and (3) formal third-party penetration testing deferred with owner sign-off. Determined **GO** for `v0.1.0` release.
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 16 - Day 4 Phase D (Security Sign-off, Documentation, and Launch Review: D4-13..D4-15)
+
+- Task D4-13: Ran `docs/SECURITY.md` section 11 checklist. Built `scripts/scan-secrets.js` (`npm run security:scan`) and scanned git history: 0 secrets detected. Analyzed `npm audit` findings: Zod (<4.6.6) memory exhaustion is mitigated by 10kb body limit and schema length caps; React Router SSR/backslash open redirect is inapplicable to client SPA. Recorded checklist results in `docs/SECURITY.md`.
+- Task D4-14: Built `scripts/generate-third-party.js` (`npm run licenses`) and generated `docs/THIRD_PARTY.md`. Authored `CHANGELOG.md` for `0.1.0`. Authored `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`. Updated root `SECURITY.md` with vulnerability reporting commitments and safe harbor terms. Finalized root `README.md`, `docs/API.md`, and `docs/CONTEXT.md`.
+- Task D4-15: Walked `docs/LAUNCH_CHECKLIST.md`. Recorded 3 accepted-risk items with justifications. Validated that all safety, security, and quality gates pass. Owner Go/No-Go determination: **GO** for release `v0.1.0`.
 
 ### Session 15 - Day 4 Phase C (Observability and Production Operations: D4-09..D4-12)
 
