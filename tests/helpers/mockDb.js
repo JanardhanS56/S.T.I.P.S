@@ -198,6 +198,8 @@ export function createMockDb(initialData = {}) {
       category: 'Notice',
       body: 'Welcome to the semester at Alpha Institute!',
       status: 'visible',
+      pinned_at: null,
+      is_official: false,
       created_at: new Date(Date.now() - 3600000).toISOString()
     },
     {
@@ -207,6 +209,8 @@ export function createMockDb(initialData = {}) {
       category: 'Notice',
       body: 'Welcome to Beta College community.',
       status: 'visible',
+      pinned_at: null,
+      is_official: false,
       created_at: new Date(Date.now() - 3600000).toISOString()
     },
     ...(initialData.posts || [])
@@ -326,8 +330,7 @@ export function createMockDb(initialData = {}) {
       let insertedRecord = null;
       let isDelete = false;
       let isCountHead = false;
-      let orderByCol = null;
-      let orderAscending = true;
+      const orderRules = [];
       let limitCount = null;
 
       const executeUpdates = () => {
@@ -402,12 +405,17 @@ export function createMockDb(initialData = {}) {
 
       const getFilteredData = () => {
         let list = collection.filter((item) => filters.every((fn) => fn(item)));
-        if (orderByCol) {
+        if (orderRules.length > 0) {
           list = [...list].sort((a, b) => {
-            const av = a[orderByCol];
-            const bv = b[orderByCol];
-            if (av < bv) return orderAscending ? -1 : 1;
-            if (av > bv) return orderAscending ? 1 : -1;
+            for (const { col, ascending, nullsFirst } of orderRules) {
+              const av = a[col];
+              const bv = b[col];
+              if (av === bv) continue;
+              if (av === null || av === undefined) return nullsFirst ? -1 : 1;
+              if (bv === null || bv === undefined) return nullsFirst ? 1 : -1;
+              if (av < bv) return ascending ? -1 : 1;
+              if (av > bv) return ascending ? 1 : -1;
+            }
             return 0;
           });
         }
@@ -429,8 +437,11 @@ export function createMockDb(initialData = {}) {
           return queryBuilder;
         },
         order(col, opts = { ascending: true }) {
-          orderByCol = col;
-          orderAscending = opts.ascending !== false;
+          orderRules.push({
+            col,
+            ascending: opts.ascending !== false,
+            nullsFirst: opts.nullsFirst === true
+          });
           return queryBuilder;
         },
         eq(col, val) {
@@ -524,10 +535,10 @@ export function createMockDb(initialData = {}) {
             const record = {
               id: item.id || randomUUID(),
               created_at: new Date().toISOString(),
-              ...(tableName === 'posts' ||
-              tableName === 'polls' ||
-              tableName === 'post_replies' ||
-              tableName === 'replies'
+              ...(tableName === 'posts'
+                ? { status: 'visible', pinned_at: null, is_official: false }
+                : {}),
+              ...(tableName === 'polls' || tableName === 'post_replies' || tableName === 'replies'
                 ? { status: 'visible' }
                 : {}),
               ...(tableName === 'reports' ? { status: 'open' } : {}),
