@@ -80,4 +80,80 @@ describe('Privacy and Data Protection API (ADM-08)', () => {
       }
     });
   });
+
+  describe('ADM-08 Deletion Request and Anonymization Flow', () => {
+    it('allows a member to submit a deletion request and admin to confirm and anonymize', async () => {
+      // 1. Login student_a1
+      const studentLogin = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+      const studentCookie = extractCookie(studentLogin);
+
+      // 2. Submit deletion request
+      const reqRes = await request(app)
+        .post('/api/me/delete-request')
+        .set('Cookie', studentCookie)
+        .set('Content-Type', 'application/json')
+        .send({ reason: 'Graduated from campus.' });
+
+      expect(reqRes.status).toBe(201);
+      expect(reqRes.body.ok).toBe(true);
+      expect(reqRes.body.request.status).toBe('pending');
+      const requestId = reqRes.body.request.id;
+
+      // Duplicate request returns existing
+      const dupRes = await request(app)
+        .post('/api/me/delete-request')
+        .set('Cookie', studentCookie)
+        .set('Content-Type', 'application/json')
+        .send({ reason: 'Duplicate' });
+      expect(dupRes.status).toBe(200);
+      expect(dupRes.body.request.id).toBe(requestId);
+
+      // 3. Admin logs in and reviews requests
+      const adminLogin = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'admin_a', password: 'TestPassword123!' });
+      const adminCookie = extractCookie(adminLogin);
+
+      const listRes = await request(app)
+        .get('/api/admin/deletion-requests')
+        .set('Cookie', adminCookie);
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.requests.length).toBeGreaterThan(0);
+      const found = listRes.body.requests.find((r) => r.id === requestId);
+      expect(found).toBeDefined();
+      expect(found.user.username).toBe('student_a1');
+
+      // 4. Admin confirms deletion
+      const confirmRes = await request(app)
+        .post(`/api/admin/deletion-requests/${requestId}/confirm`)
+        .set('Cookie', adminCookie)
+        .set('Content-Type', 'application/json')
+        .send({});
+      expect(confirmRes.status).toBe(200);
+      expect(confirmRes.body.ok).toBe(true);
+      expect(confirmRes.body.anonymizedUsername).toMatch(/^deleted-/);
+
+      // 5. Verify target user is anonymized in DB
+      const targetUser = mockDb.users.find((u) => u.id === '00000000-0000-0000-0001-000000000004');
+      expect(targetUser.username).toMatch(/^deleted-/);
+      expect(targetUser.display_name).toBe('Deleted user');
+      expect(targetUser.bio).toBe('');
+      expect(targetUser.status).toBe('suspended');
+
+      // 6. Student session is revoked
+      const afterRes = await request(app).get('/api/auth/me').set('Cookie', studentCookie);
+      expect(afterRes.status).toBe(401);
+
+      // 7. Audit log contains entry
+      const auditRes = await request(app).get('/api/admin/audit').set('Cookie', adminCookie);
+      expect(auditRes.status).toBe(200);
+      const auditEntry = auditRes.body.audit.find((e) => e.action === 'account_deletion_confirm');
+      expect(auditEntry).toBeDefined();
+      expect(auditEntry.meta.previousUsername).toBe('student_a1');
+    });
+  });
 });
