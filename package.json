@@ -24,6 +24,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "db:migrate": "node --env-file=.env scripts/migrate.js",
     "seed:test": "node --env-file=.env.test scripts/seed-test.js",
     "prepare": "husky"
   },
@@ -58,6 +59,7 @@
     "globals": "^17.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.1",
+    "pg": "^8.23.1",
     "prettier": "^3.10.1",
     "supabase": "^3.1.0",
     "supertest": "^7.3.2",

@@ -1,5 +1,7 @@
 import { env } from './env.js';
 
+const isTestEnv = env.NODE_ENV === 'test' || Boolean(process.env.PLAYWRIGHT_TEST);
+
 // Central place for limits and rules. Change numbers here, not scattered in routes.
 export const config = {
   isProd: env.NODE_ENV === 'production',
@@ -21,15 +23,15 @@ export const config = {
   },
   rateLimits: {
     global: {
-      requests: env.NODE_ENV === 'test' ? 1000 : 300,
+      requests: isTestEnv ? 1000 : 300,
       windowSeconds: 900
     },
     loginIp: {
-      requests: env.NODE_ENV === 'test' ? 1000 : 10,
+      requests: isTestEnv ? 1000 : 10,
       windowSeconds: 900
     },
     loginUser: {
-      requests: env.NODE_ENV === 'test' ? 1000 : 10,
+      requests: isTestEnv ? 1000 : 10,
       windowSeconds: 900
     }
   },

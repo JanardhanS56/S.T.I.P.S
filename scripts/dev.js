@@ -17,7 +17,8 @@ console.log('');
 // 1. Start Backend API
 const api = spawn(process.execPath, ['--env-file=.env', serverScript], {
   cwd: rootDir,
-  stdio: 'inherit'
+  stdio: 'inherit',
+  env: { ...process.env }
 });
 
 // 2. Start Vite Frontend
