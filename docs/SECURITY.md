@@ -100,4 +100,4 @@ See `RATE_LIMITING_AND_ABUSE.md`. Child-safety: no image uploads, no contact-det
 
 ## 12. Vulnerability reporting
 
-Publish `SECURITY.md` at the repo root (use `templates/.github` guidance) with a contact `[OFFICE/OWNER CONTACT]` and a response promise `[TARGET]`.
+Publish `SECURITY.md` at the repo root with a contact `[OFFICE/OWNER CONTACT]` and a response promise `[TARGET]`.

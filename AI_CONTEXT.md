@@ -34,6 +34,25 @@ S.T.I.P.S is a private, secure, and privacy-first web application designed for o
 - **Observability:** Pino structured logger (`server/logger.js`) with PII redaction; Sentry (`@sentry/node` and `@sentry/react`) with strict client/server PII scrubbing (`scrubSentryEvent`).
 - **Validation:** Zod 3 schemas validating all incoming request bodies, queries, and environment variables (`server/env.js`).
 
+### Repository Structure:
+
+```text
+├── .github/              # GitHub Actions workflows and issue/PR templates
+├── .husky/               # Git hook handlers (pre-commit, commit-msg)
+├── api/                  # Vercel serverless function entrypoint (api/index.js)
+├── docs/                 # Engineering, operations, and compliance documentation
+│   ├── plans/            # Milestone implementation plans (Days 1–4)
+│   └── prompts/          # Operator engineering prompts & recovery guides
+├── public/               # Public static assets, self-hosted fonts, .well-known
+├── scripts/              # Automated administrative and operational CLI utilities
+├── server/               # Express backend application, routes, models, middleware
+│   ├── lib/              # Shared backend utility services (audit, rate-limits, sentry)
+│   └── routes/           # Domain API route handlers
+├── src/                  # React Vite client application (pages, components, UI primitives)
+├── supabase/             # PostgreSQL database migrations, seed data, and schema
+└── tests/                # Automated Vitest API & unit test suites, mock database
+```
+
 ---
 
 ## 3. Database Schema Overview (13 Tables)

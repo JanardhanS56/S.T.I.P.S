@@ -178,6 +178,8 @@ For comprehensive operational guidelines, alert escalation paths, and disaster r
   - [docs/OPERATIONS.md](docs/OPERATIONS.md) — Incident escalation runbooks, health probe, and restore drills
   - [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) — Pre-flight launch validation checklist
   - [docs/PROGRESS.md](docs/PROGRESS.md) — Historical milestone and engineering session log
+  - [docs/plans/](docs/plans/) — Milestone roadmaps and execution plans (Days 1–4)
+  - [docs/prompts/](docs/prompts/) — Engineering agent prompts and recovery guides
 - **Guides:**
   - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — End-user guide for students and faculty
   - [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) — Campus administrator handbook

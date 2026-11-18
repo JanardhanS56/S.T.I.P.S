@@ -74,7 +74,7 @@ Rules: imperative mood ("add", "fix", "remove"), no trailing period, scope in lo
 
 ## 5. Pull requests
 
-- One PR per phase. Use `templates/.github/pull_request_template.md` (what, why, how tested, screenshots, checklist).
+- One PR per phase. Use `.github/pull_request_template.md` (what, why, how tested, screenshots, checklist).
 - **Merge method: "Create a merge commit" or "Rebase and merge". Do not squash**, so the micro-commits stay in history (decision D12). In GitHub: repo Settings > General > Pull Requests, disable "Allow squash merging".
 - Even as a solo developer, use PRs: they give CI a gate and a readable log.
 
@@ -89,7 +89,7 @@ Semantic Versioning. `v0.1.0` after Day 4 (first deployable product). Patch for 
 ## 8. Local setup
 
 - Commit template: `git config commit.template .gitmessage` (file below).
-- Hooks (Husky): `pre-commit` runs lint-staged (eslint + prettier on staged files) and a secret check; `commit-msg` runs commitlint. Configs are in `templates/`.
+- Hooks (Husky): `pre-commit` runs lint-staged (eslint + prettier on staged files) and a secret check; `commit-msg` runs commitlint. Configs are in `.husky/` and root config files.
 - Use `git commit -v` to review the diff while writing the message.
 - Fix the last commit message before pushing: `git commit --amend`. Never amend or rebase pushed shared history.
 

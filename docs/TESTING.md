@@ -185,7 +185,7 @@ IDs are referenced by the day plans and in commit messages (`test(auth): add AUT
 
 Sign in on a real phone; try slow 3G in dev tools; try with a screen reader quickly; try in Firefox and Safari; try a tablet width; test with JavaScript errors in console (none allowed); test back/forward and refresh on every route; test expired session behavior; test two tabs voting simultaneously.
 
-## 8. CI gate (see `templates/.github/workflows/ci.yml`)
+## 8. CI gate (see `.github/workflows/ci.yml`)
 
 lint, format check, unit + API tests, build, `npm audit`, secret scan. E2E and axe run on pull requests against a preview or local server. **No merge to main on red.**
 

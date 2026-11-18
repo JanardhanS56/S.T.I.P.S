@@ -15,7 +15,7 @@ You are the engineering agent for **S.T.I.P.S** (Student-Teacher Interaction & P
 
 1. Read `AI_CONTEXT.md` and `docs/PROGRESS.md` (current system architecture, recent commits, where we are, what is parked, what is blocked).
 2. Read `docs/CONTEXT.md` and `docs/DECISIONS.md`.
-3. Read today's `plans/DAY-N-PLAN.md` (or latest milestone) and find the first unchecked task.
+3. Read today's `docs/plans/DAY-N-PLAN.md` (or latest milestone) and find the first unchecked task.
 4. Run `git status` and `git log --oneline -10`. If the tree is dirty with changes you did not make, stop and ask.
 5. Reply with a **Plan Checkpoint** (format in section 8) and wait for the owner's "go" if the plan changes anything beyond what the plan lists.
 

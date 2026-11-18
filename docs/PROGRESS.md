@@ -26,6 +26,14 @@
 
 ## Session log
 
+### Session 18 - Repository Hygiene, Dead File Cleanup, and Structural Organization
+
+- Removed obsolete untracked files (`--help` directory, `Guide.txt` scratch note, and `supabase/.temp`).
+- Removed duplicate, dead `templates/` directory (which held initial Day 1 starter copies) and cleaned up ESLint/Vitest configuration ignores.
+- Reorganized documentation structure: moved root `plans/` to `docs/plans/` and root `prompts/` to `docs/prompts/`, keeping the repository root strictly standardized to production code and active configuration files.
+- Updated `AI_CONTEXT.md`, `GEMINI.md`, `README.md`, `docs/GIT_CONVENTIONS.md`, `docs/SECURITY.md`, and `docs/TESTING.md` to reference the canonical file paths.
+- Verified: `npm run lint` clean (0 errors), `npm run format:check` clean, `npm test` 195/195 passing across 18 test suites, `npm run build` clean production build.
+
 ### Session 17 - Backend Deploy Readiness & CI Playwright WebServer Fix
 
 - Replaced CLI-level `--env-file` invocations in `scripts/dev.js`, `server/dev.js`, and `package.json` with safe programmatic `process.loadEnvFile` calls wrapped in try/catch, eliminating Node code 9 (`.env: not found`) crashes in CI and container environments where `.env` is absent.

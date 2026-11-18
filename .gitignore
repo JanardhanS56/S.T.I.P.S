@@ -8,5 +8,4 @@ coverage
 .vercel
 test-results
 playwright-report
-Guide.txt
 *.pdf
