@@ -8,6 +8,22 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const viteBin = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
 const serverScript = path.join(rootDir, 'server', 'dev.js');
 
+// Load .env or .env.test into process.env safely if present without relying on CLI flags
+const envFileName =
+  process.env.NODE_ENV === 'test' && fs.existsSync(path.join(rootDir, '.env.test'))
+    ? '.env.test'
+    : fs.existsSync(path.join(rootDir, '.env'))
+      ? '.env'
+      : null;
+
+if (envFileName && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(path.join(rootDir, envFileName));
+  } catch {
+    // If the env file cannot be parsed or read, rely on existing process.env
+  }
+}
+
 console.log('='.repeat(50));
 console.log('  S.T.I.P.S Local Development Server');
 console.log('  • Frontend:    http://localhost:5173');
@@ -16,17 +32,9 @@ console.log('='.repeat(50));
 console.log('');
 
 // 1. Start Backend API
-// Only pass --env-file when an env file exists on disk (avoids code 9 crash in CI / Docker)
-const envFile =
-  process.env.NODE_ENV === 'test' && fs.existsSync(path.join(rootDir, '.env.test'))
-    ? '.env.test'
-    : fs.existsSync(path.join(rootDir, '.env'))
-      ? '.env'
-      : null;
-
-const apiArgs = envFile ? [`--env-file=${envFile}`, serverScript] : [serverScript];
-
-const api = spawn(process.execPath, apiArgs, {
+// Never pass --env-file CLI flag: process.env is passed directly to child process,
+// preventing Node exit code 9 crashes in CI / container environments where .env is absent.
+const api = spawn(process.execPath, [serverScript], {
   cwd: rootDir,
   stdio: 'inherit',
   env: { ...process.env }

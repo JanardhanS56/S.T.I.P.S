@@ -26,6 +26,12 @@
 
 ## Session log
 
+### Session 17 - Backend Deploy Readiness & CI Playwright WebServer Fix
+
+- Replaced CLI-level `--env-file` invocations in `scripts/dev.js`, `server/dev.js`, and `package.json` with safe programmatic `process.loadEnvFile` calls wrapped in try/catch, eliminating Node code 9 (`.env: not found`) crashes in CI and container environments where `.env` is absent.
+- Cleaned up `.github/workflows/ci.yml` to remove the temporary file-touching hack and rely directly on standard runner environment variables.
+- Verified: `npm run lint` clean, `npm run format:check` clean, `npm test` 195/195 passing across 18 suites, `npm run build` clean production build.
+
 ### Session 16 - Day 4 Phase D (Security Sign-off, Documentation, Launch Review, and v0.1.0 Release: D4-13..D4-16)
 
 - Task D4-13: Ran `docs/SECURITY.md` section 11 checklist. Built `scripts/scan-secrets.js` (`npm run security:scan`) and scanned git history: 0 secrets detected. Analyzed `npm audit` findings: Zod (<4.6.6) memory exhaustion is mitigated by 10kb body limit and schema length caps; React Router SSR/backslash open redirect is inapplicable to client SPA. Recorded checklist results in `docs/SECURITY.md`.
