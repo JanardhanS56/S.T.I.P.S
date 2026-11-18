@@ -4,9 +4,9 @@
 
 ## Current status
 
-- Day: 4 Complete, Release v0.1.0 Shipped (Compliance, Quality, Operations, Security Sign-Off, and v0.1.0 Release Tagged)
+- Day: 4 Complete, Release v0.1.0 Shipped + Backend Deploy Readiness & Documentation Hardening
 - Branch: main
-- Last green check: npm run lint, npm test (190 unit/API tests passing across 18 test suites), Playwright E2E & A11Y (48/48 passing across Desktop & Mobile Chrome), npm run build (clean production build), smoke test (5/5 passed), backup drill (13 tables, 28 foreign keys, 11 migrations verified in 8.85s), secret scan (0 secrets in git history), release tag v0.1.0 pushed to origin
+- Last green check: npm run lint (0 errors), npm run format:check (100% compliant), npm test (195 unit/API tests passing across 18 test suites), npm run build (clean production build in 5.7s), secret scan (0 secrets in git history), GitHub Actions CI passing on main
 - Next milestone: Post-v0.1.0 Campus Pilot Onboarding and Live Feedback Gathering
 
 ## Blocked / needs owner

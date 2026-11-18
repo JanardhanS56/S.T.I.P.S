@@ -49,4 +49,14 @@ Security updates are applied to the latest tagged release and the `main` branch.
 
 ## 4. Security Architecture & Threat Model
 
-For engineering details regarding our threat model, OWASP Top 10 mitigations, Content-Security-Policy (CSP), rate limits, and audit logs, please review the internal [Security Plan](docs/SECURITY.md).
+For engineering details regarding our threat model, OWASP Top 10 mitigations, Content-Security-Policy (CSP), rate limits, and audit logs, please review the internal [Security Plan](docs/SECURITY.md) and [AI & Developer Context](AI_CONTEXT.md).
+
+---
+
+## 5. Automated Safeguards & Invariants
+
+- **Community Isolation:** Every database operation is scoped by `req.user.community_id` extracted from the server-validated JWT session.
+- **Abuse Escalation:** Automated strike tracking backed by Upstash Redis temporarily mutes accounts triggering 3 content rejections in 10 minutes.
+- **Zero-Contact Invariant:** Automated regex filters bar phone numbers and email addresses across posts and direct messages.
+- **Secret Hygiene:** Continuous automated git history scanning (`gitleaks` in CI and `npm run security:scan` locally).
+- **Zero-PII Observability:** Sentry error telemetry runs through `scrubSentryEvent`, redacting cookies, auth headers, display names, and request bodies.

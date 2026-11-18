@@ -1,6 +1,7 @@
 # Context: Ground Truth About the Code
 
 > If this file and the code disagree, trust the code, then fix this file in a `docs:` commit.
+> See also [AI_CONTEXT.md](../AI_CONTEXT.md) for master architecture context and recent commit history.
 
 ## Stack
 
@@ -60,7 +61,7 @@ posts 10/h, replies 30/h, reactions 120/h, polls 5/day, messages 60/h, reports 2
 
 All core requirements and Day 1–4 compliance controls are fully implemented:
 
-- **Test Suite:** 190 Vitest unit/API tests across 18 test suites passing.
+- **Test Suite:** 195 Vitest unit/API tests across 18 test suites passing.
 - **E2E & A11Y:** 48 Playwright tests passing across Desktop Chrome & Pixel 5 Mobile Chrome (0 serious/critical WCAG 2.1 AA violations).
 - **Security:** Self-hosted fonts, zero-leak CSP (`font-src 'self'`), zero secrets in git history (`npm run security:scan`), PII-scrubbed Sentry error tracking, automated backup restore drill (`npm run test:backup` in 8.85s).
 

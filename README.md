@@ -1,6 +1,6 @@
 # S.T.I.P.S (Student-Teacher Interaction & Polling System)
 
-[![CI](https://github.com/sameer10237/S.T.I.P.S/actions/workflows/ci.yml/badge.svg)](https://github.com/sameer10237/S.T.I.P.S/actions/workflows/ci.yml)
+[![CI](https://github.com/JanardhanS56/S.T.I.P.S/actions/workflows/ci.yml/badge.svg)](https://github.com/JanardhanS56/S.T.I.P.S/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-UNLICENSED-red.svg)](LICENSE)
 [![WCAG 2.1 AA](https://img.shields.io/badge/accessibility-WCAG%202.1%20AA-success.svg)](docs/ACCESSIBILITY.md)
@@ -33,7 +33,7 @@
 - **Database & Storage:** Supabase PostgreSQL with 13 tables, compound indexes for <4ms queries, and default-deny Row Level Security (RLS) on all tables.
 - **Rate Limiting & Caching:** Upstash Redis with robust in-memory sliding-window fallback (`@upstash/ratelimit`).
 - **Security & Hardening:** Strict Content-Security-Policy (`font-src 'self'`), `HttpOnly` `SameSite=Strict` `Secure` session cookies, JWT token version revocation (`token_version`), account lockouts after 5 consecutive failures.
-- **Testing:** Vitest (190 unit/API integration tests), Playwright (48 E2E and accessibility checks across Desktop and Mobile Chrome), Autocannon (concurrency smoke benchmarks).
+- **Testing:** Vitest (195 unit and integration tests across 18 test suites), Playwright (48 E2E and accessibility checks across Desktop and Mobile Chrome), Autocannon (concurrency smoke benchmarks).
 
 ---
 
@@ -49,7 +49,7 @@
 ### 2. Installation
 
 ```bash
-git clone https://github.com/sameer10237/S.T.I.P.S.git
+git clone https://github.com/JanardhanS56/S.T.I.P.S.git
 cd S.T.I.P.S
 npm install
 ```
@@ -109,7 +109,7 @@ npm run dev
 | Command                 | Purpose                                                    |
 | :---------------------- | :--------------------------------------------------------- |
 | `npm run dev`           | Runs both API backend and Vite client concurrently         |
-| `npm run dev:api`       | Runs the Express API server with `--env-file=.env`         |
+| `npm run dev:api`       | Runs the Express API server standalone                     |
 | `npm run dev:client`    | Runs the Vite client development server                    |
 | `npm run build`         | Compiles production assets into `dist/`                    |
 | `npm run lint`          | Runs ESLint across client and server codebase              |
@@ -160,6 +160,9 @@ For comprehensive operational guidelines, alert escalation paths, and disaster r
 
 ## Documentation Index
 
+- **AI & Developer Onboarding:**
+  - [AI_CONTEXT.md](AI_CONTEXT.md) — Master context document and ground truth for AI coding agents & new developers
+  - [GEMINI.md](GEMINI.md) — Autonomous agent instructions, invariants, and prime directives
 - **Core & Architecture:**
   - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System boundaries and technical architecture
   - [docs/API.md](docs/API.md) — Full REST API endpoint reference and error codes

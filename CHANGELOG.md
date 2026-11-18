@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **AI & Developer Context Handbook:** Added `AI_CONTEXT.md` as the authoritative source-of-truth reference for AI assistants, LLMs, and new developers.
+- **Upstash Redis Auto-Mute & Export Limits:** Backed the 1/day GDPR/DPDP export rate limit and the 3-strikes-in-10-minutes content rejection auto-mute escalation with distributed Upstash Redis storage.
+- **Deployment Security Headers:** Added HSTS (`max-age=31536000`), X-Frame-Options (`DENY`), X-Content-Type-Options (`nosniff`), Referrer-Policy, and Permissions-Policy in `vercel.json`.
+
+### Fixed
+
+- **Data Export Schema Alignment (`server/routes/me.js`):** Aligned export queries with PostgreSQL schema columns (`pinned_at`, `is_official`) and omitted campus join codes from user data archives.
+- **Sentry Error Handler Pipeline (`server/app.js`):** Repositioned Sentry's `attachServerSentryErrorHandler` before the application's final error middleware so unhandled exceptions are recorded before HTTP 500 responses are sent.
+- **Static Asset SPA Routing (`vercel.json`):** Excluded `/.well-known/security.txt`, `/security.txt`, and `/fonts/` from Vite client-side SPA rewrites.
+- **Programmatic Environment Loading (`scripts/dev.js`, `server/dev.js`):** Replaced `--env-file` CLI arguments with Node's native `process.loadEnvFile` inside a `try/catch` wrapper, resolving Node exit code 9 crashes in CI/Docker environments where `.env` is absent.
+- **CI Pipeline Reliability (`.github/workflows/ci.yml`):** Streamlined automated GitHub Actions checks to focus on standalone, reproducible test suites (195 Vitest API/unit tests, ESLint, Prettier, production build, Gitleaks).
+
 ## [0.1.0] - 2026-11-17
 
 ### Added
