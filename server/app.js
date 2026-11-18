@@ -56,8 +56,7 @@ app.use((_req, res, next) => {
   );
   next();
 });
-const serveStaticBundle =
-  process.env.NODE_ENV !== 'development' || process.env.SERVE_STATIC === '1';
+const serveStaticBundle = env.NODE_ENV !== 'development' || process.env.SERVE_STATIC === '1';
 if (serveStaticBundle) {
   app.use(express.static(distDir));
 }
