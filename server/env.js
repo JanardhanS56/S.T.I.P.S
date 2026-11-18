@@ -15,12 +15,21 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional()
 });
 
+const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.env.PLAYWRIGHT_TEST);
+
 const raw = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
-  SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  JWT_SECRET: process.env.JWT_SECRET,
+  SUPABASE_URL:
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    (isTestEnv ? 'http://localhost:54321' : undefined),
+  SUPABASE_SERVICE_ROLE_KEY:
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    (isTestEnv ? 'test-service-role-key-for-local-unit-tests-only' : undefined),
+  JWT_SECRET:
+    process.env.JWT_SECRET ||
+    (isTestEnv ? 'test-jwt-secret-at-least-32-characters-long-for-testing' : undefined),
   LLM_API_KEY: process.env.LLM_API_KEY || undefined,
   LLM_BASE_URL: process.env.LLM_BASE_URL || undefined,
   LLM_MODEL: process.env.LLM_MODEL || undefined,

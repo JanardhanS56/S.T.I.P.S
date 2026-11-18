@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import process from 'node:process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const viteBin = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -15,7 +16,17 @@ console.log('='.repeat(50));
 console.log('');
 
 // 1. Start Backend API
-const api = spawn(process.execPath, ['--env-file=.env', serverScript], {
+// Only pass --env-file when an env file exists on disk (avoids code 9 crash in CI / Docker)
+const envFile =
+  process.env.NODE_ENV === 'test' && fs.existsSync(path.join(rootDir, '.env.test'))
+    ? '.env.test'
+    : fs.existsSync(path.join(rootDir, '.env'))
+      ? '.env'
+      : null;
+
+const apiArgs = envFile ? [`--env-file=${envFile}`, serverScript] : [serverScript];
+
+const api = spawn(process.execPath, apiArgs, {
   cwd: rootDir,
   stdio: 'inherit',
   env: { ...process.env }
