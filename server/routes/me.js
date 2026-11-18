@@ -24,54 +24,76 @@ r.get(
 
     if (userErr || !user) throw new HttpError(404, 'User profile not found.');
 
-    // Community if attached
+    // Community if attached (omit join code so non-admins cannot read it)
     let community = null;
     if (user.community_id) {
-      const { data: c } = await db
+      const { data: c, error: cErr } = await db
         .from('communities')
-        .select('id,name,code')
+        .select('id,name')
         .eq('id', user.community_id)
         .maybeSingle();
-      community = c || null;
+      if (cErr) throw cErr;
+      community = c ? { id: c.id, name: c.name } : null;
     }
 
-    // 2. Posts and Replies
-    const { data: allPosts } = await db
+    // 2. Posts and Replies (separate tables in schema)
+    const { data: posts, error: postsErr } = await db
       .from('posts')
-      .select('id,parent_id,category,body,created_at,status,pinned_at,is_official')
-      .eq('author_id', userId);
+      .select('id,category,body,created_at,status,pinned_at,is_official')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (postsErr) throw postsErr;
 
-    const posts = (allPosts || []).filter((p) => !p.parent_id);
-    const replies = (allPosts || []).filter((p) => Boolean(p.parent_id));
+    const { data: replies, error: repliesErr } = await db
+      .from('post_replies')
+      .select('id,post_id,parent_id,body,created_at,status')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (repliesErr) throw repliesErr;
 
     // 3. Reactions
-    const { data: reactions } = await db
+    const { data: reactions, error: rxErr } = await db
       .from('post_reactions')
       .select('post_id,kind,created_at')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .limit(1000);
+    if (rxErr) throw rxErr;
 
     // 4. Polls created
-    const { data: polls } = await db
+    const { data: polls, error: pollsErr } = await db
       .from('polls')
-      .select('id,question,created_at,expires_at,status,poll_options(id,text)')
-      .eq('author_id', userId);
+      .select('id,question,created_at,closes_at,status,options:poll_options(id,label)')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (pollsErr) throw pollsErr;
 
     // 5. Poll votes
-    const { data: votes } = await db
+    const { data: votes, error: votesErr } = await db
       .from('poll_votes')
       .select('poll_id,option_id,created_at')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .limit(1000);
+    if (votesErr) throw votesErr;
 
     // 6. Direct messages sent and received
-    const { data: sentMessages } = await db
+    const { data: sentMessages, error: sentErr } = await db
       .from('messages')
       .select('id,recipient_id,body,created_at,read_at')
-      .eq('sender_id', userId);
+      .eq('sender_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (sentErr) throw sentErr;
 
-    const { data: receivedMessages } = await db
+    const { data: receivedMessages, error: recvErr } = await db
       .from('messages')
       .select('id,sender_id,body,created_at,read_at')
-      .eq('recipient_id', userId);
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (recvErr) throw recvErr;
 
     const exportPayload = {
       exportMetadata: {
