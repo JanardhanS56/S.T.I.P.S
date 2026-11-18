@@ -11,6 +11,8 @@ import {
 } from '../../server/moderation.js';
 import { env } from '../../server/env.js';
 import { checkRepetition, checkAllCaps, checkLinks } from '../../server/lib/spam.js';
+import { setRedisClient } from '../../server/rateLimit.js';
+import { db } from '../../server/db.js';
 
 describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
   describe('MOD-01: Word filter blocks plain, leetspeak, spaced and mixed-case variants', () => {
@@ -351,6 +353,68 @@ describe('Moderation Unit Tests (MOD-01, MOD-02, MOD-03)', () => {
       expect(triggerResult.muted).toBe(true);
       expect(triggerResult.count).toBe(5);
       expect(mockUser.status).toBe('muted');
+    });
+
+    it('uses Redis sliding window when available and normalizes reply target_type to post', async () => {
+      const entries = [];
+      const mockRedis = {
+        zadd: vi.fn(async (_k, item) => entries.push(item)),
+        zremrangebyscore: vi.fn(async () => 0),
+        zcard: vi.fn(async () => entries.length),
+        expire: vi.fn(async () => 1)
+      };
+      setRedisClient(mockRedis);
+
+      const insertedReports = [];
+      const fromSpy = vi.spyOn(db, 'from').mockImplementation((table) => {
+        if (table === 'users') {
+          return { update: () => ({ eq: async () => ({ error: null }) }) };
+        }
+        return {
+          insert: async (row) => {
+            insertedReports.push(row);
+            return { error: null };
+          }
+        };
+      });
+
+      try {
+        const mockUser = {
+          id: testUserId,
+          community_id: '00000000-0000-0000-0000-000000000001',
+          status: 'active'
+        };
+        for (let i = 1; i <= 5; i++) {
+          await handleRejection(mockUser, 'reply');
+        }
+        expect(mockRedis.zadd).toHaveBeenCalledTimes(5);
+        expect(mockUser.status).toBe('muted');
+        expect(insertedReports.length).toBe(1);
+        expect(insertedReports[0].target_type).toBe('post');
+      } finally {
+        setRedisClient(null);
+        fromSpy.mockRestore();
+      }
+    });
+
+    it('falls back to in-memory counter when Redis throws', async () => {
+      setRedisClient({
+        zadd: vi.fn().mockRejectedValue(new Error('Redis down')),
+        zremrangebyscore: vi.fn(),
+        zcard: vi.fn(),
+        expire: vi.fn()
+      });
+      try {
+        const mockUser = {
+          id: testUserId,
+          community_id: '00000000-0000-0000-0000-000000000001',
+          status: 'active'
+        };
+        const res = await handleRejection(mockUser, 'post');
+        expect(res).toEqual({ muted: false, count: 1 });
+      } finally {
+        setRedisClient(null);
+      }
     });
   });
 });

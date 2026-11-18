@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createMockDb } from '../helpers/mockDb.js';
+import { resetRateLimits, setRedisClient } from '../../server/rateLimit.js';
 
 let mockDb;
 vi.mock('../../server/db.js', () => ({
@@ -26,6 +27,8 @@ function extractCookie(res) {
 describe('Privacy and Data Protection API (ADM-08)', () => {
   beforeEach(() => {
     mockDb = createMockDb();
+    resetRateLimits();
+    setRedisClient(null);
   });
 
   describe('ADM-08 Export My Data: GET /api/me/export', () => {
@@ -110,6 +113,11 @@ describe('Privacy and Data Protection API (ADM-08)', () => {
       expect(res.body.replies.length).toBe(1);
       expect(res.body.replies[0].body).toBe('Reply from teacher');
       expect(res.body.pollsCreated.length).toBeGreaterThan(0);
+
+      // Immediate second export is rate-limited with Retry-After
+      const second = await request(app).get('/api/me/export').set('Cookie', cookie);
+      expect(second.status).toBe(429);
+      expect(second.headers['retry-after']).toBeDefined();
     });
   });
 
