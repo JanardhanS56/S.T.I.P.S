@@ -176,6 +176,7 @@ For comprehensive operational guidelines, alert escalation paths, and disaster r
   - [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md) — Open-source dependencies and license declarations
 - **Operations & Runbooks:**
   - [docs/OPERATIONS.md](docs/OPERATIONS.md) — Incident escalation runbooks, health probe, and restore drills
+  - [docs/BACKEND_AUDIT_REPORT.md](docs/BACKEND_AUDIT_REPORT.md) — Comprehensive backend readiness, security, and feature audit report
   - [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) — Pre-flight launch validation checklist
   - [docs/PROGRESS.md](docs/PROGRESS.md) — Historical milestone and engineering session log
   - [docs/plans/](docs/plans/) — Milestone roadmaps and execution plans (Days 1–4)
