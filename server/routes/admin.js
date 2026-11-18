@@ -279,7 +279,8 @@ r.get(
         'id,user_id,community_id,status,reason,created_at,reviewed_at,user:users!user_id(id,username,display_name,role)'
       )
       .eq('community_id', req.user.community_id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) throw error;
     res.json({ requests: requests || [] });

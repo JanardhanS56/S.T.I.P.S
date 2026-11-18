@@ -490,4 +490,58 @@ describe('Auth API Integration Tests (AUTH-01..AUTH-06, AUTH-10..AUTH-12)', () =
       expect(feedAfter.status).toBe(200);
     });
   });
+
+  describe('Database resilience during auth and session checks', () => {
+    it('returns 503 instead of 401 when database lookup fails during login', async () => {
+      const originalFrom = mockDb.from;
+      mockDb.from = () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { message: 'connection refused' }
+            })
+          })
+        })
+      });
+      try {
+        const res = await request(app)
+          .post('/api/auth/login')
+          .set('Content-Type', 'application/json')
+          .send({ username: 'student_a1', password: 'TestPassword123!' });
+        expect(res.status).toBe(503);
+        expect(res.body.error).toContain('temporarily unavailable');
+      } finally {
+        mockDb.from = originalFrom;
+      }
+    });
+
+    it('returns 503 instead of 401 when database lookup fails during session check', async () => {
+      const login = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'student_a1', password: 'TestPassword123!' });
+      expect(login.status).toBe(200);
+      const cookie = extractCookie(login);
+
+      const originalFrom = mockDb.from;
+      mockDb.from = () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { message: 'timeout' }
+            })
+          })
+        })
+      });
+      try {
+        const res = await request(app).get('/api/auth/me').set('Cookie', cookie);
+        expect(res.status).toBe(503);
+        expect(res.body.error).toContain('temporarily unavailable');
+      } finally {
+        mockDb.from = originalFrom;
+      }
+    });
+  });
 });

@@ -323,7 +323,8 @@ r.post(
     if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
 
     const pinned_at = pinned ? new Date().toISOString() : null;
-    await db.from('posts').update({ pinned_at }).eq('id', id);
+    const { error: pinErr } = await db.from('posts').update({ pinned_at }).eq('id', id);
+    if (pinErr) throw pinErr;
     res.json({ id, pinned: Boolean(pinned_at), pinned_at });
   })
 );
@@ -343,7 +344,11 @@ r.post(
     const post = await loadInCommunity('posts', id, req, 'id,community_id,status,is_official');
     if (post.status !== 'visible') throw new HttpError(404, 'Post not found.');
 
-    await db.from('posts').update({ is_official: official }).eq('id', id);
+    const { error: officialErr } = await db
+      .from('posts')
+      .update({ is_official: official })
+      .eq('id', id);
+    if (officialErr) throw officialErr;
     res.json({ id, is_official: official });
   })
 );
@@ -356,7 +361,8 @@ r.delete(
     const p = await loadInCommunity('posts', id, req, 'author_id,community_id');
     if (p.author_id !== req.user.id && req.user.role !== 'admin')
       throw new HttpError(403, 'Not allowed.');
-    await db.from('posts').update({ status: 'hidden' }).eq('id', id);
+    const { error: delErr } = await db.from('posts').update({ status: 'hidden' }).eq('id', id);
+    if (delErr) throw delErr;
     res.json({ ok: true });
   })
 );

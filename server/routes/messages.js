@@ -68,10 +68,12 @@ r.get(
       .eq('community_id', req.user.community_id)
       .eq('status', 'active')
       .neq('id', req.user.id)
-      .order('display_name');
+      .order('display_name')
+      .limit(200);
     if (config.dmRule === 'teacher-student' && req.user.role === 'student')
       q = q.in('role', ['teacher', 'admin']);
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) throw error;
 
     // Filter out users who have blocked current user or whom current user has blocked
     const { data: blocks } = await db
@@ -96,8 +98,10 @@ r.get(
     const { data, error } = await db
       .from('messages')
       .select('id,sender_id,read_at')
+      .eq('community_id', req.user.community_id)
       .eq('recipient_id', req.user.id)
-      .is('read_at', null);
+      .is('read_at', null)
+      .limit(500);
     if (error) throw error;
 
     const bySender = {};
@@ -115,14 +119,16 @@ r.get(
   '/threads',
   h(async (req, res) => {
     const me = req.user.id;
-    const { data } = await db
+    const { data, error } = await db
       .from('messages')
       .select(
         'id,body,created_at,sender_id,recipient_id,read_at,sender:users!sender_id(id,username,display_name,role),recipient:users!recipient_id(id,username,display_name,role)'
       )
+      .eq('community_id', req.user.community_id)
       .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
       .order('created_at', { ascending: false })
       .limit(200);
+    if (error) throw error;
 
     const seen = new Map();
     const unreadMap = new Map();
@@ -164,7 +170,7 @@ r.get(
       throw new HttpError(404, 'Person not found.');
     }
     const me = req.user.id;
-    const { data } = await db
+    const { data, error: msgErr } = await db
       .from('messages')
       .select('id,body,created_at,sender_id')
       .eq('community_id', req.user.community_id)
@@ -173,6 +179,7 @@ r.get(
       )
       .order('created_at', { ascending: true })
       .limit(200);
+    if (msgErr) throw msgErr;
 
     const { data: blocks } = await db
       .from('user_blocks')
@@ -262,12 +269,13 @@ r.post(
       throw new HttpError(422, check.reason);
     }
 
-    await db.from('messages').insert({
+    const { error: insertErr } = await db.from('messages').insert({
       community_id: req.user.community_id,
       sender_id: req.user.id,
       recipient_id: toUserId,
       body
     });
+    if (insertErr) throw insertErr;
     res.status(201).json({ ok: true });
   })
 );
