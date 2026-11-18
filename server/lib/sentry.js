@@ -36,9 +36,11 @@ export function scrubSentryEvent(event) {
   return event;
 }
 
-export function initServerSentry(app) {
+let sentryInitialized = false;
+
+export function initServerSentry() {
   const dsn = process.env.SENTRY_DSN || env.SENTRY_DSN;
-  if (!dsn) return;
+  if (!dsn || sentryInitialized) return;
 
   Sentry.init({
     dsn,
@@ -47,7 +49,12 @@ export function initServerSentry(app) {
     tracesSampleRate: 0.1,
     beforeSend: scrubSentryEvent
   });
+  sentryInitialized = true;
+}
 
+export function attachServerSentryErrorHandler(app) {
+  const dsn = process.env.SENTRY_DSN || env.SENTRY_DSN;
+  if (!dsn) return;
   if (app && typeof Sentry.setupExpressErrorHandler === 'function') {
     Sentry.setupExpressErrorHandler(app);
   }

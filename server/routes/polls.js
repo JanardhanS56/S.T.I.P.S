@@ -94,7 +94,10 @@ r.post(
       .select('id')
       .single();
     if (error) throw error;
-    await db.from('poll_options').insert(options.map((label) => ({ poll_id: poll.id, label })));
+    const { error: optErr } = await db
+      .from('poll_options')
+      .insert(options.map((label) => ({ poll_id: poll.id, label })));
+    if (optErr) throw optErr;
     res.status(201).json({ id: poll.id });
   })
 );
@@ -140,7 +143,8 @@ r.post(
       throw new HttpError(403, 'Not allowed.');
     }
     const now = new Date().toISOString();
-    await db.from('polls').update({ closes_at: now }).eq('id', id);
+    const { error: closeErr } = await db.from('polls').update({ closes_at: now }).eq('id', id);
+    if (closeErr) throw closeErr;
     res.json({ ok: true, closes_at: now });
   })
 );

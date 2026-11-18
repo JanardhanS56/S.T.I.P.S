@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createMockDb } from '../helpers/mockDb.js';
+import { resetRateLimits, setRedisClient } from '../../server/rateLimit.js';
 
 let mockDb;
 vi.mock('../../server/db.js', () => ({
@@ -26,6 +27,8 @@ function extractCookie(res) {
 describe('Privacy and Data Protection API (ADM-08)', () => {
   beforeEach(() => {
     mockDb = createMockDb();
+    resetRateLimits();
+    setRedisClient(null);
   });
 
   describe('ADM-08 Export My Data: GET /api/me/export', () => {
@@ -59,6 +62,11 @@ describe('Privacy and Data Protection API (ADM-08)', () => {
       expect(data.profile.displayName).toBe('Student A One');
       expect(data.profile.password_hash).toBeUndefined();
       expect(data.profile.password).toBeUndefined();
+      expect(data.community).toEqual({
+        id: '00000000-0000-0000-0000-000000000001',
+        name: 'Alpha Institute'
+      });
+      expect(data.community.code).toBeUndefined();
 
       // Posts verification: all posts must belong to student_a1
       for (const p of data.posts) {
@@ -78,6 +86,38 @@ describe('Privacy and Data Protection API (ADM-08)', () => {
       for (const v of data.pollVotes) {
         expect(v.user_id).toBe(studentId);
       }
+    });
+
+    it('exports posts, post_replies, and pollsCreated for an author', async () => {
+      mockDb.post_replies.push({
+        id: '00000000-0000-0000-0008-000000000001',
+        post_id: '00000000-0000-0000-0003-000000000001',
+        parent_id: '00000000-0000-0000-0003-000000000001',
+        community_id: '00000000-0000-0000-0000-000000000001',
+        author_id: '00000000-0000-0000-0001-000000000002',
+        body: 'Reply from teacher',
+        status: 'visible',
+        created_at: new Date().toISOString()
+      });
+
+      const login = await request(app)
+        .post('/api/auth/login')
+        .set('Content-Type', 'application/json')
+        .send({ username: 'teacher_a1', password: 'TestPassword123!' });
+      expect(login.status).toBe(200);
+      const cookie = extractCookie(login);
+
+      const res = await request(app).get('/api/me/export').set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      expect(res.body.posts.length).toBeGreaterThan(0);
+      expect(res.body.replies.length).toBe(1);
+      expect(res.body.replies[0].body).toBe('Reply from teacher');
+      expect(res.body.pollsCreated.length).toBeGreaterThan(0);
+
+      // Immediate second export is rate-limited with Retry-After
+      const second = await request(app).get('/api/me/export').set('Cookie', cookie);
+      expect(second.status).toBe(429);
+      expect(second.headers['retry-after']).toBeDefined();
     });
   });
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { h, parse, HttpError } from '../http.js';
 import { setSession, clearSession, requireAuth, publicUser, requireNotMuted } from '../session.js';
 import { screen } from '../moderation.js';
@@ -21,11 +22,15 @@ r.post(
       z.object({ username: z.string().min(1).max(32), password: z.string().min(1).max(100) }),
       req.body
     );
-    const { data: u } = await db
+    const { data: u, error: lookupError } = await db
       .from('users')
       .select(FIELDS)
       .eq('username', username.trim().toLowerCase())
       .maybeSingle();
+    if (lookupError) {
+      (req.log || logger).error({ err: lookupError }, 'Database error during login lookup');
+      throw new HttpError(503, 'Service temporarily unavailable. Please try again.');
+    }
     const generic = new HttpError(401, 'Wrong username or password.'); // same message either way: no username probing
 
     if (!u) {
@@ -71,7 +76,11 @@ r.post(
   requireAuth,
   h(async (req, res) => {
     const newVersion = (req.user.token_version ?? 0) + 1;
-    await db.from('users').update({ token_version: newVersion }).eq('id', req.user.id);
+    const { error } = await db
+      .from('users')
+      .update({ token_version: newVersion })
+      .eq('id', req.user.id);
+    if (error) throw error;
     clearSession(res);
     res.json({ ok: true });
   })
@@ -83,11 +92,12 @@ r.get(
   h(async (req, res) => {
     let community = null;
     if (req.user.community_id) {
-      const { data } = await db
+      const { data, error } = await db
         .from('communities')
         .select('id,name')
         .eq('id', req.user.community_id)
         .single();
+      if (error) throw error;
       community = data;
     }
     res.json({ user: publicUser(req.user), community });
@@ -101,13 +111,18 @@ r.post(
   h(async (req, res) => {
     const { code } = parse(z.object({ code: z.string().min(4).max(20) }), req.body);
     if (req.user.community_id) throw new HttpError(409, 'You are already in a community.');
-    const { data: c } = await db
+    const { data: c, error: cErr } = await db
       .from('communities')
       .select('id,name')
       .eq('code', code.trim().toUpperCase())
       .maybeSingle();
+    if (cErr) throw cErr;
     if (!c) throw new HttpError(404, 'That code is not valid.');
-    await db.from('users').update({ community_id: c.id }).eq('id', req.user.id);
+    const { error: uErr } = await db
+      .from('users')
+      .update({ community_id: c.id })
+      .eq('id', req.user.id);
+    if (uErr) throw uErr;
     res.json({ community: c });
   })
 );
@@ -126,15 +141,17 @@ r.post(
     const policy = validatePassword(next, req.user.username);
     if (!policy.valid) throw new HttpError(400, policy.reason);
 
-    const { data: u } = await db
+    const { data: u, error: readErr } = await db
       .from('users')
       .select('password_hash')
       .eq('id', req.user.id)
       .single();
+    if (readErr || !u)
+      throw new HttpError(503, 'Service temporarily unavailable. Please try again.');
     if (!(await bcrypt.compare(current, u.password_hash)))
       throw new HttpError(400, 'Current password is wrong.');
     const newVersion = (req.user.token_version ?? 0) + 1;
-    await db
+    const { error: updateErr } = await db
       .from('users')
       .update({
         password_hash: await bcrypt.hash(next, 10),
@@ -142,6 +159,7 @@ r.post(
         token_version: newVersion
       })
       .eq('id', req.user.id);
+    if (updateErr) throw updateErr;
     setSession(res, { ...req.user, token_version: newVersion });
     res.json({ ok: true });
   })
@@ -158,12 +176,13 @@ r.patch(
     );
     const check = await screen(`${displayName}\n${bio}`);
     if (!check.ok) throw new HttpError(422, check.reason);
-    const { data } = await db
+    const { data, error } = await db
       .from('users')
       .update({ display_name: displayName, bio })
       .eq('id', req.user.id)
       .select()
       .single();
+    if (error || !data) throw error || new HttpError(500, 'Could not update profile.');
     res.json({ user: publicUser(data) });
   })
 );

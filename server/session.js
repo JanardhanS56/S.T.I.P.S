@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { db } from './db.js';
 import { config } from './config.js';
+import { logger } from './logger.js';
 import { HttpError } from './http.js';
 
 const COOKIE = 'stips_session';
@@ -27,7 +28,15 @@ export async function requireAuth(req, _res, next) {
     const token = req.cookies?.[COOKIE];
     if (!token) throw new HttpError(401, 'Please sign in.');
     const { sub, tv } = jwt.verify(token, config.jwtSecret);
-    const { data: user } = await db.from('users').select(USER_FIELDS).eq('id', sub).maybeSingle();
+    const { data: user, error } = await db
+      .from('users')
+      .select(USER_FIELDS)
+      .eq('id', sub)
+      .maybeSingle();
+    if (error) {
+      (req.log || logger).error({ err: error }, 'Database error during session lookup');
+      throw new HttpError(503, 'Service temporarily unavailable. Please try again.');
+    }
     if (!user || user.status === 'suspended') throw new HttpError(401, 'Account unavailable.');
     const currentVersion = user.token_version ?? 0;
     if ((tv ?? 0) !== currentVersion) {
