@@ -32,85 +32,40 @@
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* ==========================================================================
+   Design Tokens
+   ========================================================================== */
 :root {
-  --ink: #0e0f0d;
-  --paper: #fafaf7;
-  --line: #d9dcd6;
-  --mute: #4a4f48;
-  --wash: #edeee9;
-  --green: #1f5a3a;
-  --fern: #3f8f5b;
-  --leaf: #9ad1a8;
-  --mint: #e6f0e4;
-  --alert: #a33b1f;
+  /* Three Core Brand Colors */
+  --steel: #929da7; /* 1. Cool steel gray */
+  --charcoal: #17191c; /* 2. Midnight charcoal */
+  --coral: #ff4b32; /* 3. Vibrant coral orange */
+
+  /* UI Tokens */
+  --ink: #17191c; /* Midnight charcoal primary text */
+  --paper: #f8f9fa; /* Clean light background */
+  --line: #dde2e7; /* Subtle dividing line */
+  --line-steel: #929da7; /* Cool steel gray border */
+  --mute: #6d7781; /* Muted readable body text */
+  --wash: #f0f3f6; /* Soft wash container */
+  --accent: #ff4b32; /* Vibrant coral orange - primary accent */
+  --accent-mid: #e03e27; /* Deeper coral hover */
+  --accent-light: #ff9688; /* Coral tint for outline/focus */
+  --accent-bg: #fff1ee; /* Light coral background wash */
+  --alert: #ff4b32; /* Vibrant coral for alerts and errors */
   --font: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Legacy aliases */
+  --green: var(--accent);
+  --fern: var(--accent-mid);
+  --leaf: var(--accent-light);
+  --mint: var(--accent-bg);
 }
 
-[data-theme='dark'] {
-  --ink: #f0f2ed;
-  --paper: #121411;
-  --line: #293026;
-  --mute: #9aa196;
-  --wash: #1b1e19;
-  --green: #48a873;
-  --fern: #5db683;
-  --leaf: #78c998;
-  --mint: #1a2f22;
-  --alert: #e06042;
-}
-
-[data-theme='dark'] .card {
-  background: #171a15;
-  border-color: #2b3228;
-}
-
-[data-theme='dark'] input,
-[data-theme='dark'] textarea,
-[data-theme='dark'] select {
-  background: #191c17;
-  color: #f0f2ed;
-  border-color: #2f362c;
-}
-
-[data-theme='dark'] .side {
-  background: #0d0f0c;
-  border-color: #1e221b;
-}
-
-[data-theme='dark'] .mobile-bar {
-  background: #0d0f0c;
-}
-
-[data-theme='dark'] .btn-ghost {
-  border-color: #2b3228;
-  color: #f0f2ed;
-}
-
-[data-theme='dark'] .btn-ghost:hover {
-  background: #1f241d;
-}
-
-[data-theme='dark'] .tab:not(.active) {
-  border-color: #2b3228;
-  color: #9aa196;
-}
-
-[data-theme='dark'] .tab.active {
-  background: #254030;
-  border-color: var(--green);
-  color: #f0f2ed;
-}
-
-[data-theme='dark'] .modal-backdrop {
-  background: rgba(0, 0, 0, 0.75);
-}
-
-[data-theme='dark'] .modal-box {
-  background: #171a15;
-  border-color: #2b3228;
-  color: #f0f2ed;
-}
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
 * {
   box-sizing: border-box;
 }
@@ -119,28 +74,31 @@ body {
   font-family: var(--font);
   color: var(--ink);
   background: var(--paper);
+  line-height: 1.6;
 }
 a {
-  color: var(--green);
+  color: var(--accent);
 }
 a:hover {
   color: var(--ink);
 }
 h1 {
   margin: 0 0 24px;
-  font-size: 36px;
-  letter-spacing: -0.03em;
+  font-size: clamp(28px, 4vw, 36px);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 h1[tabindex='-1']:focus {
   outline: none;
 }
 h1[tabindex='-1']:focus-visible {
-  outline: 3px solid var(--leaf);
+  outline: 3px solid var(--accent-light);
   outline-offset: 2px;
 }
 h2,
 h3 {
   letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 input,
 textarea,
@@ -154,9 +112,13 @@ textarea:focus-visible,
 select:focus-visible,
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--leaf);
+  outline: 3px solid var(--accent-light);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
 .mono {
   font-family: var(--mono);
 }
@@ -167,13 +129,14 @@ a:focus-visible {
   color: var(--mute);
 }
 .muted-light {
-  color: #b9beb6;
+  color: #929da7;
 }
+/* .green kept for JSX compat — renders as accent blue */
 .green {
-  color: var(--green);
+  color: var(--accent);
 }
 .green-light {
-  color: var(--leaf);
+  color: var(--accent-light);
 }
 .warn {
   color: var(--alert);
@@ -208,7 +171,7 @@ a:focus-visible {
   background: none;
   border: 0;
   padding: 0;
-  color: var(--green);
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
   font-size: inherit;
@@ -216,14 +179,17 @@ a:focus-visible {
 .wordmark {
   font-weight: 800;
   letter-spacing: 0.12em;
-  font-size: 20px;
-  color: var(--paper);
+  font-size: 21px;
+  color: #fff;
   text-decoration: none;
 }
 .wordmark.dark {
   color: var(--ink);
 }
 
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -231,59 +197,102 @@ a:focus-visible {
   min-height: 44px;
   padding: 0 22px;
   border: 1.5px solid var(--ink);
-  border-radius: 2px;
+  border-radius: 6px;
   background: #fff;
   color: var(--ink);
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
   text-decoration: none;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
-.btn-dark {
-  background: var(--ink);
-  color: var(--paper);
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-.btn-dark:hover {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--paper);
-}
-.btn-green {
-  background: var(--fern);
-  border-color: var(--fern);
-  color: var(--ink);
-}
-.btn-lg {
-  min-height: 52px;
-  padding: 0 28px;
-  font-size: 16px;
+.btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 .btn[disabled] {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Primary dark button — uses accent blue */
+.btn-dark {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-dark:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 75, 50, 0.28);
+}
+
+/* .btn-green kept for JSX compat — now renders as accent blue */
+.btn-green,
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-green:hover,
+.btn-accent:hover {
+  background: var(--accent-mid);
+  border-color: var(--accent-mid);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  background: var(--wash);
+  border-color: var(--accent-light);
+}
+
+.btn-lg {
+  min-height: 52px;
+  padding: 0 28px;
+  font-size: 16px;
+}
+
 .underline {
   color: var(--ink);
   font-weight: 500;
-  border-bottom: 2px solid var(--fern);
+  border-bottom: 2px solid var(--accent-mid);
   text-decoration: none;
   padding: 14px 4px;
 }
 
+/* ==========================================================================
+   Status / Feedback
+   ========================================================================== */
 .error {
   color: var(--alert);
   font-size: 14px;
   font-weight: 500;
 }
 .ok {
-  color: var(--green);
+  color: var(--accent);
   font-weight: 500;
 }
 .pad {
   padding: 16px 24px;
 }
 
-/* landing */
+/* ==========================================================================
+   Landing Page
+   ========================================================================== */
 .wrap {
   max-width: 1200px;
   margin: 0 auto;
@@ -334,13 +343,13 @@ a:focus-visible {
 .lead {
   margin: 0;
   font-size: 19px;
-  line-height: 1.55;
-  color: #2b2e29;
+  line-height: 1.6;
+  color: var(--mute);
 }
 .goal {
   background: var(--ink);
   color: var(--paper);
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 56px;
   display: flex;
   flex-wrap: wrap;
@@ -369,6 +378,7 @@ a:focus-visible {
   margin: 16px 0 48px;
   font-size: 44px;
   line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 .steps {
   display: grid;
@@ -376,7 +386,7 @@ a:focus-visible {
   gap: 24px;
 }
 .step {
-  border-top: 3px solid var(--ink);
+  border-top: 3px solid var(--accent);
   padding-top: 20px;
 }
 .step h3 {
@@ -385,7 +395,7 @@ a:focus-visible {
 }
 .step p {
   line-height: 1.6;
-  color: #2b2e29;
+  color: var(--mute);
   margin: 0;
 }
 .safe {
@@ -427,7 +437,9 @@ a:focus-visible {
   margin-left: 24px;
 }
 
-/* auth */
+/* ==========================================================================
+   Auth Page
+   ========================================================================== */
 .auth {
   display: flex;
   flex-wrap: wrap;
@@ -435,8 +447,8 @@ a:focus-visible {
 }
 .auth-l {
   flex: 1 1 420px;
-  background: var(--ink);
-  color: var(--paper);
+  background: #17191c;
+  color: #fff;
   padding: 48px;
   display: flex;
   flex-direction: column;
@@ -447,6 +459,7 @@ a:focus-visible {
   font-size: 40px;
   line-height: 1.1;
   margin: 20px 0 0;
+  letter-spacing: -0.02em;
 }
 .auth-r {
   flex: 1 1 520px;
@@ -454,6 +467,7 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 48px;
+  background: var(--paper);
 }
 .auth-form {
   width: 100%;
@@ -461,6 +475,11 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: #fff;
+  padding: 40px 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
 }
 .auth-form h1 {
   margin: 0;
@@ -482,10 +501,18 @@ select {
   width: 100%;
   padding: 0 14px;
   min-height: 48px;
-  border: 1.5px solid var(--ink);
-  border-radius: 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
   background: #fff;
   font-weight: 400;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-mid);
+  outline: none;
 }
 textarea {
   padding: 12px;
@@ -513,30 +540,34 @@ legend {
   padding: 0;
 }
 fieldset input {
-  border-color: #8a8f87;
+  border-color: var(--line);
   border-width: 1px;
 }
 
-/* skip link for keyboard navigation */
+/* ==========================================================================
+   Skip Link (Accessibility)
+   ========================================================================== */
 .skip-link {
   position: absolute;
   top: -9999px;
   left: 16px;
   background: var(--ink);
   color: var(--paper);
-  border: 2px solid var(--leaf);
+  border: 2px solid var(--accent-light);
   padding: 10px 18px;
   font-weight: 700;
   font-size: 14px;
   z-index: 10000;
   text-decoration: none;
-  border-radius: 2px;
+  border-radius: 6px;
 }
 .skip-link:focus {
   top: 16px;
 }
 
-/* app shell */
+/* ==========================================================================
+   App Shell & Sidebar
+   ========================================================================== */
 .mobile-bar {
   display: none;
 }
@@ -545,17 +576,21 @@ fieldset input {
   flex-wrap: wrap;
   min-height: 100vh;
 }
+
+/* Sidebar — dark navy, institutional */
 .side {
-  flex: 0 0 260px;
-  background: var(--ink);
-  color: var(--paper);
+  flex: 0 0 280px;
+  background: #17191c;
+  color: #929da7;
   padding: 28px 20px;
   display: flex;
   flex-direction: column;
   gap: 28px;
 }
 .side .wordmark {
-  font-size: 19px;
+  font-size: 20px;
+  color: #fff;
+  letter-spacing: 0.14em;
 }
 .side-community {
   display: flex;
@@ -564,52 +599,68 @@ fieldset input {
 }
 .side-community strong {
   font-size: 15px;
+  color: #fff;
 }
 .side-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .side-nav a {
   display: flex;
   align-items: center;
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 2px;
-  color: var(--line);
+  border-radius: 6px;
+  color: #929da7;
   text-decoration: none;
   font-size: 15px;
+  transition:
+    background 0.13s ease,
+    color 0.13s ease;
+  border-left: 3px solid transparent;
 }
 .side-nav a:hover {
-  background: #1b1d1a;
+  background: #24282f;
+  color: #fff;
 }
 .side-nav a.active {
-  background: var(--mint);
-  color: var(--ink);
+  background: rgba(255, 75, 50, 0.12);
+  color: #ff4b32;
   font-weight: 700;
+  border-left: 3px solid #ff4b32;
+  border-radius: 0 6px 6px 0;
 }
+/* Keep unread badge readable on active nav */
+.side-nav a.active .unread-badge {
+  background: var(--accent);
+  color: #fff;
+}
+
 .side-foot {
   margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
-  color: #9aa096;
+  color: #929da7;
 }
 .side-foot strong {
-  color: var(--paper);
+  color: #fff;
   font-size: 14px;
 }
 .side-foot a,
 .side-foot .link-btn {
-  color: var(--leaf);
+  color: var(--accent-light);
 }
+
+/* Main content area */
 .main {
   flex: 1 1 560px;
   min-width: 0;
 }
 .page {
-  padding: 40px 48px;
+  padding: 40px 56px;
   max-width: 860px;
 }
 .narrow {
@@ -618,29 +669,55 @@ fieldset input {
 .label {
   margin: 28px 0 12px;
   letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mute);
+  text-transform: uppercase;
 }
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
 .card {
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   padding: 22px 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.card:hover {
+  border-color: var(--accent-light);
+  box-shadow: 0 2px 10px rgba(44, 82, 130, 0.08);
 }
 .card-strong {
   border: 1.5px solid var(--ink);
   padding: 28px;
+  border-radius: 8px;
 }
 .composer {
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   margin-bottom: 28px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 .composer textarea {
   border-color: var(--line);
   border-width: 1px;
   height: 96px;
+  border-radius: 6px;
 }
+
+/* ==========================================================================
+   Chips / Filters
+   ========================================================================== */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -650,26 +727,39 @@ fieldset input {
   margin-bottom: 20px;
 }
 .chip {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  background: #fff;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--wash);
+  color: var(--ink);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  transition:
+    background 0.13s ease,
+    color 0.13s ease;
+}
+.chip:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 .chip.on {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
+
+/* ==========================================================================
+   Feed / Posts
+   ========================================================================== */
 .meta {
   margin-bottom: 14px;
   gap: 10px;
 }
 .post-body {
   font-size: 17px;
-  line-height: 1.55;
+  line-height: 1.6;
   margin: 0 0 14px;
 }
 .reaction-group {
@@ -683,34 +773,42 @@ fieldset input {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
   color: var(--ink);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  transition:
+    background 0.13s ease,
+    border-color 0.13s ease;
 }
 .reaction-btn:hover {
   background: var(--wash);
+  border-color: var(--accent-light);
 }
 .reaction-btn[aria-pressed='true'],
 .reaction-btn.active {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 .reaction-btn:focus-visible {
-  outline: 3px solid var(--leaf);
+  outline: 3px solid var(--accent-light);
   outline-offset: 2px;
 }
 .reaction-count {
   font-family: var(--mono);
   font-size: 13px;
 }
+
+/* ==========================================================================
+   Badges & Tags
+   ========================================================================== */
 .pinned-badge {
   display: inline-flex;
   align-items: center;
@@ -720,12 +818,12 @@ fieldset input {
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: 4px;
   background: var(--ink);
   color: var(--paper);
 }
 .card-pinned {
-  border-left: 3px solid var(--ink);
+  border-left: 3px solid var(--accent);
 }
 .unread-badge {
   display: inline-flex;
@@ -734,64 +832,72 @@ fieldset input {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 2px;
-  background: var(--fern);
-  color: var(--ink);
+  border-radius: 4px;
+  background: var(--accent-mid);
+  color: #fff;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
-.side-nav a.active .unread-badge {
-  background: var(--ink);
-  color: var(--paper);
-}
 .thread .unread-badge {
   margin-left: 6px;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: #fff;
 }
+
+/* Role badges */
 .role {
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: 4px;
   background: var(--wash);
-  color: #2b2e29;
+  color: var(--mute);
 }
 .role.teacher,
 .role.admin {
-  background: var(--green);
-  color: var(--paper);
+  background: var(--charcoal);
+  color: #ffffff;
+  border-left: 2px solid var(--coral);
 }
+
+/* Post type tags */
 .tag {
   margin-left: auto;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 2px;
-  border: 1px solid var(--ink);
+  border-radius: 4px;
+  border: 1px solid var(--line);
   background: #fff;
+  color: var(--ink);
 }
 .tag.Notice {
   background: var(--ink);
   color: var(--paper);
+  border-color: var(--ink);
 }
 .tag.Event {
-  background: var(--green);
-  color: var(--paper);
-  border-color: var(--green);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 .tag.Meme {
-  background: var(--mint);
-  color: var(--green);
-  border-color: var(--mint);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-light);
 }
+
+/* ==========================================================================
+   Polls / Options
+   ========================================================================== */
 .q {
   font-size: 24px;
   margin: 8px 0 22px;
   line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 .opt {
   position: relative;
@@ -802,11 +908,15 @@ fieldset input {
   gap: 16px;
   min-height: 56px;
   padding: 0 18px;
-  border: 1.5px solid var(--ink);
-  border-radius: 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
   text-align: left;
+  transition: border-color 0.13s ease;
+}
+.opt:hover {
+  border-color: var(--accent-light);
 }
 .opt[disabled] {
   cursor: default;
@@ -814,13 +924,14 @@ fieldset input {
 .opt .bar {
   position: absolute;
   inset: 0 auto 0 0;
-  background: var(--mint);
+  background: var(--accent-bg);
 }
 .opt.mine {
-  border-color: var(--green);
+  border-color: var(--accent);
 }
 .opt.mine .bar {
-  background: var(--leaf);
+  background: var(--accent-light);
+  opacity: 0.4;
 }
 .opt-l {
   position: relative;
@@ -829,12 +940,20 @@ fieldset input {
 .opt .mono {
   position: relative;
 }
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
 .form {
   display: flex;
   flex-direction: column;
   gap: 18px;
   margin-bottom: 36px;
 }
+
+/* ==========================================================================
+   Profile
+   ========================================================================== */
 .profile-head {
   gap: 24px;
   margin-bottom: 32px;
@@ -842,28 +961,35 @@ fieldset input {
 .avatar {
   width: 96px;
   height: 96px;
-  background: var(--green);
-  color: var(--paper);
+  background: var(--charcoal);
+  color: var(--coral);
+  border: 2.5px solid var(--coral);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 36px;
   font-weight: 800;
-  border-radius: 2px;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(255, 75, 50, 0.2);
 }
 .big-name {
   font-size: 28px;
   font-weight: 800;
+  letter-spacing: -0.01em;
 }
 .note-block p {
   line-height: 1.65;
-  color: #2b2e29;
+  color: var(--mute);
 }
+
+/* ==========================================================================
+   Invite Code Box
+   ========================================================================== */
 .codebox {
-  border: 1.5px dashed var(--fern);
-  background: var(--mint);
+  border: 1.5px dashed var(--accent-mid);
+  background: var(--accent-bg);
   padding: 16px 18px;
-  border-radius: 2px;
+  border-radius: 8px;
   max-width: 320px;
 }
 .code-big {
@@ -871,7 +997,12 @@ fieldset input {
   font-size: 26px;
   letter-spacing: 0.18em;
   margin-top: 6px;
+  color: var(--accent);
 }
+
+/* ==========================================================================
+   Table
+   ========================================================================== */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -881,11 +1012,20 @@ fieldset input {
 .table th,
 .table td {
   text-align: left;
-  padding: 8px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--line);
 }
+.table th {
+  font-weight: 700;
+  color: var(--mute);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
-/* messages */
+/* ==========================================================================
+   Messages / DMs
+   ========================================================================== */
 .dm {
   display: flex;
   flex-wrap: wrap;
@@ -907,17 +1047,24 @@ fieldset input {
   text-align: left;
   min-height: 64px;
   padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition:
+    border-color 0.13s ease,
+    background 0.13s ease;
+}
+.thread:hover {
+  border-color: var(--accent-light);
+  background: var(--accent-bg);
 }
 .thread.on {
-  background: var(--mint);
-  border-color: var(--fern);
+  background: var(--accent-bg);
+  border-color: var(--accent-mid);
 }
 .dm-thread {
   flex: 1 1 380px;
@@ -929,6 +1076,7 @@ fieldset input {
   padding: 24px 32px;
   border-bottom: 1px solid var(--line);
   font-size: 20px;
+  font-weight: 700;
 }
 .dm-msgs {
   flex: 1;
@@ -941,24 +1089,25 @@ fieldset input {
 .bubble {
   max-width: 70%;
   padding: 12px 16px;
-  border-radius: 2px;
+  border-radius: 8px;
   background: var(--wash);
   line-height: 1.5;
   align-self: flex-start;
+  font-size: 15px;
 }
 .bubble.mine {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: #fff;
   align-self: flex-end;
 }
 .bubble-meta {
   font-family: var(--mono);
   font-size: 11px;
   margin-top: 4px;
-  color: var(--muted);
+  color: var(--mute);
 }
 .bubble.mine .bubble-meta {
-  color: #c4bfb6;
+  color: var(--accent-light);
   text-align: right;
 }
 .dm-send {
@@ -967,12 +1116,15 @@ fieldset input {
   padding: 20px 32px;
   border-top: 1px solid var(--line);
 }
+
+/* ==========================================================================
+   Misc
+   ========================================================================== */
 .note {
   border-top: 1px solid var(--line);
   padding-top: 16px;
   line-height: 1.6;
 }
-
 .cookie {
   position: fixed;
   left: 16px;
@@ -980,7 +1132,8 @@ fieldset input {
   bottom: 16px;
   max-width: 560px;
   background: #fff;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   padding: 14px 18px;
   display: flex;
   flex-wrap: wrap;
@@ -989,6 +1142,7 @@ fieldset input {
   justify-content: space-between;
   font-size: 14px;
   z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 .legal {
   max-width: 720px;
@@ -1000,6 +1154,9 @@ fieldset input {
   margin-top: 32px;
 }
 
+/* ==========================================================================
+   Responsive — Mobile
+   ========================================================================== */
 @media (max-width: 760px) {
   .desktop-only {
     display: none !important;
@@ -1010,14 +1167,14 @@ fieldset input {
     justify-content: space-between;
     width: 100%;
     padding: 12px 16px;
-    background: var(--ink);
-    color: var(--paper);
-    border-bottom: 1px solid #232721;
+    background: #17191c;
+    color: #fff;
+    border-bottom: 1px solid #24282f;
     min-height: 56px;
   }
   .mobile-bar .wordmark {
     font-size: 18px;
-    color: var(--paper);
+    color: #fff;
     text-decoration: none;
   }
   .mobile-community {
@@ -1025,12 +1182,13 @@ fieldset input {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--accent-light);
   }
   .mobile-menu-btn {
     background: transparent;
-    border: 1px solid #333830;
-    color: var(--paper);
-    border-radius: 2px;
+    border: 1px solid #313740;
+    color: #fff;
+    border-radius: 6px;
     font-size: 18px;
     width: 44px;
     height: 44px;
@@ -1038,9 +1196,13 @@ fieldset input {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: background 0.13s ease;
+  }
+  .mobile-menu-btn:hover {
+    background: #24282f;
   }
   .mobile-menu-btn:focus-visible {
-    outline: 3px solid var(--leaf);
+    outline: 3px solid var(--accent-light);
     outline-offset: 2px;
   }
   .side {
@@ -1061,6 +1223,11 @@ fieldset input {
   .auth-r {
     padding: 28px 20px;
   }
+  .auth-form {
+    padding: 28px 20px;
+    box-shadow: none;
+    border: 1.5px solid var(--line);
+  }
   .dm-list {
     flex-basis: 100%;
     border-right: 0;
@@ -1074,16 +1241,16 @@ fieldset input {
 }
 
 /* ==========================================================================
-   Interactive Enhancements (20 Front-end Features)
+   Interactive Enhancements
    ========================================================================== */
 
-/* 1. Theme Toggle */
+/* Theme toggle — kept for class compat, dark mode tokens removed */
 .theme-toggle-btn {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 6px 10px;
-  border-radius: 2px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   display: inline-flex;
@@ -1095,15 +1262,15 @@ fieldset input {
 }
 .theme-toggle-btn:hover {
   background: var(--wash);
-  border-color: var(--leaf);
+  border-color: var(--accent-light);
 }
 
-/* 6. Loading Animation */
+/* Spinner */
 .spinner {
   width: 20px;
   height: 20px;
   border: 2px solid var(--line);
-  border-top-color: var(--green);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   display: inline-block;
@@ -1115,41 +1282,18 @@ fieldset input {
   }
 }
 
-/* 7. Hover States & Micro-interactions */
-.btn {
-  transition:
-    transform 0.12s ease,
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.btn:hover {
-  transform: translateY(-1px);
-}
-.btn:active {
-  transform: translateY(0);
-}
-.card {
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.card:hover {
-  border-color: var(--leaf);
-}
-
-/* 8. Scroll Progress Bar */
+/* Scroll progress bar */
 .scroll-progress-bar {
   position: fixed;
   top: 0;
   left: 0;
   height: 3px;
-  background: var(--green);
+  background: var(--accent);
   z-index: 10000;
   transition: width 0.1s ease-out;
 }
 
-/* 11. Sticky Headers */
+/* Sticky headers */
 .sticky-top {
   position: sticky;
   top: 0;
@@ -1157,11 +1301,8 @@ fieldset input {
   background: var(--paper);
   backdrop-filter: blur(8px);
 }
-[data-theme='dark'] .sticky-top {
-  background: #121411;
-}
 
-/* 4. Back To Top Button */
+/* Back-to-top button */
 .back-to-top-btn {
   position: fixed;
   bottom: 24px;
@@ -1169,10 +1310,10 @@ fieldset input {
   z-index: 900;
   width: 44px;
   height: 44px;
-  background: var(--ink);
-  color: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 2px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1185,7 +1326,7 @@ fieldset input {
     opacity 0.2s ease,
     transform 0.2s ease,
     visibility 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(44, 82, 130, 0.25);
 }
 .back-to-top-btn.visible {
   opacity: 1;
@@ -1193,12 +1334,11 @@ fieldset input {
   transform: translateY(0);
 }
 .back-to-top-btn:hover {
-  background: var(--green);
-  color: #fff;
-  border-color: var(--green);
+  background: var(--accent-mid);
+  border-color: var(--accent-mid);
 }
 
-/* 20. Floating Contact Button */
+/* Floating contact button */
 .floating-contact-btn {
   position: fixed;
   bottom: 24px;
@@ -1209,7 +1349,7 @@ fieldset input {
   background: var(--paper);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: 8px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1221,13 +1361,13 @@ fieldset input {
   text-decoration: none;
 }
 .floating-contact-btn:hover {
-  background: var(--wash);
-  border-color: var(--leaf);
-  color: var(--green);
+  background: var(--accent-bg);
+  border-color: var(--accent-light);
+  color: var(--accent);
   transform: translateY(-1px);
 }
 
-/* 13. Password Visibility Toggle */
+/* Password visibility toggle */
 .password-field-wrap {
   position: relative;
   display: flex;
@@ -1251,20 +1391,21 @@ fieldset input {
   align-items: center;
   justify-content: center;
   font-size: 15px;
-  border-radius: 2px;
+  border-radius: 6px;
+  transition: color 0.13s ease;
 }
 .password-toggle-btn:hover {
-  color: var(--ink);
+  color: var(--accent);
 }
 
-/* 9. Copy Button */
+/* Copy button */
 .copy-btn {
   background: var(--wash);
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 4px 10px;
   font-size: 12px;
-  border-radius: 2px;
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1273,16 +1414,16 @@ fieldset input {
   min-height: 32px;
 }
 .copy-btn:hover {
-  background: var(--mint);
-  border-color: var(--leaf);
+  background: var(--accent-bg);
+  border-color: var(--accent-light);
 }
 .copy-btn.copied {
-  background: var(--mint);
-  color: var(--green);
-  border-color: var(--green);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-light);
 }
 
-/* 3. Site Search */
+/* Site search */
 .site-search-wrap {
   position: relative;
   width: 100%;
@@ -1292,14 +1433,14 @@ fieldset input {
   width: 100%;
   padding: 8px 36px 8px 36px;
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: 6px;
   font-size: 14px;
   background: var(--paper);
   color: var(--ink);
   transition: border-color 0.15s ease;
 }
 .site-search-input:focus {
-  border-color: var(--leaf);
+  border-color: var(--accent-mid);
   outline: none;
 }
 .site-search-icon {
@@ -1325,12 +1466,13 @@ fieldset input {
   line-height: 1;
 }
 
-/* 19. Expandable FAQ Accordion */
+/* FAQ Accordion */
 .faq-accordion {
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   background: var(--paper);
   margin-bottom: 12px;
-  border-radius: 2px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 .faq-details {
   border-bottom: 1px solid var(--line);
@@ -1348,6 +1490,7 @@ fieldset input {
   list-style: none;
   user-select: none;
   min-height: 48px;
+  transition: background 0.13s ease;
 }
 .faq-summary::-webkit-details-marker {
   display: none;
@@ -1371,13 +1514,13 @@ fieldset input {
   line-height: 1.6;
 }
 
-/* 15 & 16. Form States */
+/* Form success/error banners */
 .form-success-banner {
   padding: 12px 16px;
-  background: var(--mint);
-  border: 1px solid var(--leaf);
-  color: var(--green);
-  border-radius: 2px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-light);
+  color: var(--accent);
+  border-radius: 6px;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -1386,10 +1529,10 @@ fieldset input {
 }
 .form-error-banner {
   padding: 12px 16px;
-  background: #fdf2ef;
-  border: 1px solid #f2c2b6;
+  background: #fdf2f2;
+  border: 1px solid #fca5a5;
   color: var(--alert);
-  border-radius: 2px;
+  border-radius: 6px;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -1406,7 +1549,9 @@ textarea[aria-invalid='true'] {
   border-color: var(--alert) !important;
 }
 
-/* 10. Print Stylesheet */
+/* ==========================================================================
+   Print Stylesheet
+   ========================================================================== */
 @media print {
   body {
     background: #fff !important;
