@@ -116,50 +116,60 @@ export default function Profile() {
           <Badge variant={user.role}>{user.role.toUpperCase()}</Badge>
         </div>
       </div>
-      <form className="form narrow" onSubmit={save}>
-        <Field
-          label="Display name"
-          id="profile-name"
-          value={name}
-          maxLength={60}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Field
-          label="Short bio (160 characters)"
-          id="profile-bio"
-          as="textarea"
-          value={bio}
-          maxLength={160}
-          onChange={(e) => setBio(e.target.value)}
-        />
-        <Button type="submit" variant="dark">
-          Save changes
-        </Button>
-      </form>
-      <form className="form narrow" onSubmit={changePw}>
-        <h3>Change password</h3>
-        <Field label="Current password" id="current-pw">
-          <PasswordInput
-            id="current-pw"
-            name="current-pw"
-            autoComplete="current-password"
-            value={pw.current}
-            onChange={(e) => setPw({ ...pw, current: e.target.value })}
+      <div className="card narrow" style={{ marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>Personal Details</h3>
+        <form className="form" style={{ marginBottom: 0 }} onSubmit={save}>
+          <Field
+            label="Display name"
+            id="profile-name"
+            value={name}
+            maxLength={60}
+            onChange={(e) => setName(e.target.value)}
           />
-        </Field>
-        <Field label="New password (10+ characters)" id="next-pw">
-          <PasswordInput
-            id="next-pw"
-            name="next-pw"
-            autoComplete="new-password"
-            value={pw.next}
-            onChange={(e) => setPw({ ...pw, next: e.target.value })}
+          <Field
+            label="Short bio (160 characters)"
+            id="profile-bio"
+            as="textarea"
+            value={bio}
+            maxLength={160}
+            onChange={(e) => setBio(e.target.value)}
           />
-        </Field>
-        <Button type="submit" variant="dark">
-          Change password
-        </Button>
-      </form>
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <Button type="submit" variant="dark" style={{ minWidth: '140px' }}>
+              Save changes
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card narrow" style={{ marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>Change Password</h3>
+        <form className="form" style={{ marginBottom: 0 }} onSubmit={changePw}>
+          <Field label="Current password" id="current-pw">
+            <PasswordInput
+              id="current-pw"
+              name="current-pw"
+              autoComplete="current-password"
+              value={pw.current}
+              onChange={(e) => setPw({ ...pw, current: e.target.value })}
+            />
+          </Field>
+          <Field label="New password (10+ characters)" id="next-pw">
+            <PasswordInput
+              id="next-pw"
+              name="next-pw"
+              autoComplete="new-password"
+              value={pw.next}
+              onChange={(e) => setPw({ ...pw, next: e.target.value })}
+            />
+          </Field>
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <Button type="submit" variant="dark" style={{ minWidth: '160px' }}>
+              Change password
+            </Button>
+          </div>
+        </form>
+      </div>
       {msg && <Banner variant="success">{msg}</Banner>}
       {err && <Banner variant="error">{err}</Banner>}
       <section className="narrow note-block">
