@@ -1,141 +1,129 @@
-import { Link } from 'react-router-dom';
-import PublicFooter from '../components/PublicFooter.jsx';
-import ThemeToggle from '../components/ThemeToggle.jsx';
-import FAQ from '../components/FAQ.jsx';
-import FloatingContact from '../components/FloatingContact.jsx';
+import { useNavigate } from 'react-router-dom';
+import BaroqueFresco from '../components/BaroqueFresco.jsx';
 
 export default function Landing() {
+  const navigate = useNavigate();
+
+  const series = {
+    name: 'S.T.I.P.S',
+    issue: 'Campus Portal',
+    href: '/'
+  };
+
+  const story = {
+    kicker: 'Student–Teacher Interaction & Polling System',
+    title: ['One', 'Campus'],
+    subject: 'Every voice, counted inside the campus walls',
+    deck: '**S.T.I.P.S** _is a private, calm space for your institute. Notices, campus polls, and direct student-teacher messaging without phone numbers._',
+    cta: {
+      label: 'Sign in with your username',
+      href: '/signin'
+    }
+  };
+
+  const sections = [
+    {
+      title: 'How It Works',
+      ornament: 'pearl',
+      items: [
+        {
+          q: '01. The office creates a community',
+          a: 'The administration sets up the institute, then issues usernames and first-time passwords to teachers and students.'
+        },
+        {
+          q: '02. You sign in and join',
+          a: 'Sign in with the credentials you were given. You are added automatically, or you can enter the community code your office shared.'
+        },
+        {
+          q: '03. Post, ask, and vote',
+          a: 'Share notices, discuss campus events, answer whole-campus polls, and message teachers directly. Everything stays securely inside your community.'
+        }
+      ]
+    },
+    {
+      title: 'Safety & Privacy',
+      ornament: 'pearl',
+      items: [
+        {
+          q: 'Family-friendly by default',
+          a: 'Posts and messages are screened before they appear. Any community member can report inappropriate content for administrative review.'
+        },
+        {
+          q: 'Rate limits & spam protection',
+          a: 'Posting, voting, and messaging are throttled per account to keep conversations constructive and prevent automated abuse.'
+        },
+        {
+          q: 'Minimal data footprint',
+          a: 'Only username, display name, role, and community are stored. No personal phone numbers, no tracking scripts, no third-party advertisements.'
+        },
+        {
+          q: 'Administration stays in charge',
+          a: 'Institute moderators can remove content, mute or suspend accounts, and resolve flagged issues instantly.'
+        }
+      ]
+    },
+    {
+      title: 'Frequently Asked Questions',
+      ornament: 'pearl',
+      items: [
+        {
+          q: 'Can outsiders or public users sign up?',
+          a: 'No. S.T.I.P.S accounts are issued exclusively by your school or college administration. There are no public registrations.'
+        },
+        {
+          q: 'Are direct messages private?',
+          a: 'Yes. Messages are exchanged strictly between you and your recipient. Contact details and phone numbers are never shared.'
+        },
+        {
+          q: 'Can I use S.T.I.P.S on my mobile phone?',
+          a: 'Yes. S.T.I.P.S is fully responsive and runs smoothly on smartphones, tablets, laptops, and desktop browsers.'
+        }
+      ]
+    }
+  ];
+
+  const quote = {
+    text: '**One campus.** _Every voice, counted._',
+    cite: 'S.T.I.P.S Portal'
+  };
+
+  const next = {
+    label: 'Campus Access',
+    title: ['Sign', 'In'],
+    blurb: 'Ready to join your institute? Sign in with your username and password.',
+    href: '/signin'
+  };
+
+  const legal = [
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Cookie Policy', href: '/cookies' },
+    { label: 'Terms of Service', href: '/terms' }
+  ];
+
+  const labels = {
+    index: 'Portal',
+    next: 'Sign In',
+    scroll: 'Scroll to explore',
+    progress: 'Reading progress',
+    nextStory: 'Enter Campus Portal',
+    menu: 'Menu',
+    top: 'Back to top'
+  };
+
   return (
-    <div className="landing">
-      <a href="#main-content" className="skip-link">
-        Skip to content
-      </a>
-      <div className="wrap">
-        <header className="topbar sticky-top">
-          <span className="wordmark dark">S.T.I.P.S</span>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <a href="#how">How it works</a>
-            <a href="#safe">Safety &amp; privacy</a>
-            <a href="#faq">FAQ</a>
-            <ThemeToggle />
-            <Link to="/signin" className="btn btn-dark">
-              Sign in
-            </Link>
-          </nav>
-        </header>
-
-        <main id="main-content" tabIndex="-1" style={{ outline: 'none' }}>
-          <section className="hero">
-            <div className="hero-l">
-              <div className="mono small green">
-                STUDENT–TEACHER INTERACTION &amp; POLLING SYSTEM
-              </div>
-              <h1>
-                One campus.
-                <br />
-                Every voice,
-                <br />
-                <span className="green">counted.</span>
-              </h1>
-            </div>
-            <div className="hero-r">
-              <p className="lead">
-                A private space for one institute at a time. Notices, memes and event calls in one
-                feed. Polls the whole campus can answer. Messages between students and teachers that
-                never need a phone number.
-              </p>
-              <div className="row">
-                <Link to="/signin" className="btn btn-dark btn-lg">
-                  Sign in with your username
-                </Link>
-                <Link to="/signin" className="underline">
-                  I have a community code
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          <section className="goal">
-            <div>
-              <div className="mono small green-light">OUR GOAL</div>
-              <h2>Make it easy to ask, answer and decide together, inside the campus walls.</h2>
-            </div>
-            <div className="goal-copy">
-              <p>
-                Most college talk is scattered across group chats, notice boards and corridors.
-                S.T.I.P.S gives each institute one place with clear roles: the office creates it,
-                teachers and students take part.
-              </p>
-              <p>
-                Everyone is known by username and name only. No personal numbers, no outsiders, no
-                open signups.
-              </p>
-            </div>
-          </section>
-
-          <section id="how" className="block">
-            <div className="mono small green">HOW IT WORKS</div>
-            <h2 className="h2">Three steps from office to feed.</h2>
-            <div className="steps">
-              {[
-                [
-                  '01',
-                  'The office creates a community',
-                  'The principal or office sets up the institute, then issues usernames and one-time passwords to teachers and students.'
-                ],
-                [
-                  '02',
-                  'You sign in and join',
-                  'Sign in with the username you were given. You are added automatically, or you enter the community code the office shared.'
-                ],
-                [
-                  '03',
-                  'Post, ask, vote',
-                  'Share a short post, start a poll, message a teacher. Everything stays inside your community.'
-                ]
-              ].map(([n, t, d]) => (
-                <div key={n} className="step">
-                  <span className="mono green">{n}</span>
-                  <h3>{t}</h3>
-                  <p>{d}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="safe" className="block safe">
-            <div>
-              <div className="mono small green">SAFETY &amp; PRIVACY</div>
-              <h2 className="h2">Built to stay clean and calm.</h2>
-            </div>
-            <ul className="rules">
-              <li>
-                <b>Family-friendly by default.</b> Posts and messages are screened before they
-                appear. Anyone can report content.
-              </li>
-              <li>
-                <b>Rate limits and spam control.</b> Posting, voting and messaging are throttled per
-                account.
-              </li>
-              <li>
-                <b>Minimal data.</b> Username, name, role and community. No tracking, no ads, one
-                sign-in cookie.
-              </li>
-              <li>
-                <b>Admins stay in charge.</b> The office can remove content, mute or suspend
-                accounts and review reports.
-              </li>
-            </ul>
-          </section>
-
-          <section id="faq" className="block">
-            <FAQ />
-          </section>
-        </main>
-
-        <PublicFooter />
-        <FloatingContact />
-      </div>
-    </div>
+    <BaroqueFresco
+      series={series}
+      story={story}
+      sections={sections}
+      quote={quote}
+      next={next}
+      legal={legal}
+      labels={labels}
+      palette="coral"
+      theme="dark"
+      onNext={(target) => {
+        if (target?.href) navigate(target.href);
+      }}
+    />
   );
 }
