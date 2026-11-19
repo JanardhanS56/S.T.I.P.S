@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { UserPlus, MoreVertical, Key, VolumeX, ShieldAlert, CheckCircle } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import {
@@ -46,6 +47,9 @@ export default function Admin() {
     isOpen: false,
     request: null
   });
+
+  // Dropdown menu state for table rows
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
   // Bulk member creation state
   const [lines, setLines] = useState('');
@@ -247,37 +251,45 @@ export default function Admin() {
   });
 
   return (
-    <div className="page">
+    <div className="page wide">
       <div
         className="row between"
-        style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}
+        style={{ alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '8px' }}
       >
         <div>
-          <h1>Admin dashboard</h1>
+          <h1 style={{ marginBottom: '4px' }}>Admin dashboard</h1>
           <p className="muted" style={{ margin: 0 }}>
             Manage community members, reports, and review administrative audit logs.
           </p>
         </div>
-        {community && (
-          <div
-            className="codebox"
-            style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}
-          >
-            <span className="mono small green">JOIN CODE</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="code-big" style={{ fontSize: '20px' }}>
-                {community.code}
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {community ? (
+            <div className="codebox" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="mono small" style={{ fontWeight: 600, color: 'var(--mute)' }}>
+                JOIN CODE
+              </span>
+              <span className="code-big">{community.code}</span>
               <CopyButton text={community.code} label="Copy code" />
             </div>
-          </div>
-        )}
+          ) : (
+            <Skeleton width="180px" height="42px" />
+          )}
+          <Button
+            type="button"
+            variant="dark"
+            onClick={() => setTab('create')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <UserPlus size={16} strokeWidth={2} />
+            <span>+ Add Members</span>
+          </Button>
+        </div>
       </div>
 
       {err && <Banner variant="error">{err}</Banner>}
       {success && <Banner variant="info">{success}</Banner>}
 
-      <div className="chips">
+      <div className="chips" style={{ marginTop: '16px', marginBottom: '24px' }}>
         {[
           ['members', `Members (${members.length})`],
           ['reports', `Reports Queue (${reports.length})`],
@@ -285,8 +297,7 @@ export default function Admin() {
             'deletions',
             `Deletion Requests (${deletionRequests.filter((r) => r.status === 'pending').length})`
           ],
-          ['audit', `Audit Log (${auditLogs.length})`],
-          ['create', '+ Add Members']
+          ['audit', `Audit Log (${auditLogs.length})`]
         ].map(([k, l]) => (
           <Chip key={k} active={tab === k} onClick={() => setTab(k)}>
             {l}
@@ -320,14 +331,13 @@ export default function Admin() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <div className="row" style={{ alignItems: 'center', gap: '8px' }}>
-                  <label htmlFor="role-filter" className="small muted">
-                    Role:
-                  </label>
+                <div style={{ width: '180px' }}>
                   <select
                     id="role-filter"
+                    aria-label="Filter by role"
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
+                    style={{ width: '100%', height: '48px' }}
                   >
                     <option value="all">All roles</option>
                     <option value="student">Students</option>
@@ -383,63 +393,136 @@ export default function Admin() {
                               </Badge>
                             </td>
                             <td className="small muted">{m.department || '—'}</td>
-                            <td style={{ textAlign: 'right' }}>
+                            <td style={{ textAlign: 'right', position: 'relative' }}>
                               {!isAdmin && !isSelf && (
-                                <div
-                                  className="row"
-                                  style={{ justifyContent: 'flex-end', gap: '6px' }}
-                                >
-                                  {m.status === 'active' ? (
-                                    <>
-                                      <Button
-                                        variant="outline"
-                                        className="small"
-                                        onClick={() =>
-                                          setStatusConfirmModal({
-                                            isOpen: true,
-                                            user: m,
-                                            targetStatus: 'muted'
-                                          })
-                                        }
-                                      >
-                                        Mute
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        className="small"
-                                        onClick={() =>
-                                          setStatusConfirmModal({
-                                            isOpen: true,
-                                            user: m,
-                                            targetStatus: 'suspended'
-                                          })
-                                        }
-                                      >
-                                        Suspend
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      className="small"
-                                      onClick={() =>
-                                        setStatusConfirmModal({
-                                          isOpen: true,
-                                          user: m,
-                                          targetStatus: 'active'
-                                        })
-                                      }
-                                    >
-                                      Activate
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    className="small"
-                                    onClick={() => setResetConfirmUser(m)}
+                                <div style={{ display: 'inline-block', position: 'relative' }}>
+                                  <button
+                                    type="button"
+                                    className="btn-ghost"
+                                    aria-label={`Actions for @${m.username}`}
+                                    aria-expanded={activeMenuId === m.id}
+                                    style={{
+                                      padding: '6px 8px',
+                                      borderRadius: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() =>
+                                      setActiveMenuId(activeMenuId === m.id ? null : m.id)
+                                    }
                                   >
-                                    Reset password
-                                  </Button>
+                                    <MoreVertical size={16} strokeWidth={2} />
+                                  </button>
+                                  {activeMenuId === m.id && (
+                                    <div
+                                      className="card"
+                                      style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '100%',
+                                        zIndex: 20,
+                                        minWidth: '160px',
+                                        padding: '6px',
+                                        marginTop: '4px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '2px',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                      }}
+                                    >
+                                      {m.status === 'active' ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            className="btn-ghost"
+                                            style={{
+                                              width: '100%',
+                                              justifyContent: 'flex-start',
+                                              padding: '8px 10px',
+                                              fontSize: '13px',
+                                              border: 'none',
+                                              gap: '8px'
+                                            }}
+                                            onClick={() => {
+                                              setActiveMenuId(null);
+                                              setStatusConfirmModal({
+                                                isOpen: true,
+                                                user: m,
+                                                targetStatus: 'muted'
+                                              });
+                                            }}
+                                          >
+                                            <VolumeX size={14} /> Mute
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn-ghost"
+                                            style={{
+                                              width: '100%',
+                                              justifyContent: 'flex-start',
+                                              padding: '8px 10px',
+                                              fontSize: '13px',
+                                              border: 'none',
+                                              gap: '8px',
+                                              color: 'var(--red)'
+                                            }}
+                                            onClick={() => {
+                                              setActiveMenuId(null);
+                                              setStatusConfirmModal({
+                                                isOpen: true,
+                                                user: m,
+                                                targetStatus: 'suspended'
+                                              });
+                                            }}
+                                          >
+                                            <ShieldAlert size={14} /> Suspend
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn-ghost"
+                                          style={{
+                                            width: '100%',
+                                            justifyContent: 'flex-start',
+                                            padding: '8px 10px',
+                                            fontSize: '13px',
+                                            border: 'none',
+                                            gap: '8px'
+                                          }}
+                                          onClick={() => {
+                                            setActiveMenuId(null);
+                                            setStatusConfirmModal({
+                                              isOpen: true,
+                                              user: m,
+                                              targetStatus: 'active'
+                                            });
+                                          }}
+                                        >
+                                          <CheckCircle size={14} /> Activate
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="btn-ghost"
+                                        style={{
+                                          width: '100%',
+                                          justifyContent: 'flex-start',
+                                          padding: '8px 10px',
+                                          fontSize: '13px',
+                                          border: 'none',
+                                          gap: '8px'
+                                        }}
+                                        onClick={() => {
+                                          setActiveMenuId(null);
+                                          setResetConfirmUser(m);
+                                        }}
+                                      >
+                                        <Key size={14} /> Reset password
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </td>

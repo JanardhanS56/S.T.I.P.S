@@ -173,8 +173,14 @@ a:focus-visible {
   padding: 0;
   color: var(--accent);
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
   font-size: inherit;
+  transition:
+    color 0.15s ease,
+    text-decoration 0.15s ease;
+}
+.link-btn:hover {
+  text-decoration: underline;
 }
 .wordmark {
   font-weight: 800;
@@ -680,7 +686,14 @@ fieldset input {
 }
 .side-foot a,
 .side-foot .link-btn {
-  color: var(--accent-light);
+  color: #929da7;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.side-foot a:hover,
+.side-foot .link-btn:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 /* Main content area */
@@ -694,6 +707,9 @@ fieldset input {
   padding: 40px 32px;
   width: 100%;
   max-width: 720px;
+}
+.page.wide {
+  max-width: 960px;
 }
 .narrow {
   max-width: 600px;
@@ -1033,18 +1049,18 @@ fieldset input {
    Invite Code Box
    ========================================================================== */
 .codebox {
-  border: 1.5px dashed var(--accent-mid);
-  background: var(--accent-bg);
-  padding: 16px 18px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 10px 14px;
   border-radius: 8px;
-  max-width: 320px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .code-big {
   font-family: var(--mono);
-  font-size: 26px;
-  letter-spacing: 0.18em;
-  margin-top: 6px;
-  color: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink);
 }
 
 /* ==========================================================================
