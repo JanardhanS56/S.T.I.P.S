@@ -464,10 +464,11 @@ a:focus-visible {
 .auth-r {
   flex: 1 1 520px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 48px;
-  background: var(--paper);
+  background: #f8f9fa;
 }
 .auth-form {
   width: 100%;
@@ -478,8 +479,25 @@ a:focus-visible {
   background: #fff;
   padding: 40px 36px;
   border-radius: 10px;
-  border: 1.5px solid var(--line);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.auth-footer-links {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.auth-footer-links a {
+  color: #6b7280;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.auth-footer-links a:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 .auth-form h1 {
   margin: 0;
