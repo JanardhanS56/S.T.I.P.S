@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { Newspaper, BarChart2, MessageCircle, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 
@@ -78,10 +79,12 @@ export default function Shell() {
         </div>
         <nav className="side-nav" aria-label="Main Navigation">
           <NavLink to="/app/feed" onClick={closeMenu}>
-            Community feed
+            <Newspaper size={18} strokeWidth={1.75} />
+            <span>Community feed</span>
           </NavLink>
           <NavLink to="/app/polls" onClick={closeMenu}>
-            Polls &amp; votes
+            <BarChart2 size={18} strokeWidth={1.75} />
+            <span>Polls &amp; votes</span>
           </NavLink>
           <NavLink
             to="/app/messages"
@@ -89,7 +92,10 @@ export default function Shell() {
             className="row between"
             style={{ width: '100%', alignItems: 'center' }}
           >
-            <span>Messages</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+              <MessageCircle size={18} strokeWidth={1.75} />
+              <span>Messages</span>
+            </div>
             {unreadTotal > 0 && (
               <span
                 className="unread-badge"
@@ -101,16 +107,31 @@ export default function Shell() {
             )}
           </NavLink>
           <NavLink to="/app/profile" onClick={closeMenu}>
-            Profile
+            <User size={18} strokeWidth={1.75} />
+            <span>Profile</span>
           </NavLink>
           {user.role === 'admin' && (
             <NavLink to="/app/admin" onClick={closeMenu}>
-              Admin dashboard
+              <ShieldCheck size={18} strokeWidth={1.75} />
+              <span>Admin dashboard</span>
             </NavLink>
           )}
         </nav>
-        <Link to="/app/create" className="btn btn-green" onClick={closeMenu}>
-          + Create
+        <Link
+          to="/app/create"
+          className="btn btn-ghost"
+          style={{
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            marginTop: '8px'
+          }}
+          onClick={closeMenu}
+        >
+          + Create Post / Poll
         </Link>
         <div className="side-foot">
           <strong>{user.username}</strong>

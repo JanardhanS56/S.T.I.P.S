@@ -619,6 +619,7 @@ fieldset input {
 .side-nav a {
   display: flex;
   align-items: center;
+  gap: 10px;
   min-height: 44px;
   padding: 0 14px;
   border-radius: 6px;
@@ -668,10 +669,13 @@ fieldset input {
 .main {
   flex: 1 1 560px;
   min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 .page {
-  padding: 40px 56px;
-  max-width: 860px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 720px;
 }
 .narrow {
   max-width: 600px;
