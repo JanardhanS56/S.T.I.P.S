@@ -1,7 +1,9 @@
+import { ThumbsUp, Heart, Smile } from 'lucide-react';
+
 const REACTION_CONFIG = [
-  { kind: 'like', emoji: '👍', label: 'Like' },
-  { kind: 'thanks', emoji: '🙏', label: 'Thanks' },
-  { kind: 'laugh', emoji: '😄', label: 'Laugh' }
+  { kind: 'like', icon: ThumbsUp, label: 'Helpful' },
+  { kind: 'thanks', icon: Heart, label: 'Appreciate' },
+  { kind: 'laugh', icon: Smile, label: 'Amusing' }
 ];
 
 export function ReactionGroup({
@@ -13,7 +15,7 @@ export function ReactionGroup({
 }) {
   return (
     <div role="group" aria-label="Post reactions" className={`reaction-group ${className}`.trim()}>
-      {REACTION_CONFIG.map(({ kind, emoji, label }) => {
+      {REACTION_CONFIG.map(({ kind, icon: Icon, label }) => {
         const count = reactions?.[kind] || 0;
         const active = myReaction === kind;
         return (
@@ -26,7 +28,7 @@ export function ReactionGroup({
             onClick={() => onReact && onReact(kind)}
             disabled={disabled}
           >
-            <span aria-hidden="true">{emoji}</span>
+            <Icon size={15} strokeWidth={active ? 2.5 : 1.75} className="reaction-icon" />
             <span className="reaction-count">{count}</span>
           </button>
         );
