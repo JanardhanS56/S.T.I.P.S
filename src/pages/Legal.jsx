@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import PublicFooter from '../components/PublicFooter.jsx';
-import ThemeToggle from '../components/ThemeToggle.jsx';
 import FloatingContact from '../components/FloatingContact.jsx';
 
 function Doc({ title, children }) {
@@ -13,7 +12,6 @@ function Doc({ title, children }) {
         <Link to="/" className="wordmark dark" aria-label="S.T.I.P.S Home">
           S.T.I.P.S
         </Link>
-        <ThemeToggle />
       </header>
       <main id="main-content" tabIndex="-1">
         <h1>{title}</h1>
