@@ -78,9 +78,16 @@ app.use('/api', (req, res, next) => {
 });
 
 // Require JSON on writes so a cross-site HTML form cannot trigger them.
+// Allow bodiless DELETE requests (content-length 0 or no body) without requiring Content-Type.
 app.use('/api', (req, res, next) => {
-  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) && !req.is('application/json')) {
+  if (['POST', 'PATCH', 'PUT'].includes(req.method) && !req.is('application/json')) {
     return res.status(415).json({ error: 'JSON only.' });
+  }
+  if (req.method === 'DELETE') {
+    const hasBody = req.headers['content-length'] && req.headers['content-length'] !== '0';
+    if (hasBody && !req.is('application/json')) {
+      return res.status(415).json({ error: 'JSON only.' });
+    }
   }
   next();
 });
