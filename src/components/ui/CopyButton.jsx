@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 
 /**
- * Copy to Clipboard Button (Item 9: Copy button)
+ * Copy to Clipboard Button
  * Copies supplied text and displays accessible temporary feedback.
  */
 export default function CopyButton({
   text,
   label = 'Copy',
-  copiedLabel = 'Copied! ✓',
+  copiedLabel = 'Copied',
   className = ''
 }) {
   const [copied, setCopied] = useState(false);
@@ -37,12 +38,21 @@ export default function CopyButton({
   return (
     <button
       type="button"
-      className={`copy-btn mono ${copied ? 'copied' : ''} ${className}`}
+      className={`btn-ghost ${copied ? 'copied' : ''} ${className}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '5px 10px',
+        fontSize: '13px',
+        borderRadius: '6px',
+        cursor: 'pointer'
+      }}
       onClick={handleCopy}
       aria-label={`${label} to clipboard`}
       title={label}
     >
-      <span aria-hidden="true">{copied ? '✓' : '⧉'}</span>
+      {copied ? <Check size={14} strokeWidth={2.5} /> : <Copy size={14} strokeWidth={1.8} />}
       <span>{copied ? copiedLabel : label}</span>
     </button>
   );

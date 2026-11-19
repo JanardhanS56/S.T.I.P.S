@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Pin, MessageSquare, Flag, Award } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import {
@@ -273,10 +274,20 @@ export default function Feed() {
         ) : displayPosts.length > 0 ? (
           displayPosts.map((p) => (
             <Card as="article" key={p.id} className={p.pinned_at ? 'card-pinned' : ''}>
-              <div className="row meta" style={{ flexWrap: 'wrap', gap: '8px' }}>
-                {p.pinned_at && <span className="pinned-badge">📌 PINNED</span>}
+              <div
+                className="row meta"
+                style={{ flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}
+              >
+                {p.pinned_at && (
+                  <span
+                    className="pinned-badge"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Pin size={12} strokeWidth={2.5} /> PINNED
+                  </span>
+                )}
                 {p.is_official && <Badge variant="official">OFFICIAL</Badge>}
-                <b>{p.author.username}</b>
+                <b style={{ color: 'var(--ink)' }}>@{p.author.username}</b>
                 <Badge variant={p.author.role}>{p.author.role.toUpperCase()}</Badge>
                 <span className="muted small">{ago(p.created_at)}</span>
                 <Badge type="tag" variant={p.category}>
@@ -298,39 +309,83 @@ export default function Feed() {
                   myReaction={p.myReaction}
                   onReact={(kind) => toggleReaction(p.id, kind)}
                 />
-                <div
-                  className="row"
-                  style={{ gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
-                >
+                <div className="row" style={{ gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <CopyButton text={p.body} label="Copy" />
+                  <Link
+                    to={`/app/feed/${p.id}`}
+                    className="btn-ghost"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <MessageSquare size={14} strokeWidth={1.8} />
+                    <span>Replies</span>
+                  </Link>
                   {user?.role === 'admin' && (
                     <>
-                      <Button
-                        variant="link"
-                        className="muted small"
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
                         onClick={() => togglePin(p.id, !p.pinned_at)}
+                        title={p.pinned_at ? 'Unpin post' : 'Pin to top'}
                       >
-                        {p.pinned_at ? 'Unpin' : 'Pin'}
-                      </Button>
-                      <Button
-                        variant="link"
-                        className="muted small"
+                        <Pin size={14} strokeWidth={1.8} />
+                        <span>{p.pinned_at ? 'Unpin' : 'Pin'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
                         onClick={() => toggleOfficial(p.id, !p.is_official)}
+                        title={p.is_official ? 'Demote from official' : 'Mark as official'}
                       >
-                        {p.is_official ? 'Demote' : 'Make official'}
-                      </Button>
+                        <Award size={14} strokeWidth={1.8} />
+                        <span>{p.is_official ? 'Demote' : 'Official'}</span>
+                      </button>
                     </>
                   )}
-                  <Link to={`/app/feed/${p.id}`} className="link-btn small">
-                    Replies
-                  </Link>
-                  <Button
-                    variant="link"
-                    className="muted small"
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      color: 'var(--mute)'
+                    }}
                     onClick={() => setConfirmPost(p.id)}
+                    title="Report post to campus administration"
                   >
-                    Report
-                  </Button>
+                    <Flag size={14} strokeWidth={1.8} />
+                    <span>Report</span>
+                  </button>
                 </div>
               </div>
             </Card>

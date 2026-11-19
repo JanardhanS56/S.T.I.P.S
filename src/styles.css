@@ -858,19 +858,30 @@ fieldset input {
 
 /* Role badges */
 .role {
-  font-family: var(--mono);
+  font-family: inherit;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   padding: 3px 8px;
   border-radius: 4px;
   background: var(--wash);
   color: var(--mute);
+  border: 1px solid var(--line);
 }
-.role.teacher,
+.role.teacher {
+  background: rgba(255, 79, 43, 0.08);
+  color: var(--accent);
+  border: 1px solid rgba(255, 79, 43, 0.2);
+}
 .role.admin {
-  background: var(--charcoal);
-  color: #ffffff;
-  border-left: 2px solid var(--coral);
+  background: rgba(30, 30, 36, 0.08);
+  color: var(--ink);
+  border: 1px solid rgba(30, 30, 36, 0.2);
+}
+.role.official {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
 }
 
 /* Post type tags */

@@ -17,8 +17,8 @@ export function Badge({
   if (type === 'official' || variant === 'official') {
     return (
       <span
-        className={`role admin ${className}`.trim()}
-        style={{ letterSpacing: '0.08em', fontWeight: 700 }}
+        className={`role official ${className}`.trim()}
+        style={{ letterSpacing: '0.06em', fontWeight: 700 }}
         {...props}
       >
         {children || 'OFFICIAL'}
