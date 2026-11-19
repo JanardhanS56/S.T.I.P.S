@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
-import ThemeToggle from './ThemeToggle.jsx';
 
 export default function Shell() {
   const { user, community, logout } = useAuth();
@@ -57,7 +56,6 @@ export default function Shell() {
         </Link>
         <span className="mobile-community mono small green-light">{community.name}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ThemeToggle />
           <button
             type="button"
             className="mobile-menu-btn"
@@ -115,9 +113,6 @@ export default function Shell() {
           + Create
         </Link>
         <div className="side-foot">
-          <div style={{ marginBottom: '12px' }}>
-            <ThemeToggle style={{ width: '100%', justifyContent: 'center' }} />
-          </div>
           <strong>{user.username}</strong>
           <span>{user.role}</span>
           <span>

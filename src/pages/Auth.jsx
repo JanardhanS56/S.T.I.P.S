@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { Button, Banner, Field, PasswordInput } from '../components/ui/index.js';
-import ThemeToggle from '../components/ThemeToggle.jsx';
 
 export default function Auth() {
   const { refresh } = useAuth();
@@ -70,9 +69,6 @@ export default function Auth() {
         </p>
       </div>
       <div className="auth-r" id="auth-form-card">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-          <ThemeToggle />
-        </div>
         <form
           className="auth-form"
           onSubmit={(e) => {
