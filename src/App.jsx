@@ -98,6 +98,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/signin" element={<Auth />} />
+          <Route path="/login" element={<Navigate to="/signin" replace />} />
+          <Route path="/join" element={<Navigate to="/signin" replace />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/guidelines" element={<Guidelines />} />
