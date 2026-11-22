@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { Button, Chip, Card, Banner, Field } from '../components/ui/index.js';
+import { POLL_TEMPLATES } from '../data/pollTemplates.js';
 
 export default function Create() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('post');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || (searchParams.get('template') ? 'poll' : 'post');
+  const [tab, setTab] = useState(initialTab);
   const tabs = [
     ['post', 'Post'],
     ['poll', 'Poll'],
@@ -77,10 +80,26 @@ function PostForm() {
 
 function PollForm() {
   const nav = useNavigate();
-  const [question, setQuestion] = useState('');
-  const [opts, setOpts] = useState(['', '', '']);
-  const [days, setDays] = useState(3);
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get('template');
+  const matchedTemplate = POLL_TEMPLATES.find((t) => t.id === templateId);
+
+  const [question, setQuestion] = useState(matchedTemplate?.question || '');
+  const [opts, setOpts] = useState(matchedTemplate?.options || ['', '', '']);
+  const [days, setDays] = useState(matchedTemplate?.days || 3);
+  const [selectedTemplate, setSelectedTemplate] = useState(templateId || '');
   const [err, setErr] = useState('');
+
+  const applyTemplate = (tId) => {
+    setSelectedTemplate(tId);
+    const tmpl = POLL_TEMPLATES.find((t) => t.id === tId);
+    if (tmpl) {
+      setQuestion(tmpl.question);
+      setOpts([...tmpl.options]);
+      setDays(tmpl.days);
+    }
+  };
+
   async function go(e) {
     e.preventDefault();
     setErr('');
@@ -97,6 +116,27 @@ function PollForm() {
   }
   return (
     <form className="form narrow" onSubmit={go}>
+      <div className="stack tight" style={{ marginBottom: '16px' }}>
+        <label
+          htmlFor="poll-template-select"
+          style={{ fontSize: '13px', fontWeight: 600, color: 'var(--mute)' }}
+        >
+          Use a template (optional)
+        </label>
+        <select
+          id="poll-template-select"
+          value={selectedTemplate}
+          onChange={(e) => applyTemplate(e.target.value)}
+          style={{ minHeight: '44px', fontSize: '14px' }}
+        >
+          <option value="">-- Choose from 10 ready-made templates --</option>
+          {POLL_TEMPLATES.map((t) => (
+            <option key={t.id} value={t.id}>
+              [{t.category}] {t.title}
+            </option>
+          ))}
+        </select>
+      </div>
       <Field
         label="Question"
         id="poll-question"
