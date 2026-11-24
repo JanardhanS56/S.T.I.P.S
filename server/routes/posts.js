@@ -6,6 +6,7 @@ import { h, parse, uuid, HttpError, loadInCommunity } from '../http.js';
 import { requireCommunity, requireNotMuted, requireAdmin, requireTerms } from '../session.js';
 import { screen, handleRejection } from '../moderation.js';
 import { enforcePostCap, enforceReplyCap, enforceReactionCap } from '../limits.js';
+import { getCachedFeed, setCachedFeed, invalidateFeedCache } from '../cache.js';
 
 const r = Router();
 r.use(requireCommunity);
@@ -27,6 +28,33 @@ r.get(
       }),
       req.query
     );
+
+    const isDefaultFeed = !category && !before && limit === 50;
+    if (isDefaultFeed) {
+      const cached = await getCachedFeed(req.user.community_id);
+      if (cached && Array.isArray(cached.posts)) {
+        let myReactionsMap = {};
+        if (cached.posts.length > 0) {
+          const postIds = cached.posts.map((p) => p.id);
+          const { data: myRx } = await db
+            .from('post_reactions')
+            .select('post_id,kind')
+            .eq('user_id', req.user.id)
+            .in('post_id', postIds);
+          if (myRx) {
+            for (const rx of myRx) {
+              myReactionsMap[rx.post_id] = rx.kind;
+            }
+          }
+        }
+        const posts = cached.posts.map((p) => ({
+          ...p,
+          myReaction: myReactionsMap[p.id] || null
+        }));
+        return res.json({ posts, nextCursor: cached.nextCursor });
+      }
+    }
+
     let q = db
       .from('posts')
       .select(
@@ -72,6 +100,15 @@ r.get(
     }));
 
     const nextCursor = posts.length === limit ? posts[posts.length - 1].created_at : null;
+
+    if (isDefaultFeed) {
+      const cacheablePosts = posts.map(({ myReaction: _myReaction, ...rest }) => rest);
+      await setCachedFeed(req.user.community_id, {
+        posts: cacheablePosts,
+        nextCursor
+      });
+    }
+
     res.json({ posts, nextCursor });
   })
 );
@@ -150,6 +187,7 @@ r.post(
       .select('id')
       .single();
     if (error) throw error;
+    await invalidateFeedCache(req.user.community_id);
     res.status(201).json({ id: data.id });
   })
 );
@@ -239,6 +277,7 @@ r.post(
     if (existing && existing.kind === kind) {
       // Toggle off: remove existing reaction
       await db.from('post_reactions').delete().eq('post_id', id).eq('user_id', req.user.id);
+      await invalidateFeedCache(req.user.community_id);
       return res.json({ reacted: false, kind: null });
     }
 
@@ -247,6 +286,7 @@ r.post(
     if (existing) {
       // Switch reaction kind
       await db.from('post_reactions').update({ kind }).eq('post_id', id).eq('user_id', req.user.id);
+      await invalidateFeedCache(req.user.community_id);
       return res.json({ reacted: true, kind });
     }
 
@@ -258,6 +298,7 @@ r.post(
     });
     if (error) throw error;
 
+    await invalidateFeedCache(req.user.community_id);
     res.status(200).json({ reacted: true, kind });
   })
 );
@@ -303,6 +344,7 @@ r.post(
       .single();
     if (error) throw error;
 
+    await invalidateFeedCache(req.user.community_id);
     res.status(201).json({ id: data.id });
   })
 );
@@ -325,6 +367,7 @@ r.post(
     const pinned_at = pinned ? new Date().toISOString() : null;
     const { error: pinErr } = await db.from('posts').update({ pinned_at }).eq('id', id);
     if (pinErr) throw pinErr;
+    await invalidateFeedCache(req.user.community_id);
     res.json({ id, pinned: Boolean(pinned_at), pinned_at });
   })
 );
@@ -349,6 +392,7 @@ r.post(
       .update({ is_official: official })
       .eq('id', id);
     if (officialErr) throw officialErr;
+    await invalidateFeedCache(req.user.community_id);
     res.json({ id, is_official: official });
   })
 );
@@ -363,6 +407,7 @@ r.delete(
       throw new HttpError(403, 'Not allowed.');
     const { error: delErr } = await db.from('posts').update({ status: 'hidden' }).eq('id', id);
     if (delErr) throw delErr;
+    await invalidateFeedCache(req.user.community_id);
     res.json({ ok: true });
   })
 );
