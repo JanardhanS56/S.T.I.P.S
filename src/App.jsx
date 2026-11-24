@@ -18,6 +18,7 @@ import Profile from './pages/Profile.jsx';
 import Create from './pages/Create.jsx';
 import NotFound from './pages/NotFound.jsx';
 import { Privacy, Terms, Cookies, Guidelines, Accessibility, Contact } from './pages/Legal.jsx';
+import { ToastProvider } from './components/ui/index.js';
 
 const Admin = lazy(() => import('./pages/Admin.jsx'));
 
@@ -94,54 +95,56 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthCtx.Provider value={{ ...state, refresh, logout }}>
-        <RouteFocusAndTitle />
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/signin" element={<Auth />} />
-          <Route path="/login" element={<Navigate to="/signin" replace />} />
-          <Route path="/join" element={<Navigate to="/signin" replace />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/guidelines" element={<Guidelines />} />
-          <Route path="/cookies" element={<Cookies />} />
-          <Route path="/accessibility" element={<Accessibility />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
-            <Route index element={<Navigate to="feed" replace />} />
-            <Route path="feed" element={<Feed />} />
-            <Route path="feed/:id" element={<Thread />} />
-            <Route path="polls" element={<Polls />} />
-            <Route path="messages" element={<Messages />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="create" element={<Create />} />
-            <Route
-              path="admin"
-              element={
-                ready && state.user.role === 'admin' ? (
-                  <Suspense
-                    fallback={
-                      <div className="page loading-state">
-                        <p className="muted">Loading administrative console...</p>
-                      </div>
-                    }
-                  >
-                    <Admin />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/app/feed" replace />
-                )
-              }
-            />
+        <ToastProvider>
+          <RouteFocusAndTitle />
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/signin" element={<Auth />} />
+            <Route path="/login" element={<Navigate to="/signin" replace />} />
+            <Route path="/join" element={<Navigate to="/signin" replace />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/guidelines" element={<Guidelines />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/accessibility" element={<Accessibility />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/app" element={ready ? <Shell /> : <Navigate to="/signin" replace />}>
+              <Route index element={<Navigate to="feed" replace />} />
+              <Route path="feed" element={<Feed />} />
+              <Route path="feed/:id" element={<Thread />} />
+              <Route path="polls" element={<Polls />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="create" element={<Create />} />
+              <Route
+                path="admin"
+                element={
+                  ready && state.user.role === 'admin' ? (
+                    <Suspense
+                      fallback={
+                        <div className="page loading-state">
+                          <p className="muted">Loading administrative console...</p>
+                        </div>
+                      }
+                    >
+                      <Admin />
+                    </Suspense>
+                  ) : (
+                    <Navigate to="/app/feed" replace />
+                  )
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
-          <ConsentModal onAccepted={refresh} />
-        )}
-        <ScrollProgress />
-        <BackToTop />
-        <CookieNotice />
+          </Routes>
+          {ready && (!state.user.termsVersion || state.user.termsVersion < 1) && (
+            <ConsentModal onAccepted={refresh} />
+          )}
+          <ScrollProgress />
+          <BackToTop />
+          <CookieNotice />
+        </ToastProvider>
       </AuthCtx.Provider>
     </ErrorBoundary>
   );

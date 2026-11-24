@@ -1,13 +1,24 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { Badge, Button, Banner, Field, Modal, PasswordInput } from '../components/ui/index.js';
+import {
+  Badge,
+  Button,
+  Banner,
+  Field,
+  Modal,
+  PasswordInput,
+  useToast
+} from '../components/ui/index.js';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
+  const { showToast } = useToast();
   const [name, setName] = useState(user.displayName);
   const [bio, setBio] = useState(user.bio || '');
   const [pw, setPw] = useState({ current: '', next: '' });
+  const [saving, setSaving] = useState(false);
+  const [changingPw, setChangingPw] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -25,27 +36,39 @@ export default function Profile() {
 
   async function save(e) {
     e.preventDefault();
+    setSaving(true);
     setErr('');
     setMsg('');
     try {
       await api.patch('/auth/profile', { displayName: name, bio });
       await refresh();
-      setMsg('Saved.');
+      const successMsg = 'Profile updated successfully.';
+      setMsg(successMsg);
+      showToast(successMsg, 'success');
     } catch (e2) {
-      setErr(e2.message);
+      setErr(e2.message || 'Failed to update profile.');
+      showToast(e2.message || 'Failed to update profile.', 'error');
+    } finally {
+      setSaving(false);
     }
   }
 
   async function changePw(e) {
     e.preventDefault();
+    setChangingPw(true);
     setErr('');
     setMsg('');
     try {
       await api.post('/auth/change-password', pw);
       setPw({ current: '', next: '' });
-      setMsg('Password changed.');
+      const successMsg = 'Password updated successfully.';
+      setMsg(successMsg);
+      showToast(successMsg, 'success');
     } catch (e2) {
-      setErr(e2.message);
+      setErr(e2.message || 'Failed to update password.');
+      showToast(e2.message || 'Failed to update password.', 'error');
+    } finally {
+      setChangingPw(false);
     }
   }
 
@@ -66,8 +89,10 @@ export default function Profile() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       setExportMsg('Export complete! Your download should begin automatically.');
+      showToast('Export complete! Your download should begin automatically.', 'success');
     } catch (e2) {
       setErr(e2.message || 'Export failed.');
+      showToast(e2.message || 'Export failed.', 'error');
     } finally {
       setExporting(false);
     }
@@ -97,9 +122,13 @@ export default function Profile() {
       setDeletionRequest(res.request);
       setDeleteModalOpen(false);
       setDeleteReason('');
-      setMsg('Account deletion request submitted. An administrator will review your request.');
+      const successNotice =
+        'Account deletion request submitted. An administrator will review your request.';
+      setMsg(successNotice);
+      showToast(successNotice, 'success');
     } catch (e2) {
       setErr(e2.message || 'Failed to submit deletion request.');
+      showToast(e2.message || 'Failed to submit deletion request.', 'error');
     } finally {
       setDeleteSubmitting(false);
     }
@@ -135,7 +164,7 @@ export default function Profile() {
             onChange={(e) => setBio(e.target.value)}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <Button type="submit" variant="dark" style={{ minWidth: '140px' }}>
+            <Button type="submit" variant="dark" loading={saving} style={{ minWidth: '140px' }}>
               Save changes
             </Button>
           </div>
@@ -164,7 +193,7 @@ export default function Profile() {
             />
           </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <Button type="submit" variant="dark" style={{ minWidth: '160px' }}>
+            <Button type="submit" variant="dark" loading={changingPw} style={{ minWidth: '160px' }}>
               Change password
             </Button>
           </div>

@@ -10,7 +10,8 @@ import {
   EmptyState,
   Skeleton,
   RateLimitNotice,
-  ReactionGroup
+  ReactionGroup,
+  useToast
 } from '../components/ui/index.js';
 
 const MAX = 280;
@@ -28,6 +29,7 @@ const ago = (iso) => {
 export default function Thread() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [post, setPost] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +67,13 @@ export default function Thread() {
       await api.post(`/posts/${id}/replies`, { body: replyText });
       setReplyText('');
       await load();
+      showToast('Reply posted successfully.', 'success');
     } catch (e2) {
       if (e2.status === 429) {
         setRateLimitErr(e2);
       } else {
         setReplyErr(e2.message);
+        showToast(e2.message || 'Failed to post reply.', 'error');
       }
     } finally {
       setSubmitting(false);
@@ -81,9 +85,9 @@ export default function Thread() {
     if (reason) {
       try {
         await api.post('/reports', { targetType: type, targetId, reason });
-        alert('Thanks. The office will review it.');
+        showToast('Report submitted for moderation review.', 'success');
       } catch (e2) {
-        alert(e2.message);
+        showToast(e2.message || 'Failed to submit report.', 'error');
       }
     }
   }

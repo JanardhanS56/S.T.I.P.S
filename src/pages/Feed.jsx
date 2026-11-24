@@ -15,7 +15,8 @@ import {
   ReactionGroup,
   CopyButton,
   ConfirmDialog,
-  LoadingSpinner
+  LoadingSpinner,
+  useToast
 } from '../components/ui/index.js';
 import SiteSearch from '../components/SiteSearch.jsx';
 
@@ -34,6 +35,7 @@ const ago = (iso) => {
 
 export default function Feed() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -43,6 +45,7 @@ export default function Feed() {
   const [isOfficial, setIsOfficial] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
   const [confirmPost, setConfirmPost] = useState(null);
@@ -94,6 +97,7 @@ export default function Feed() {
     e.preventDefault();
     setErr('');
     setRateLimitErr(null);
+    setPublishing(true);
     try {
       await api.post('/posts', {
         body: text,
@@ -103,12 +107,16 @@ export default function Feed() {
       setText('');
       setIsOfficial(false);
       await load();
+      showToast('Post published successfully.', 'success');
     } catch (e2) {
       if (e2.status === 429) {
         setRateLimitErr(e2);
       } else {
         setErr(e2.message);
+        showToast(e2.message || 'Failed to publish post.', 'error');
       }
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -116,8 +124,9 @@ export default function Feed() {
     try {
       await api.post(`/posts/${postId}/pin`, { pinned: pin });
       await load();
+      showToast(pin ? 'Post pinned to top.' : 'Post unpinned.', 'success');
     } catch (e2) {
-      alert(e2.message);
+      showToast(e2.message || 'Action failed.', 'error');
     }
   }
 
@@ -125,8 +134,12 @@ export default function Feed() {
     try {
       await api.post(`/posts/${postId}/official`, { official });
       await load();
+      showToast(
+        official ? 'Marked as official announcement.' : 'Demoted from official.',
+        'success'
+      );
     } catch (e2) {
-      alert(e2.message);
+      showToast(e2.message || 'Action failed.', 'error');
     }
   }
 
@@ -135,9 +148,9 @@ export default function Feed() {
     if (reason)
       try {
         await api.post('/reports', { targetType: 'post', targetId: id, reason });
-        alert('Thanks. The office will review it.');
+        showToast('Report submitted for moderation review.', 'success');
       } catch (e2) {
-        alert(e2.message);
+        showToast(e2.message || 'Failed to submit report.', 'error');
       }
   }
 
@@ -224,7 +237,7 @@ export default function Feed() {
               </label>
             )}
             <span className={`mono small ${left < 30 ? 'warn' : ''}`}>{left} left</span>
-            <Button type="submit" variant="dark" disabled={!text.trim()}>
+            <Button type="submit" variant="dark" loading={publishing} disabled={!text.trim()}>
               Post
             </Button>
           </div>

@@ -1,3 +1,5 @@
+import LoadingSpinner from './LoadingSpinner.jsx';
+
 export function Button({
   variant = 'outline', // 'outline' | 'dark' | 'green' | 'link'
   size = 'default', // 'default' | 'lg'
@@ -18,7 +20,14 @@ export function Button({
         onClick={onClick}
         {...props}
       >
-        {loading ? 'Please wait...' : children}
+        {loading ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <LoadingSpinner size={14} label="" />
+            <span>Please wait...</span>
+          </span>
+        ) : (
+          children
+        )}
       </button>
     );
   }
@@ -43,8 +52,11 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <span className="row" style={{ gap: '8px' }}>
-          <span className="mono small">...</span>
+        <span
+          className="row"
+          style={{ gap: '8px', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <LoadingSpinner size={14} label="" />
           <span>{children}</span>
         </span>
       ) : (

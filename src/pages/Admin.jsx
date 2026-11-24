@@ -12,11 +12,13 @@ import {
   EmptyState,
   Skeleton,
   Modal,
-  CopyButton
+  CopyButton,
+  useToast
 } from '../components/ui/index.js';
 
 export default function Admin() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [tab, setTab] = useState('members');
   const [community, setCommunity] = useState(null);
   const [members, setMembers] = useState([]);
@@ -121,11 +123,14 @@ export default function Admin() {
     setErr('');
     try {
       await api.post(`/admin/users/${targetUser.id}/status`, { status: targetStatus });
-      setSuccess(`Updated status for @${targetUser.username} to ${targetStatus}.`);
+      const msg = `Updated status for @${targetUser.username} to ${targetStatus}.`;
+      setSuccess(msg);
+      showToast(msg, 'success');
       await loadMembers();
       await loadAudit();
     } catch (e) {
       setErr(e.message);
+      showToast(e.message || 'Status change failed.', 'error');
     }
   }
 
@@ -141,9 +146,11 @@ export default function Admin() {
         username: targetUser.username,
         password: res.password
       });
+      showToast(`Temporary password generated for @${targetUser.username}.`, 'success');
       await loadAudit();
     } catch (e) {
       setErr(e.message);
+      showToast(e.message || 'Password reset failed.', 'error');
     }
   }
 
@@ -152,11 +159,14 @@ export default function Admin() {
     setErr('');
     try {
       await api.post(`/admin/reports/${reportId}/resolve`, { action });
-      setSuccess(action === 'hide' ? 'Content hidden and report resolved.' : 'Report dismissed.');
+      const msg = action === 'hide' ? 'Content hidden and report resolved.' : 'Report dismissed.';
+      setSuccess(msg);
+      showToast(msg, 'success');
       await loadReports();
       await loadAudit();
     } catch (e) {
       setErr(e.message);
+      showToast(e.message || 'Action failed.', 'error');
     }
   }
 
@@ -168,14 +178,15 @@ export default function Admin() {
     setErr('');
     try {
       await api.post(`/admin/deletion-requests/${targetRequest.id}/confirm`, {});
-      setSuccess(
-        `Account for @${targetRequest.user?.username || 'member'} has been anonymized and credentials disabled.`
-      );
+      const msg = `Account for @${targetRequest.user?.username || 'member'} has been anonymized and credentials disabled.`;
+      setSuccess(msg);
+      showToast(msg, 'success');
       await loadDeletionRequests();
       await loadMembers();
       await loadAudit();
     } catch (e) {
       setErr(e.message);
+      showToast(e.message || 'Confirmation failed.', 'error');
     }
   }
 
@@ -184,11 +195,14 @@ export default function Admin() {
     setErr('');
     try {
       await api.post(`/admin/deletion-requests/${reqId}/reject`, {});
-      setSuccess('Deletion request marked as rejected.');
+      const msg = 'Deletion request marked as rejected.';
+      setSuccess(msg);
+      showToast(msg, 'success');
       await loadDeletionRequests();
       await loadAudit();
     } catch (e) {
       setErr(e.message);
+      showToast(e.message || 'Rejection failed.', 'error');
     }
   }
 
@@ -220,11 +234,14 @@ export default function Admin() {
       const res = await api.post('/admin/members', { members: parsed });
       setCreatedMembers(res.created || []);
       setLines('');
-      setSuccess(`Successfully created ${res.created.length} new member credentials.`);
+      const msg = `Successfully created ${res.created.length} new member credentials.`;
+      setSuccess(msg);
+      showToast(msg, 'success');
       await loadMembers();
       await loadAudit();
     } catch (e2) {
       setErr(e2.message);
+      showToast(e2.message || 'Creation failed.', 'error');
     } finally {
       setCreating(false);
     }
@@ -236,7 +253,9 @@ export default function Admin() {
       ...createdMembers.map((c) => [c.name, c.role, c.username, c.password].join(','))
     ].join('\n');
     navigator.clipboard.writeText(text);
-    setSuccess('Copied member credentials to clipboard.');
+    const msg = 'Copied member credentials to clipboard.';
+    setSuccess(msg);
+    showToast(msg, 'success');
   };
 
   const filteredMembers = members.filter((m) => {

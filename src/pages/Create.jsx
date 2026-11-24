@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { Button, Chip, Card, Banner, Field } from '../components/ui/index.js';
+import { Button, Chip, Card, Banner, Field, useToast } from '../components/ui/index.js';
 import { POLL_TEMPLATES } from '../data/pollTemplates.js';
 
 export default function Create() {
@@ -34,17 +34,23 @@ export default function Create() {
 
 function PostForm() {
   const nav = useNavigate();
+  const { showToast } = useToast();
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('Notice');
+  const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState('');
   async function go(e) {
     e.preventDefault();
     setErr('');
+    setSubmitting(true);
     try {
       await api.post('/posts', { body, category });
+      showToast('Post published successfully.', 'success');
       nav('/app/feed');
     } catch (x) {
       setErr(x.message);
+    } finally {
+      setSubmitting(false);
     }
   }
   return (
@@ -71,7 +77,7 @@ function PostForm() {
         campus-related.
       </p>
       {err && <Banner variant="error">{err}</Banner>}
-      <Button type="submit" variant="dark" disabled={!body.trim()}>
+      <Button type="submit" variant="dark" loading={submitting} disabled={!body.trim()}>
         Publish post
       </Button>
     </form>
@@ -80,6 +86,7 @@ function PostForm() {
 
 function PollForm() {
   const nav = useNavigate();
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
   const templateId = searchParams.get('template');
   const matchedTemplate = POLL_TEMPLATES.find((t) => t.id === templateId);
@@ -88,6 +95,7 @@ function PollForm() {
   const [opts, setOpts] = useState(matchedTemplate?.options || ['', '', '']);
   const [days, setDays] = useState(matchedTemplate?.days || 3);
   const [selectedTemplate, setSelectedTemplate] = useState(templateId || '');
+  const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState('');
 
   const applyTemplate = (tId) => {
@@ -103,15 +111,19 @@ function PollForm() {
   async function go(e) {
     e.preventDefault();
     setErr('');
+    setSubmitting(true);
     try {
       await api.post('/polls', {
         question,
         options: opts.map((o) => o.trim()).filter(Boolean),
         days: Number(days)
       });
+      showToast('Poll created successfully.', 'success');
       nav('/app/polls');
     } catch (x) {
       setErr(x.message);
+    } finally {
+      setSubmitting(false);
     }
   }
   return (
@@ -195,7 +207,7 @@ function PollForm() {
         Each person gets one vote. Votes cannot be changed after they are cast.
       </p>
       {err && <Banner variant="error">{err}</Banner>}
-      <Button type="submit" variant="dark">
+      <Button type="submit" variant="dark" loading={submitting}>
         Start poll
       </Button>
     </form>

@@ -10,7 +10,9 @@ import {
   Banner,
   EmptyState,
   Skeleton,
-  RateLimitNotice
+  RateLimitNotice,
+  LoadingSpinner,
+  useToast
 } from '../components/ui/index.js';
 import { POLL_TEMPLATES } from '../data/pollTemplates.js';
 
@@ -30,9 +32,12 @@ function formatRemaining(closesAt, isClosed) {
 
 export default function Polls() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [polls, setPolls] = useState([]);
   const [activeView, setActiveView] = useState('polls'); // 'polls' | 'templates'
   const [loading, setLoading] = useState(true);
+  const [votingOptionId, setVotingOptionId] = useState(null);
+  const [closingPollId, setClosingPollId] = useState(null);
   const [err, setErr] = useState('');
   const [rateLimitErr, setRateLimitErr] = useState(null);
 
@@ -60,15 +65,20 @@ export default function Polls() {
   async function vote(pollId, optionId) {
     setErr('');
     setRateLimitErr(null);
+    setVotingOptionId(optionId);
     try {
       await api.post(`/polls/${pollId}/vote`, { optionId });
       await load();
+      showToast('Vote submitted successfully.', 'success');
     } catch (e) {
       if (e.status === 429) {
         setRateLimitErr(e);
       } else {
         setErr(e.message);
+        showToast(e.message || 'Failed to submit vote.', 'error');
       }
+    } finally {
+      setVotingOptionId(null);
     }
   }
 
@@ -79,15 +89,20 @@ export default function Polls() {
     if (!confirmed) return;
     setErr('');
     setRateLimitErr(null);
+    setClosingPollId(pollId);
     try {
       await api.post(`/polls/${pollId}/close`, {});
       await load();
+      showToast('Poll closed successfully.', 'success');
     } catch (e) {
       if (e.status === 429) {
         setRateLimitErr(e);
       } else {
         setErr(e.message);
+        showToast(e.message || 'Failed to close poll.', 'error');
       }
+    } finally {
+      setClosingPollId(null);
     }
   }
 
@@ -109,7 +124,12 @@ export default function Polls() {
             </span>
           </div>
           {canClose && (
-            <Button variant="outline" className="small" onClick={() => closePoll(p.id)}>
+            <Button
+              variant="outline"
+              className="small"
+              loading={closingPollId === p.id}
+              onClick={() => closePoll(p.id)}
+            >
               Close poll
             </Button>
           )}
@@ -119,11 +139,12 @@ export default function Polls() {
           {p.options.map((o) => {
             const pct = showBars && p.total ? Math.round((o.count / p.total) * 100) : 0;
             const mine = p.myVote === o.id;
+            const isVotingThis = votingOptionId === o.id;
             return (
               <button
                 key={o.id}
                 className={`opt ${mine ? 'mine' : ''}`}
-                disabled={p.closed || !!p.myVote}
+                disabled={p.closed || !!p.myVote || !!votingOptionId}
                 onClick={() => vote(p.id, o.id)}
                 role={showBars ? 'progressbar' : undefined}
                 aria-valuenow={showBars ? pct : undefined}
@@ -136,19 +157,31 @@ export default function Polls() {
                 }
               >
                 <span className="bar" style={{ width: `${pct}%` }} />
-                <span className="opt-l">
-                  {o.label}
-                  {mine && (
-                    <span
-                      className="mono small"
-                      style={{
-                        marginLeft: '8px',
-                        fontWeight: 700,
-                        color: 'var(--green)'
-                      }}
-                    >
-                      ✓ Your vote
-                    </span>
+                <span
+                  className="opt-l"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {isVotingThis ? (
+                    <>
+                      <LoadingSpinner size={14} label="" />
+                      <span>Recording vote...</span>
+                    </>
+                  ) : (
+                    <>
+                      {o.label}
+                      {mine && (
+                        <span
+                          className="mono small"
+                          style={{
+                            marginLeft: '8px',
+                            fontWeight: 700,
+                            color: 'var(--green)'
+                          }}
+                        >
+                          ✓ Your vote
+                        </span>
+                      )}
+                    </>
                   )}
                 </span>
                 {showBars && (
