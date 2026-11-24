@@ -116,7 +116,7 @@ export default function Thread() {
       if (e2.status === 429) {
         setRateLimitErr(e2);
       } else {
-        alert(e2.message);
+        showToast(e2.message || 'Failed to update reaction.', 'error');
       }
     }
   }
@@ -125,8 +125,9 @@ export default function Thread() {
     try {
       await api.post(`/posts/${id}/pin`, { pinned: pin });
       await load();
+      showToast(pin ? 'Post pinned to top.' : 'Post unpinned.', 'success');
     } catch (e2) {
-      alert(e2.message);
+      showToast(e2.message || 'Action failed.', 'error');
     }
   }
 
@@ -134,8 +135,12 @@ export default function Thread() {
     try {
       await api.post(`/posts/${id}/official`, { official });
       await load();
+      showToast(
+        official ? 'Marked as official announcement.' : 'Demoted from official.',
+        'success'
+      );
     } catch (e2) {
-      alert(e2.message);
+      showToast(e2.message || 'Action failed.', 'error');
     }
   }
 

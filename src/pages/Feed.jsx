@@ -180,7 +180,7 @@ export default function Feed() {
       if (e2.status === 429) {
         setRateLimitErr(e2);
       } else {
-        alert(e2.message);
+        showToast(e2.message || 'Failed to update reaction.', 'error');
       }
     }
   }

@@ -13,7 +13,7 @@ export async function checkUserCap({
   const since = new Date(Date.now() - windowSeconds * 1000).toISOString();
   const { count, error } = await db
     .from(table)
-    .select('id', { count: 'exact', head: true })
+    .select(userColumn, { count: 'exact', head: true })
     .eq(userColumn, userId)
     .gte('created_at', since);
 
