@@ -13,27 +13,27 @@
 
 ## Key Features
 
-| Capability                 | Highlights                                                                                                                                                                   |
-| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Community Feed**         | 280-character posts across Notice, Event, Meme, and Moment categories; depth-1 threaded discussions; emoji reactions; admin post pinning and official campus badges.         |
-| **Anonymous Polling**      | 2 to 6 options, 1 to 7 day durations, one vote per person enforced via database constraints. Poll outcomes remain hidden until a vote is cast or the poll closes.            |
-| **Protected Messaging**    | Direct messaging between students and teachers with automatic phone number and email address filtering. Students cannot message other students. Bidirectional user blocking. |
-| **Safety & Moderation**    | Word filter blocklist, optional AI content screening, report triage queue, and automated temporary mute escalations for repeat violations.                                   |
-| **User Rights & Privacy**  | First-login consent gating, self-service GDPR/DPDP-compliant JSON data export (`GET /api/me/export`), and complete account erasure and anonymization workflows.              |
-| **Administration & Audit** | Secure roster provisioning with one-time credentials, role management, password resets, and immutable PostgreSQL audit logging.                                              |
-| **Accessibility (a11y)**   | Verified WCAG 2.1 AA compliance via `@axe-core/playwright` (0 critical/serious violations), skip-to-content links, modal focus traps, and 320px viewport reflow.             |
-| **Observability & Ops**    | Zero-PII Sentry error monitoring (`scrubSentryEvent`), operational health checks (`GET /api/health`), blackbox smoke testing, and automated backup restore drills.           |
+| Capability                 | Highlights                                                                                                                                                                                                                                  |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Community Feed**         | 280-character posts across Notice, Event, Meme, and Moment categories; depth-1 threaded discussions; emoji reactions; admin post pinning and official campus badges; high-speed fail-open Redis feed caching.                               |
+| **Anonymous Polling**      | 2 to 6 options, 1 to 7 day durations, one vote per person enforced via database constraints. 10 interactive community poll templates with 1-click prefilling. Poll outcomes remain hidden until a vote is cast or the poll closes.          |
+| **Protected Messaging**    | Direct messaging between students and teachers with automatic phone number and email address filtering. Students cannot message other students. Bidirectional user blocking.                                                                |
+| **Safety & Moderation**    | Word filter blocklist, optional AI content screening, report triage queue, and automated temporary mute escalations for repeat violations.                                                                                                  |
+| **User Rights & Privacy**  | First-login consent gating, self-service GDPR/DPDP-compliant JSON data export (`GET /api/me/export`), and complete account erasure and anonymization workflows.                                                                             |
+| **Administration & Audit** | Single-member and bulk CSV provisioning with flexible roles (Student, Teacher, Non-staff, External guide, custom), student profile fields (Department, Roll Number, Section), one-time credentials, and immutable PostgreSQL audit logging. |
+| **Accessibility (a11y)**   | Verified WCAG 2.1 AA compliance via `@axe-core/playwright` (0 critical/serious violations), skip-to-content links, modal focus traps, and 320px viewport reflow.                                                                            |
+| **Observability & Ops**    | Zero-PII Sentry error monitoring (`scrubSentryEvent`), operational health checks (`GET /api/health`), blackbox smoke testing, and automated backup restore drills.                                                                          |
 
 ---
 
 ## Technical Stack
 
-- **Frontend:** React 18, Vite, React Router 6, CSS variables with Swiss/bauhaus-inspired design tokens, self-hosted `Schibsted Grotesk` and `IBM Plex Mono` fonts.
+- **Frontend:** React 18, Vite, React Router 6, CSS variables with Swiss/bauhaus-inspired design tokens, Lucide React icons, GSAP/ScrollTrigger landing animation, self-hosted `Schibsted Grotesk` and `IBM Plex Mono` fonts.
 - **Backend:** Express 4 on Node.js 20+, modular route controllers, Zod request body/query validation, Pino structured logging.
 - **Database & Storage:** Supabase PostgreSQL with 13 tables, compound indexes for <4ms queries, and default-deny Row Level Security (RLS) on all tables.
-- **Rate Limiting & Caching:** Upstash Redis with robust in-memory sliding-window fallback (`@upstash/ratelimit`).
+- **Rate Limiting & Caching:** Upstash Redis with robust in-memory sliding-window fallback (`@upstash/ratelimit`) and distributed feed caching with instant mutation invalidation (`server/cache.js`).
 - **Security & Hardening:** Strict Content-Security-Policy (`font-src 'self'`), `HttpOnly` `SameSite=Strict` `Secure` session cookies, JWT token version revocation (`token_version`), account lockouts after 5 consecutive failures.
-- **Testing:** Vitest (195 unit and integration tests across 18 test suites), Playwright (48 E2E and accessibility checks across Desktop and Mobile Chrome), Autocannon (concurrency smoke benchmarks).
+- **Testing:** Vitest (203 unit and integration tests across 19 test suites), Playwright (48 E2E and accessibility checks across Desktop and Mobile Chrome), Autocannon (concurrency smoke benchmarks).
 
 ---
 

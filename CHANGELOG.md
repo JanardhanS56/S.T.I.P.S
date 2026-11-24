@@ -9,17 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Community Poll & Voting Templates:** Added 10 pre-configured, categorized polling templates in `src/data/pollTemplates.js` (CR election, event scheduling, faculty appreciation, event contribution, hackathon themes, study groups) with an interactive "Templates Library" tab in `src/pages/Polls.jsx` and 1-click pre-filling in `src/pages/Create.jsx`.
+- **Expanded Student Profiles:** Added `department` (up to 60 chars), `roll_number` (alphanumeric/numeric up to 40 chars), and `section` (classroom/section identifier up to 40 chars) to the `users` table and updated `src/pages/Profile.jsx` with input controls and profile badge chips.
+- **Admin Member Creation & Flexible Roles:** Added single-member provisioning form in `src/pages/Admin.jsx` with default `Student` role and selector for `Student`, `Teacher`, `Non-staff`, `External guide`, and `Custom role...`. Relaxed DB constraint to `users_role_check check (char_length(role) between 1 and 40)` via migration `20261124000001_student_profile_fields_and_roles.sql`.
+- **Distributed Community Feed Caching:** Added fail-open in-memory/Redis feed caching (`server/cache.js`) for `GET /api/posts` with a 15-second TTL and automatic cache invalidation upon post creation, deletion, reactions, pinning, and official flagging. Covered with test suite in `tests/unit/cache.test.js`.
+- **Action Confirmation Toasts & Loading State:** Integrated temporary toast notifications (`src/components/ui/Toast.jsx`) confirming database updates across profile edits, password resets, poll voting, and post reactions, along with async loading spinner indicators.
+- **Baroque Fresco Landing Page Experience:** Added an interactive canvas hero animation (`src/components/BaroqueFresco.jsx`) powered by GSAP and ScrollTrigger on `src/pages/Landing.jsx`.
+- **Lucide React Icons:** Replaced raw emojis across sidebar navigation, feed cards, reactions, and administrative tables with accessible Lucide React icons.
 - **AI & Developer Context Handbook:** Added `AI_CONTEXT.md` as the authoritative source-of-truth reference for AI assistants, LLMs, and new developers.
 - **Upstash Redis Auto-Mute & Export Limits:** Backed the 1/day GDPR/DPDP export rate limit and the 3-strikes-in-10-minutes content rejection auto-mute escalation with distributed Upstash Redis storage.
 - **Deployment Security Headers:** Added HSTS (`max-age=31536000`), X-Frame-Options (`DENY`), X-Content-Type-Options (`nosniff`), Referrer-Policy, and Permissions-Policy in `vercel.json`.
 
 ### Fixed
 
+- **Reaction Rate Limit User Column (`server/limits.js`):** Fixed query in `enforceReactionCap` to use `user_id` instead of `author_id`, resolving 500 errors when toggling post reactions.
+- **Bodiless DELETE Requests (`server/app.js`):** Relaxed `Content-Type: application/json` enforcement on bodiless `DELETE` requests so client resource deletions complete cleanly without 415 errors.
+- **API Client Delete Helper (`src/api.js`):** Added `api.delete` alias matching standard REST conventions.
+- **Legacy Route Redirects (`src/App.jsx`):** Added automatic redirects from `/login` and `/join` to `/signin`.
+- **Form Element Normalization (`src/styles.css`):** Normalized checkbox inputs, card actions, ghost buttons, and centered feed layout.
 - **Data Export Schema Alignment (`server/routes/me.js`):** Aligned export queries with PostgreSQL schema columns (`pinned_at`, `is_official`) and omitted campus join codes from user data archives.
 - **Sentry Error Handler Pipeline (`server/app.js`):** Repositioned Sentry's `attachServerSentryErrorHandler` before the application's final error middleware so unhandled exceptions are recorded before HTTP 500 responses are sent.
 - **Static Asset SPA Routing (`vercel.json`):** Excluded `/.well-known/security.txt`, `/security.txt`, and `/fonts/` from Vite client-side SPA rewrites.
 - **Programmatic Environment Loading (`scripts/dev.js`, `server/dev.js`):** Replaced `--env-file` CLI arguments with Node's native `process.loadEnvFile` inside a `try/catch` wrapper, resolving Node exit code 9 crashes in CI/Docker environments where `.env` is absent.
-- **CI Pipeline Reliability (`.github/workflows/ci.yml`):** Streamlined automated GitHub Actions checks to focus on standalone, reproducible test suites (195 Vitest API/unit tests, ESLint, Prettier, production build, Gitleaks).
+- **CI Pipeline Reliability (`.github/workflows/ci.yml`):** Streamlined automated GitHub Actions checks to focus on standalone, reproducible test suites (203 Vitest API/unit tests across 19 suites, ESLint, Prettier, production build, Gitleaks).
 
 ## [0.1.0] - 2026-11-17
 

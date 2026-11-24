@@ -4,10 +4,10 @@
 
 ## Current status
 
-- Day: 4 Complete, Release v0.1.0 Shipped + Backend Deploy Readiness & Documentation Hardening
+- Day: Post-v0.1.0 Feature Expansion & Distributed Performance Optimization
 - Branch: main
-- Last green check: npm run lint (0 errors), npm run format:check (100% compliant), npm test (195 unit/API tests passing across 18 test suites), npm run build (clean production build in 5.7s), secret scan (0 secrets in git history), GitHub Actions CI passing on main
-- Next milestone: Post-v0.1.0 Campus Pilot Onboarding and Live Feedback Gathering
+- Last green check: npm run lint (0 errors), npm test (203 unit/API tests passing across 19 test suites), npm run build (clean production build in 14.8s), GitHub Actions CI passing on main
+- Next milestone: Campus Pilot Onboarding and Live Feedback Gathering
 
 ## Blocked / needs owner
 
@@ -15,16 +15,36 @@
 
 ## Decisions made this session (also add to DECISIONS.md if lasting)
 
-- Security Sign-off & Secret Scan: Executed git history scanner (`npm run security:scan`), verifying 0 private keys, service role tokens, or passwords across all commits. Evaluated npm audit findings (`zod` and `react-router`) as accepted risks mitigated by 10kb body parser limits and zero SSR hydration.
-- License Compliance: Generated `docs/THIRD_PARTY.md` documenting all 156 production dependency licenses (MIT, Apache-2.0, BlueOak-1.0.0, BSD-3-Clause, ISC, 0BSD) with automated generation script (`npm run licenses`).
-- Documentation Finalization: Finalized comprehensive root `README.md`, `CHANGELOG.md` (Keep a Changelog format for 0.1.0), `SECURITY.md` (vulnerability disclosure policy), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and updated `docs/API.md` and `docs/CONTEXT.md`.
-- Launch Review (Go / No-Go): Completed `docs/LAUNCH_CHECKLIST.md` review. All core safety, security, and compliance criteria are satisfied. Three items recorded as accepted risks: (1) physical iOS Safari/Firefox testing scheduled for campus pilot, (2) institutional grievance officer contact flagged `[NEEDS HUMAN REVIEW]` for campus leadership assignment prior to student onboarding, and (3) formal third-party penetration testing deferred with owner sign-off. Determined **GO** for `v0.1.0` release.
+- Distributed Community Feed Caching: Built fail-open in-memory/Redis feed caching (`server/cache.js`) for `GET /api/posts` with a 15-second TTL and automatic purge on post mutations. Protects Supabase DB from high-concurrency read load while keeping key operations safely under Upstash Redis free tier limits (<5,000 commands/day).
+- Flexible Member Roles: Extended database check constraint `users_role_check` to accept any role string between 1 and 40 characters (`student`, `teacher`, `non_staff`, `external_guide`, or custom), while preserving strict backend authorization and barring non-admin users from creating or escalating to `admin`.
+- Student Profile Fields: Added `department`, `roll_number` (alphanumeric/numeric string), and `section` to `users` schema and UI.
+- Direct User Feedback: Integrated non-blocking toast notifications and async loading state for database writes (votes, reactions, profile updates, password changes).
 
 ## Parked ideas (not in scope now)
 
 - (none)
 
 ## Session log
+
+### Session 20 - Distributed Feed Caching & Performance Optimization
+
+- Implemented `server/cache.js` providing `getCachedFeed`, `setCachedFeed` (15s TTL), and `invalidateFeedCache`.
+- Wired into `server/routes/posts.js`: `GET /api/posts` serves cached public feed with per-caller `myReaction` attachment; all write operations (`POST /api/posts`, `DELETE /api/posts/:id`, reactions, pinning, official status, replies) instantly purge the cache.
+- Verified zero-crash fail-open architecture: if Redis is disconnected or errors out, queries seamlessly fall back to Supabase directly.
+- Added comprehensive unit test suite in `tests/unit/cache.test.js` (8 tests passing).
+- Verified: `npm run lint` clean (0 errors), `npm test` 203/203 passing across 19 test suites, `npm run build` clean production build.
+
+### Session 19 - Student Profiles, Expanded Roles, Poll Templates & UX Feedback Polish
+
+- Expanded student profile schema: created SQL migration `20261124000001_student_profile_fields_and_roles.sql` adding `roll_number` (`VARCHAR(40)`), `section` (`VARCHAR(40)`), and relaxing `users_role_check` constraint.
+- Updated `server/session.js`, `server/routes/auth.js`, and `server/routes/admin.js` to accept, sanitize, and return `department`, `rollNumber`, and `section`.
+- Updated `src/pages/Profile.jsx` with department, roll number, and section inputs and profile badge chips.
+- Added single-member creation form and dynamic role selector in `src/pages/Admin.jsx` supporting `Student`, `Teacher`, `Non-staff`, `External guide`, and custom roles.
+- Added 10 pre-configured community poll templates in `src/data/pollTemplates.js`, an interactive Templates Library tab in `src/pages/Polls.jsx`, and 1-click template selection into `src/pages/Create.jsx`.
+- Added action confirmation toasts (`src/components/ui/Toast.jsx`) and loading spinner feedback for all database-modifying user actions.
+- Fixed reaction rate limit query in `server/limits.js` to use `user_id` instead of `author_id`.
+- Replaced raw emojis with accessible Lucide React icons; added Baroque Fresco landing hero animation with GSAP.
+- Verified: `npm run lint` clean, `npm test` 195/195 passing across 18 test suites, `npm run build` clean production build.
 
 ### Session 18 - Repository Hygiene, Dead File Cleanup, and Structural Organization
 
