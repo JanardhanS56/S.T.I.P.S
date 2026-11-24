@@ -6,7 +6,7 @@ import { HttpError } from './http.js';
 
 const COOKIE = 'stips_session';
 const USER_FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,token_version,accepted_terms_at,terms_version';
+  'id,username,display_name,role,community_id,bio,department,roll_number,section,status,must_change_password,token_version,accepted_terms_at,terms_version';
 
 export function setSession(res, user) {
   const token = jwt.sign({ sub: user.id, tv: user.token_version ?? 0 }, config.jwtSecret, {
@@ -81,7 +81,9 @@ export const publicUser = (u) => ({
   role: u.role,
   communityId: u.community_id,
   bio: u.bio,
-  department: u.department,
+  department: u.department ?? '',
+  rollNumber: u.roll_number ?? '',
+  section: u.section ?? '',
   mustChangePassword: u.must_change_password,
   acceptedTermsAt: u.accepted_terms_at,
   termsVersion: u.terms_version ?? 0

@@ -25,8 +25,19 @@ r.post(
           .array(
             z.object({
               name: z.string().trim().min(1).max(60),
-              role: z.enum(['teacher', 'student']),
-              department: z.string().trim().max(60).optional()
+              role: z
+                .string()
+                .trim()
+                .min(1)
+                .max(40)
+                .default('student')
+                .refine(
+                  (r) => r.toLowerCase() !== 'admin',
+                  'Cannot create admin accounts directly'
+                ),
+              department: z.string().trim().max(80).optional().default(''),
+              rollNumber: z.string().trim().max(40).optional().default(''),
+              section: z.string().trim().max(40).optional().default('')
             })
           )
           .min(1)
@@ -49,17 +60,20 @@ r.post(
         username = `${base}${randomInt(10, 99)}`;
       }
       const password = tempPassword();
+      const role = m.role.toLowerCase();
       const { error } = await db.from('users').insert({
         community_id: req.user.community_id,
         username,
         display_name: m.name,
-        role: m.role,
+        role,
         department: m.department ?? '',
+        roll_number: m.rollNumber ?? '',
+        section: m.section ?? '',
         password_hash: await bcrypt.hash(password, 10),
         must_change_password: true
       });
       if (error) throw error;
-      created.push({ name: m.name, role: m.role, username, password });
+      created.push({ name: m.name, role, username, password });
     }
     await audit(
       req,
@@ -77,7 +91,7 @@ r.get(
   h(async (req, res) => {
     const { data: members, error } = await db
       .from('users')
-      .select('id,username,display_name,role,status,department,created_at')
+      .select('id,username,display_name,role,status,department,roll_number,section,created_at')
       .eq('community_id', req.user.community_id)
       .order('created_at', { ascending: false })
       .limit(200);
@@ -88,7 +102,9 @@ r.get(
       display_name: m.display_name,
       role: m.role,
       status: m.status,
-      department: m.department,
+      department: m.department ?? '',
+      rollNumber: m.roll_number ?? '',
+      section: m.section ?? '',
       created_at: m.created_at
     }));
     res.json({ members: safeMembers });

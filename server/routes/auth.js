@@ -12,7 +12,7 @@ import { loginRateLimiter } from '../rateLimit.js';
 
 const r = Router();
 const FIELDS =
-  'id,username,display_name,role,community_id,bio,department,status,must_change_password,password_hash,failed_attempts,locked_until,token_version,accepted_terms_at,terms_version';
+  'id,username,display_name,role,community_id,bio,department,roll_number,section,status,must_change_password,password_hash,failed_attempts,locked_until,token_version,accepted_terms_at,terms_version';
 
 r.post(
   '/login',
@@ -170,15 +170,27 @@ r.patch(
   requireAuth,
   requireNotMuted,
   h(async (req, res) => {
-    const { displayName, bio } = parse(
-      z.object({ displayName: z.string().trim().min(1).max(60), bio: z.string().trim().max(160) }),
+    const { displayName, bio, department, rollNumber, section } = parse(
+      z.object({
+        displayName: z.string().trim().min(1).max(60),
+        bio: z.string().trim().max(160),
+        department: z.string().trim().max(80).optional().default(''),
+        rollNumber: z.string().trim().max(40).optional().default(''),
+        section: z.string().trim().max(40).optional().default('')
+      }),
       req.body
     );
-    const check = await screen(`${displayName}\n${bio}`);
+    const check = await screen(`${displayName}\n${bio}\n${department}\n${rollNumber}\n${section}`);
     if (!check.ok) throw new HttpError(422, check.reason);
     const { data, error } = await db
       .from('users')
-      .update({ display_name: displayName, bio })
+      .update({
+        display_name: displayName,
+        bio,
+        department,
+        roll_number: rollNumber,
+        section
+      })
       .eq('id', req.user.id)
       .select()
       .single();

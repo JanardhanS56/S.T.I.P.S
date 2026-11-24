@@ -53,7 +53,17 @@ export default function Admin() {
   // Dropdown menu state for table rows
   const [activeMenuId, setActiveMenuId] = useState(null);
 
-  // Bulk member creation state
+  // Member creation state
+  const [memberForm, setMemberForm] = useState({
+    name: '',
+    roleSelect: 'student',
+    customRole: '',
+    department: '',
+    rollNumber: '',
+    section: ''
+  });
+  const [addingSingle, setAddingSingle] = useState(false);
+  const [addMode, setAddMode] = useState('single'); // 'single' | 'bulk'
   const [lines, setLines] = useState('');
   const [createdMembers, setCreatedMembers] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -206,6 +216,53 @@ export default function Admin() {
     }
   }
 
+  // Handle single member creation with role selector
+  async function handleCreateSingleMember(e) {
+    e.preventDefault();
+    if (!memberForm.name.trim()) return;
+    setErr('');
+    setAddingSingle(true);
+
+    const finalRole =
+      memberForm.roleSelect === 'custom'
+        ? memberForm.customRole.trim() || 'student'
+        : memberForm.roleSelect;
+
+    try {
+      const res = await api.post('/admin/members', {
+        members: [
+          {
+            name: memberForm.name.trim(),
+            role: finalRole,
+            department: memberForm.department.trim(),
+            rollNumber: memberForm.rollNumber.trim(),
+            section: memberForm.section.trim()
+          }
+        ]
+      });
+      setCreatedMembers(res.created || []);
+      setMemberForm({
+        name: '',
+        roleSelect: 'student',
+        customRole: '',
+        department: '',
+        rollNumber: '',
+        section: ''
+      });
+      const usernameCreated = res.created?.[0]?.username || 'member';
+      const msg = `Successfully created account for @${usernameCreated}.`;
+      setSuccess(msg);
+      showToast(msg, 'success');
+      await loadMembers();
+      await loadAudit();
+    } catch (e2) {
+      setErr(e2.message);
+      showToast(e2.message || 'Member creation failed.', 'error');
+    } finally {
+      setAddingSingle(false);
+    }
+  }
+
   // Handle bulk member creation
   async function handleAddMembers(e) {
     e.preventDefault();
@@ -216,11 +273,23 @@ export default function Admin() {
       .map((l) => l.trim())
       .filter(Boolean)
       .map((l) => {
-        const [name, role = 'student', department = ''] = l.split(',').map((s) => s.trim());
+        const [name, rawRole = 'student', department = '', rollNumber = '', section = ''] = l
+          .split(',')
+          .map((s) => s.trim());
+
+        let role = rawRole.toLowerCase();
+        if (role.startsWith('stud')) role = 'student';
+        else if (role.startsWith('teach')) role = 'teacher';
+        else if (role.startsWith('non')) role = 'non_staff';
+        else if (role.startsWith('ext')) role = 'external_guide';
+        else if (!role) role = 'student';
+
         return {
           name,
-          role: role.toLowerCase().startsWith('t') ? 'teacher' : 'student',
-          department
+          role,
+          department,
+          rollNumber,
+          section
         };
       });
 
@@ -361,6 +430,8 @@ export default function Admin() {
                     <option value="all">All roles</option>
                     <option value="student">Students</option>
                     <option value="teacher">Teachers</option>
+                    <option value="non_staff">Non-staff</option>
+                    <option value="external_guide">External guide</option>
                     <option value="admin">Admins</option>
                   </select>
                 </div>
@@ -411,7 +482,18 @@ export default function Admin() {
                                 {m.status.toUpperCase()}
                               </Badge>
                             </td>
-                            <td className="small muted">{m.department || '—'}</td>
+                            <td className="small">
+                              <div>{m.department || '—'}</div>
+                              {(m.rollNumber || m.section) && (
+                                <div
+                                  className="mono small muted"
+                                  style={{ fontSize: '11px', marginTop: '2px' }}
+                                >
+                                  {m.rollNumber && <span>Roll: {m.rollNumber} </span>}
+                                  {m.section && <span>Sec: {m.section}</span>}
+                                </div>
+                              )}
+                            </td>
                             <td style={{ textAlign: 'right', position: 'relative' }}>
                               {!isAdmin && !isSelf && (
                                 <div style={{ display: 'inline-block', position: 'relative' }}>
@@ -720,26 +802,134 @@ export default function Admin() {
           {/* TAB 4: ADD MEMBERS */}
           {tab === 'create' && (
             <div className="stack narrow">
-              <form className="form" onSubmit={handleAddMembers}>
-                <h3>Create member accounts</h3>
-                <p className="muted small" style={{ margin: 0 }}>
-                  Enter one person per line: <code>Name, role, department</code> (e.g.{' '}
-                  <code>Ravi K, teacher, Science</code> or <code>Meera P, student</code>).
-                </p>
-                <Field
-                  label="Members list"
-                  id="members-bulk"
-                  as="textarea"
-                  rows={6}
-                  className="mono"
-                  value={lines}
-                  onChange={(e) => setLines(e.target.value)}
-                  placeholder="Ravi K, teacher, Science&#10;Meera P, student"
-                />
-                <Button type="submit" variant="dark" disabled={!lines.trim() || creating}>
-                  {creating ? 'Creating…' : 'Generate accounts'}
-                </Button>
-              </form>
+              <div className="chips" style={{ marginBottom: '16px' }}>
+                <Chip active={addMode === 'single'} onClick={() => setAddMode('single')}>
+                  Add individual member
+                </Chip>
+                <Chip active={addMode === 'bulk'} onClick={() => setAddMode('bulk')}>
+                  Bulk CSV import
+                </Chip>
+              </div>
+
+              {addMode === 'single' ? (
+                <form className="form" onSubmit={handleCreateSingleMember}>
+                  <h3>Create member account</h3>
+                  <p className="muted small" style={{ margin: 0 }}>
+                    Add a new campus member. Credentials will be generated and printed once below.
+                  </p>
+                  <Field
+                    label="Full Name"
+                    id="new-member-name"
+                    value={memberForm.name}
+                    maxLength={60}
+                    placeholder="e.g. Aarav Sharma"
+                    required
+                    onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                  />
+
+                  <div className="stack tight">
+                    <label htmlFor="new-member-role">Role</label>
+                    <select
+                      id="new-member-role"
+                      value={memberForm.roleSelect}
+                      onChange={(e) => setMemberForm({ ...memberForm, roleSelect: e.target.value })}
+                      style={{ height: '48px' }}
+                    >
+                      <option value="student">Student (default)</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="non_staff">
+                        Non-staff (e.g., support or maintenance workers)
+                      </option>
+                      <option value="external_guide">External guide</option>
+                      <option value="custom">Custom role...</option>
+                    </select>
+                  </div>
+
+                  {memberForm.roleSelect === 'custom' && (
+                    <Field
+                      label="Custom role name"
+                      id="new-member-custom-role"
+                      value={memberForm.customRole}
+                      maxLength={40}
+                      placeholder="e.g. Lab Assistant, Placement Officer, Mentor"
+                      required
+                      onChange={(e) => setMemberForm({ ...memberForm, customRole: e.target.value })}
+                    />
+                  )}
+
+                  <Field
+                    label="Department / Program"
+                    id="new-member-dept"
+                    value={memberForm.department}
+                    maxLength={80}
+                    placeholder="e.g. Computer Science and Engineering, AI & ML"
+                    onChange={(e) => setMemberForm({ ...memberForm, department: e.target.value })}
+                  />
+
+                  <div className="row" style={{ gap: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <Field
+                        label="Roll Number (optional)"
+                        id="new-member-roll"
+                        value={memberForm.rollNumber}
+                        maxLength={40}
+                        placeholder="e.g. 4SH25CI21 or 12"
+                        onChange={(e) =>
+                          setMemberForm({ ...memberForm, rollNumber: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Field
+                        label="Section / Classroom (optional)"
+                        id="new-member-sec"
+                        value={memberForm.section}
+                        maxLength={40}
+                        placeholder="e.g. A, B, or 402"
+                        onChange={(e) => setMemberForm({ ...memberForm, section: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '8px' }}>
+                    <Button
+                      type="submit"
+                      variant="dark"
+                      loading={addingSingle}
+                      disabled={!memberForm.name.trim() || addingSingle}
+                    >
+                      Add member
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <form className="form" onSubmit={handleAddMembers}>
+                  <h3>Bulk create member accounts</h3>
+                  <p className="muted small" style={{ margin: 0 }}>
+                    Enter one person per line:{' '}
+                    <code>Name, role, department, rollNumber, section</code>. Role defaults to{' '}
+                    <strong>student</strong> if omitted.
+                  </p>
+                  <Field
+                    label="Members list"
+                    id="members-bulk"
+                    as="textarea"
+                    rows={6}
+                    className="mono"
+                    value={lines}
+                    onChange={(e) => setLines(e.target.value)}
+                    placeholder="Ravi K, teacher, Science&#10;Meera P, student, CS, 4SH25CS01, A&#10;Suresh M, non_staff, Maintenance"
+                  />
+                  <Button
+                    type="submit"
+                    variant="dark"
+                    loading={creating}
+                    disabled={!lines.trim() || creating}
+                  >
+                    Generate accounts
+                  </Button>
+                </form>
+              )}
 
               {createdMembers.length > 0 && (
                 <Card>
@@ -762,7 +952,9 @@ export default function Admin() {
                         {createdMembers.map((c) => (
                           <tr key={c.username}>
                             <td>{c.name}</td>
-                            <td>{c.role}</td>
+                            <td>
+                              <Badge variant={c.role}>{c.role.toUpperCase()}</Badge>
+                            </td>
                             <td className="mono">{c.username}</td>
                             <td className="mono" style={{ fontWeight: 700 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -16,6 +16,9 @@ export default function Profile() {
   const { showToast } = useToast();
   const [name, setName] = useState(user.displayName);
   const [bio, setBio] = useState(user.bio || '');
+  const [department, setDepartment] = useState(user.department || '');
+  const [rollNumber, setRollNumber] = useState(user.rollNumber || '');
+  const [section, setSection] = useState(user.section || '');
   const [pw, setPw] = useState({ current: '', next: '' });
   const [saving, setSaving] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
@@ -40,7 +43,13 @@ export default function Profile() {
     setErr('');
     setMsg('');
     try {
-      await api.patch('/auth/profile', { displayName: name, bio });
+      await api.patch('/auth/profile', {
+        displayName: name,
+        bio,
+        department,
+        rollNumber,
+        section
+      });
       await refresh();
       const successMsg = 'Profile updated successfully.';
       setMsg(successMsg);
@@ -142,7 +151,12 @@ export default function Profile() {
         <div>
           <div className="big-name">{user.displayName}</div>
           <div className="mono muted">@{user.username}</div>
-          <Badge variant={user.role}>{user.role.toUpperCase()}</Badge>
+          <div className="row" style={{ gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+            <Badge variant={user.role}>{user.role.toUpperCase()}</Badge>
+            {user.department && <Badge>{user.department}</Badge>}
+            {user.rollNumber && <Badge>Roll: {user.rollNumber}</Badge>}
+            {user.section && <Badge>Sec: {user.section}</Badge>}
+          </div>
         </div>
       </div>
       <div className="card narrow" style={{ marginBottom: '24px' }}>
@@ -155,6 +169,36 @@ export default function Profile() {
             maxLength={60}
             onChange={(e) => setName(e.target.value)}
           />
+          <Field
+            label="Department / Program"
+            id="profile-department"
+            value={department}
+            maxLength={80}
+            placeholder="e.g. Computer Science and Engineering"
+            onChange={(e) => setDepartment(e.target.value)}
+          />
+          <div className="row" style={{ gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <Field
+                label="Roll Number"
+                id="profile-roll"
+                value={rollNumber}
+                maxLength={40}
+                placeholder="e.g. 4SH25CI21 or 12"
+                onChange={(e) => setRollNumber(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field
+                label="Section / Classroom"
+                id="profile-section"
+                value={section}
+                maxLength={40}
+                placeholder="e.g. A, B, or 402"
+                onChange={(e) => setSection(e.target.value)}
+              />
+            </div>
+          </div>
           <Field
             label="Short bio (160 characters)"
             id="profile-bio"
